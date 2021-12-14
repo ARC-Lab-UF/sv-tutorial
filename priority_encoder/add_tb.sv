@@ -1,4 +1,8 @@
-`timescale 1 ns / 100 ps
+// Greg Stitt
+// University of Florida
+// Description: This file provides testbenches for the modules in add.sv.
+
+`timescale 1 ns / 10 ps
 
 module add_tb;
 
