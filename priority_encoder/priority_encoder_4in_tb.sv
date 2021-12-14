@@ -21,7 +21,7 @@ module priority_encoder_4in_tb;
 	 #10;
 
 	 for (int j=3; j >= 0; j--) begin
-	    if (inputs[i] == 1'b1) begin
+	    if (inputs[j] == 1'b1) begin
 	       correct_result = j;
 	       break;
 	    end	    
@@ -30,10 +30,10 @@ module priority_encoder_4in_tb;
 	 correct_valid = inputs != 4'b0;
 
 	 if (result != correct_result)
-	   $display("ERROR (time %0t): result = %b instead of %d.", $realtime, result, correct_result);
+	   $display("ERROR (time %0t): result = %b instead of %b.", $realtime, result, correct_result);
 
 	 if (valid != correct_valid)
-	   $display("ERROR (time %0t): valid = %b instead of %d.", $realtime, valid, correct_valid);	 
+	   $display("ERROR (time %0t): valid = %b instead of %b.", $realtime, valid, correct_valid);	 
       end
    end
 endmodule
