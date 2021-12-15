@@ -1,18 +1,27 @@
 // Greg Stitt
 // University of Florida
+//
+// This file demonstrates how to use a loop to generate a structural pattern
+// in a circuit. Specifically, it creates a ripple carry adder with a
+// parameterized width by instantiating full adders in a loop.
+//
+// See ripple_carry_adder.pdf for an illustration of the schematic being
+// created. Remember that all strucutural architectures should start from a
+// schematic.
+
 
 // Module: full_adder
 // Description: A basic behavioral implementation of a full adder.
 
 module full_adder
   (
-   input logic 	a,b,cin,
+   input logic 	x, y, cin,
    output logic s, cout
    );
 
    // Specify the sum and carry out logic equations for a full adder.
-   assign s = a ^ b ^ cin;
-   assign cout = (a & b) | (cin & (a ^ b));
+   assign s = x ^ y ^ cin;
+   assign cout = (x & y) | (cin & (x ^ y));
    
 endmodule // full_adder
 
@@ -27,7 +36,7 @@ module ripple_carry_adder
     parameter WIDTH=8
     )
    (
-    input logic [WIDTH-1:0]  in0, in1,
+    input logic [WIDTH-1:0]  x, y,
     input logic 	     cin,
     output logic [WIDTH-1:0] sum,
     output logic 	     cout
@@ -51,7 +60,7 @@ module ripple_carry_adder
    genvar 		     i;
    generate
       for (i=0; i < WIDTH; i++) begin : ripple_carry
-	 full_adder FA (.a(in0[i]), .b(in1[i]), .s(sum[i]),
+	 full_adder FA (.x(x[i]), .y(y[i]), .s(sum[i]),
 			.cin(carry[i]), .cout(carry[i+1]));	 
       end      
    endgenerate
@@ -67,7 +76,7 @@ module ripple_carry_adder2
     parameter WIDTH=8
     )
    (
-    input logic [WIDTH-1:0]  in0, in1,
+    input logic [WIDTH-1:0]  x, y,
     input logic 	     cin,
     output logic [WIDTH-1:0] sum,
     output logic 	     cout
@@ -81,7 +90,7 @@ module ripple_carry_adder2
    // always block, so the body can only make continuous assignments or module
    // instantiations.
    for (genvar i=0; i < WIDTH; i++) begin : ripple_carry
-      full_adder FA (.a(in0[i]), .b(in1[i]), .s(sum[i]),
+      full_adder FA (.x(x[i]), .y(y[i]), .s(sum[i]),
 		     .cin(carry[i]), .cout(carry[i+1]));	 
    end      
 

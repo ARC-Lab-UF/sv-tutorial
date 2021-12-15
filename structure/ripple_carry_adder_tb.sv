@@ -7,7 +7,7 @@ module ripple_carry_adder_tb;
 
    localparam NUM_TESTS = 1000;   
    localparam WIDTH = 8;  
-   logic [WIDTH-1:0] in0, in1, sum, correct_sum;
+   logic [WIDTH-1:0] x, y, sum, correct_sum;
    logic 	     cin, cout, correct_cout;
          
    ripple_carry_adder UUT (.*);
@@ -16,11 +16,11 @@ module ripple_carry_adder_tb;
       $timeformat(-9, 0, " ns");
       
       for (int i=0; i < NUM_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = $random;
+	 x = $random;
+	 y = $random;
 	 cin = $random;
 	 #10;
-	 {correct_cout, correct_sum} = in0 + in1 + cin;	 
+	 {correct_cout, correct_sum} = x + y + cin;	 
 	 if (sum != correct_sum)
 	   $display("ERROR (time %0t): sum = %d instead of %d.", $realtime, sum, correct_sum);      	    
 
