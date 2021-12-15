@@ -15,6 +15,8 @@ module mux4x1_tb;
    mux4x1 DUT (.*);
 
    initial begin
+      $timeformat(-9, 0, " ns");
+      
       // Iterate over all inputs and select values.
       for (int i=0; i < 2**$bits(inputs); i++) begin
 	 inputs = i;
