@@ -111,9 +111,9 @@ module delay
    // unpacked array. Mmost people are used to thinking of arrays starting at 
    // index 0, and the MSB starting at the highest number.
    //
-   // VHDL COMPARISON: packed arrays missing from VHDL, where you instead have
-   // to create a custom array type. In SV, every signal can become an unpacked
-   // array simply by adding [], which is very convenient.
+   // VHDL COMPARISON: packed arrays are missing from VHDL, where you instead 
+   // have to create a custom array type. In SV, every signal can become an
+   // unpacked array simply by adding [], which is very convenient.
    logic [WIDTH-1:0] 	     regs[CYCLES+1];
    
    if (CYCLES == 0) begin
