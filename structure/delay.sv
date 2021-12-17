@@ -108,7 +108,7 @@ module delay
    //
    // The CYCLES+1 notation is short for [0:CYCLES+1-1]. A common convention is
    // to use "downto" syntax for the packed array, and "to" syntax for the
-   // unpacked array. Mmost people are used to thinking of arrays starting at 
+   // unpacked array. Most people are used to thinking of arrays starting at 
    // index 0, and the MSB starting at the highest number.
    //
    // VHDL COMPARISON: packed arrays are missing from VHDL, where you instead 
