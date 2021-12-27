@@ -333,5 +333,8 @@ module fifo_tb5;
    endproperty
             
    ap_check_output : assert property (check_output);
+
+   c_full_writes : cover property (@(posedge clk) wr_en && full);
+   
       
 endmodule
