@@ -52,7 +52,7 @@ module register_tb;
 
    logic [WIDTH-1:0] prev_out, prev_in, prev_en;
    
-   always begin : output_check
+   always begin : check_output
       // On each rising edge, save the previous input and output values.
       @(posedge clk);
       prev_en = en;
