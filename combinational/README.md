@@ -12,10 +12,10 @@ As with all circuits, first design the combinational circuit, then write the cod
     - Introduces basic constructs and guidelines for cobminational logic. 
     - Includes a top-level module mux2x1 that allows you to change the module that is synthesized.
     - Includes a testbench that tests all included modules at the same time.
-1. [4-input Priority Encoder](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/priority_encooder_4in.sv)
+1. [4-input Priority Encoder](https://github.com/ARC-Lab-UF/sv-tutorial/blob/main/combinational/priority_encoder_4in.sv)
     - Introduces packed arrays.
     - Discusses appropriate situations for if and case statements.
-1. [Parameterized Priority Encoder](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/priority_encooder.sv)
+1. [Parameterized Priority Encoder](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/priority_encoder.sv)
     - Introduces parameters to support any number of inputs.
     - Introduces for loops.
     - Discusses appropriate situations for if and case statements.
