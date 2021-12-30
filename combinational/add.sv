@@ -37,7 +37,7 @@ module add_carry_out_bad
    logic [WIDTH:0] 	     full_sum;   
    
    always_comb begin
-      // This incorrect implementation uses a non-block assignment to full_sum,
+      // This incorrect code uses a non-blocking assignment to full_sum,
       // which is only updated at the end of the always block. Non-blocking
       // assignments cause subsequent accesses to the variable to use the
       // previous value. When simulated, sum and carry_out will reflect the
