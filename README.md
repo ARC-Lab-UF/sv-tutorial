@@ -13,7 +13,7 @@ My biggest suggestion for writing synthesizable code in any language is to desig
 # Suggested Study Order
 
 1. [Combinational Logic](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational)
-1. [Structural Architectures](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/structure)
+1. [Structural Architectures](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/structural)
 1. [Sequential Logic](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/sequential)
 1. [Finite-State Machines](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/fsm)
 1. [Finite-State Machines + Datapaths (TBD)]()
