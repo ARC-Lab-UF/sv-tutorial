@@ -10,9 +10,9 @@ in the structure that can be described with generate constructs, as the examples
 
 # Suggested Study Order
 
-1. [4:1 mux](./mux4x1.sv)
-    - Illustrates the basic techniques for converting a schematic (in this case [mux4x1](./mux4x1.pdf)) into SystemVerilog code.    
-1. [Ripple-Carry Adder](./ripple_carry_adder.sv)
+1. [4:1 mux](mux4x1.sv)
+    - Illustrates the basic techniques for converting a schematic (in this case [mux4x1.pdf](mux4x1.pdf)) into SystemVerilog code.    
+1. [Ripple-Carry Adder](ripple_carry_adder.sv)
     - Introduces parameters and the for-generate construct.    
     - See the schematic [ripple_carry_adder.pdf](ripple_carry_adder.pdf) for reference.
 1. [Delay](delay.sv)
