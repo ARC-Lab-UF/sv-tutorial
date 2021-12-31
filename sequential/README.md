@@ -20,7 +20,7 @@ and placement of all registers. With this schematic, you can easily apply the gu
     - See [architectures.pdf](architectures.pdf) for different example circuits. Each one has a corresponding module in [seq_example.sv](seq_example.sv).
     - Illustrates common mistakes with sequential logic.
     - Goes over the use of non-blocking assignments and blocking assignments to accomplish different goals.
-    - Suggestion: synthesize each module and use an RTL viewer to ensure the schematic matches the architecture in the pdf.
+    - Suggestion: synthesize each module and use an RTL viewer to ensure the schematic matches the architecture in the pdf. There are no provided testbenches for these modules. 
 1. [Delay (TBD)]()
     
 
