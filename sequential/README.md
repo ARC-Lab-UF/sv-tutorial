@@ -14,16 +14,13 @@ and placement of all registers. With this schematic, you can easily apply the gu
 
 # Suggested Study Order
 
-1. [4:1 mux](mux4x1.sv)
-    - Illustrates the basic techniques for converting a schematic (in this case [mux4x1.pdf](mux4x1.pdf)) into SystemVerilog code.    
-1. [Ripple-Carry Adder](ripple_carry_adder.sv)
-    - Introduces parameters and the for-generate construct.    
-    - See the schematic [ripple_carry_adder.pdf](ripple_carry_adder.pdf) for reference.
-    - ***Important point:*** Use the "for generate" statement anytime that there is a pattern in a structural description. This construct will allow you to specify very large structures with very little code.
-1. [Delay](delay.sv)
-    - Introduces unpacked arrays, if generate, and parameter validation techniques.    
-    - See the schematic [delay.pdf](delay.pdf) for reference.
-1. [Add Tree (TBD)]()
-    - Introduces recursion.    
+1. [Register](register.sv)
+    - Illustrates how to create an asynchronous reset, a synchronous reset, an enable/load, and a highly parameterized register with different reset types and activiation levels.
+1. [Examples of Synthesizing Behavioral Code to a Specific Structure](seq_example.sv)
+    - See [architectures.pdf](architectures.pdf) for different example circuits. Each one has a corresponding module in [seq_example.sv](seq_example.sv).
+    - Illustrates common mistakes with sequential logic.
+    - Goes over the use of non-blocking assignments and blocking assignments to accomplish different goals.
+    - Suggestion: synthesize each module and use an RTL viewer to ensure the schematic matches the architecture in the pdf.
+1. [Delay (TBD)]()
     
 
