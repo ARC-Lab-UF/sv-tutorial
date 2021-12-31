@@ -118,19 +118,41 @@ module register
     input logic [WIDTH-1:0]  in,
     output logic [WIDTH-1:0] out
     );
-
-   // Use generate statements to allow for a fully parameterized register
-   generate
-      if (HAS_ASYNC_RESET) begin
-	 // Create an async reset.
-	 always_ff @(posedge clk or posedge rst) begin
-	    // Explicitly check the activation level of the reset to support
-	    // active high or low.
-	    if (rst == RESET_ACTIVATION_LEVEL)
-	      // Use the reset value parameter instead of 0.
-	      out <= RESET_VALUE;
-	    else if (en)
-	      out <= in;    	
+   
+   // Use generate statements to allow for a fully parameterized register.
+   // Generally, this much parameterization for sequential logic becomes
+   // cumbersome and error prone because of copying and pasting.
+   // When targetting FPGAs, I suggest using asynchronous resets in most cases
+   // since they tend to use fewer resources than synchronous resets.
+   // For activation levels, one small disadvantage of parameterization is that
+   // the name of the reset signal can't specify the activation level (e.g.
+   // rst_n vs rst).
+   // In addition, another disadvantage of this much parameterization is that it
+   // complicates testing and verification. 
+   generate      
+      if (HAS_ASYNC_RESET) begin	 
+	 if (RESET_ACTIVATION_LEVEL) begin
+	    // Create an active high async reset.
+	    // TODO: See if all synthesis tools support (posedge clk or rst),
+	    // which would eliminate the if-else for activation level.
+	    always_ff @(posedge clk or posedge rst) begin
+	       // Explicitly check the activation level of the reset to support
+	       // active high or low.
+	       if (rst == RESET_ACTIVATION_LEVEL)
+		 // Use the reset value parameter instead of 0.
+		 out <= RESET_VALUE;
+	       else if (en)
+		 out <= in;    	
+	    end
+	 end
+	 else begin
+	    // Create an active low async reset.
+	    always_ff @(posedge clk or negedge rst) begin
+	       if (rst == RESET_ACTIVATION_LEVEL)
+		 out <= RESET_VALUE;
+	       else if (en)
+		 out <= in;    	
+	    end
 	 end
       end
       else begin
@@ -143,5 +165,5 @@ module register
 	 end	
       end
    endgenerate   
-endmodule // reg
+endmodule // register
 
