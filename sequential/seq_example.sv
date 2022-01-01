@@ -26,7 +26,7 @@
 // If you don't want a register on a particular assignment, that means that 
 // the assignment corresponds to an output of combinational logic. You should 
 // therefore move the assignment outside a block, or into a separate 
-// block that follows my guidelines for combinational logic.
+// block that follows my guidelines for combinational logic. 
 
 // INSTRUCTIONS: Please see architectures.pdf for the corresponding schematic
 // of each of the following architectures. Use the seq_example module at the
