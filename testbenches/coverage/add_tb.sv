@@ -227,7 +227,7 @@ module add_tb3;
       //
       // For this cross, we are crossing existing coverpoints. Because each of
       // those points most likely has 64 bins, the cross coverage will have
-      // 64*64 = 4096 points. Because this testbench is only performing 1000
+      // 64*64 = 4096 bins. Because this testbench is only performing 1000
       // random tests, it is impossible for us to achieve 100% coverage here.
       in0_cross_in1 : cross in0_bin, in1_bin;
 
