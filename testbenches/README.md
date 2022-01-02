@@ -15,7 +15,17 @@ testbench strategies, to more advanced and more formal strategies such as UVM.
 
 ## Basic testbench constructs
 
-1. TBD
+In the combinational and sequential logic tutorials, there are examples of non-ideal, but easy to understand testbenches for each examples. We will later improve upon all these
+examples, here are are two simple examples to introduce the basic testbench constructs.
+
+1. [2:1 Mux](../combinational/mux2x1_tb.sv)
+    - Corresponding [module](../combinational/mux2x1.sv) and [testbench](../combinational/mux2x1_tb.sv).
+    - Basic introduction into testbenches. Introduces timescale, waiting, functions, $timeformat, and $display.
+
+1. [Register](../sequential/register_tb.sv)
+    - Corresponding [module](../sequential/register.sv) and [testbench](../sequential/register_tb.sv).
+    - Introduces clock generation, waiting for rising edges, $random, $stop, $finish, disable.
+
     
 ## Assertions
 
@@ -24,7 +34,7 @@ more powerful construct that can be used to very that any condition is true at a
 to verify complex behaviors concisely. In many cases, assertion propeties can completely eliminate the need for a separate reference model that provides correct functionality 
 for comparison.
 
-1. [2:1 Mux](assertions/mux2x1_tb.sv)
+1. [2:1 Mux (Different than earlier example)](assertions/mux2x1_tb.sv)
     - Corresponding [module](assertions/mux2x1.sv) and [testbench](assertions/mux_2x1_tb.sv).
     - Shows basic syntax for immediate assertions.    
 1. [Flip-flop](assertions/ff_tb.sv)
