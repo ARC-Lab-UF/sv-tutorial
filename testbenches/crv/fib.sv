@@ -11,7 +11,8 @@ module fib
    typedef enum {START, COND, COMPUTE, DONE, RESTART} state_t;
    state_t state_r;   
 
-   logic [$bits(n)-1:0] n_r, i_r;
+   logic [$bits(n)-1:0] n_r;
+   logic [$bits(n):0] i_r;
    logic [$bits(result)-1:0] x_r, y_r;   
    
    always_ff @(posedge clk or posedge rst) begin
