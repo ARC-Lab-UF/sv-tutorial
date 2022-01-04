@@ -62,9 +62,8 @@ module fib
 	      else
 		result <= y_r;
 	      
-	      done <= 1'b1;
-	      if (go == 1'b0)
-		state_r <= RESTART;	      	     
+	      done <= 1'b1;	      
+	      state_r <= RESTART;	      	     
 	   end
 
 	   RESTART : begin

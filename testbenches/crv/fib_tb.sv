@@ -647,9 +647,7 @@ class driver3;
 	 // then the DUT should be inactive and ready for another test.  
 	 if (vif.done || is_first_test)
 	   is_active = 1'b0;
-	 else
-	   is_active = 1'b1;
-
+	 	 
 	 //if (vif.n == 2)
 	 //  $display("Time %0t [Driver]: DEBUG n=%0d, is_active=%0b, go=%0b, done=%0b.", $time, vif.n, is_active, vif.go, vif.done);
 	 	 
@@ -659,7 +657,7 @@ class driver3;
 	 // the testbench to test assertions of go that don't correspond to
 	 // the start of a test because the DUT is already active. The DUT
 	 // should ignore these assertions.
-	 if (!is_active && vif.go) begin
+	 if (!is_active && vif.go) begin	    
 	    $display("Time %0t [Driver]: Sending start of test for n=%0d.", $time, item.n);
 	    scoreboard_n_mailbox.put(item);
 	    is_active = 1'b1;	    
@@ -809,7 +807,7 @@ endclass
 
 module fib_tb5;
    
-   localparam NUM_TESTS = 200;
+   localparam NUM_TESTS = 10000;
    logic 	     clk;
    env2 #(.num_tests(NUM_TESTS)) _env = new;
    
@@ -833,7 +831,7 @@ module fib_tb5;
       _env.run();
       disable generate_clock;      
    end
-         
-   //assert property (@(posedge _if.clk) $rose(_if.go) |=> !_if.done);
+      
+   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
      
 endmodule // fib_tb5
