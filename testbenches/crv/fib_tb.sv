@@ -1029,7 +1029,7 @@ class scoreboard3 #(int num_tests);
    endtask
 
    function void report_status();     
-      $display("Tests completed: %0d passed, %0d failed", passed, failed);
+      $display("%0d total tests: %0d passed, %0d failed", passed+failed, passed, failed);
    endfunction   
    
 endclass // scoreboard3
@@ -1268,6 +1268,10 @@ class env4 #(int num_tests, bit use_consecutive_inputs=1'b0,
       scoreboard = new(scoreboard_n_mailbox, scoreboard_result_mailbox);
    endfunction // new
 
+   function void report_status();
+      scoreboard.report_status();
+   endfunction
+   
    virtual 	     task run();      
       fork
 	 gen.run();
@@ -1276,12 +1280,12 @@ class env4 #(int num_tests, bit use_consecutive_inputs=1'b0,
 	 scoreboard.run();	 
       join_any
 
-      scoreboard.report_status(); 
+      disable fork;      
    endtask // run   
 endclass // env4
 
 
-class test #(int num_tests, bit use_consecutive_inputs=1'b0,
+class test #(string name="default_test_name", int num_tests, bit use_consecutive_inputs=1'b0,
 	     bit use_one_test_at_a_time=1'b0, int repeats=0 );
 
    virtual 	 fib_if vif;
@@ -1290,6 +1294,11 @@ class test #(int num_tests, bit use_consecutive_inputs=1'b0,
    function new(virtual fib_if _vif);
       vif = _vif;      
    endfunction // new
+
+   function void report_status();
+      $display("Results for Test %0s", name);      
+      e.report_status();
+   endfunction
    
    task run();
       $display("Time %0t [Test]: Starting test.", $time);      
@@ -1317,8 +1326,8 @@ module fib_tb7;
    fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
 	    .done(_if.done), .n(_if.n), .result(_if.result));
 
-   test #(.num_tests(NUM_TESTS), .repeats(1)) test0 = new(_if);
-   test #(.num_tests(10), .use_consecutive_inputs(1'b1), .use_one_test_at_a_time(1'b1)) test1 = new(_if);
+   test #(.name("Random Test"), .num_tests(1000)) test0 = new(_if);
+   test #(.name("Consecutive Test"), .num_tests(200), .use_consecutive_inputs(1'b1), .use_one_test_at_a_time(1'b1)) test1 = new(_if);
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1327,8 +1336,10 @@ module fib_tb7;
    
    initial begin      
       $timeformat(-9, 0, " ns");
-      test0.run();
-      //test1.run();      
+      test0.run();      
+      test1.run();
+      test0.report_status();
+      test1.report_status();      
       disable generate_clock;      
    end
       
