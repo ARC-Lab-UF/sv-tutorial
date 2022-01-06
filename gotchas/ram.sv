@@ -1,5 +1,8 @@
 // Greg Stitt
 // University of Florida
+//
+// TODO: Add testbench to see how Modelsim handles these examples. Also, check
+// synthesis results in Quartus to see how the RAM is getting synthesized.
 
 // Module: ram
 // Description: This module implements a problematic RAM to demonstrate a
@@ -43,6 +46,35 @@ module ram
       // We have a similar issue here. In fact, this could potentially be worse
       // be writes to addresses >= 64 would overwrite data in the RAM, which
       // could be difficult to debug.
+      if (wr_en)
+	ram[wr_addr] <= wr_data;      
+   end
+            
+endmodule
+
+
+// Module: ram2
+// Description: A similar ram that demonstrates a similar problem where
+// the RAM has more words than can be accessed by a corresponding address.
+// Like before, Quartus reports no warnings.
+
+module ram2
+   (
+    input logic 	clk,
+    input logic [7:0] 	rd_addr,
+    output logic [15:0] rd_data,
+    
+    input logic 	wr_en,
+    input logic [7:0] 	wr_addr,
+    input logic [15:0] 	wr_data
+    );
+
+   // Here, we make the RAM 1024 words. With an 8-bit address, most of this
+   // RAM is inaccessible. However, Quartus reports no warnings. 
+   logic [15:0] 	ram[1024];
+
+   always_ff @(posedge clk) begin
+      rd_data <= ram[rd_addr];
       if (wr_en)
 	ram[wr_addr] <= wr_data;      
    end
