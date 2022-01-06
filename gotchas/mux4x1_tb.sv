@@ -57,5 +57,6 @@ module mux4x1_tb;
 	 //  $display("ERROR (time %0t): out = %b instead of %b.", $realtime, out, inputs[sel]);
       end
    end 
-endmodule
+endmodule // mux4x1_tb
+
    
