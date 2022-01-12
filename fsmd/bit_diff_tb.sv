@@ -10,8 +10,13 @@ module bit_diff_tb;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
    int 					passed, failed, reference;
    
-   bit_diff_fsmd_1p #(WIDTH) DUT (.*);
-
+   //bit_diff_fsmd_1p #(WIDTH) DUT (.*);
+   //bit_diff_fsmd_2p #(WIDTH) DUT (.*);
+   //bit_diff_fsm_plus_d1 #(WIDTH) DUT (.*);
+   //bit_diff_fsm_plus_d2 #(WIDTH) DUT (.*);
+   //bit_diff_fsm_plus_d3 #(WIDTH) DUT (.*);
+   bit_diff_fsm_plus_d4 #(WIDTH) DUT (.*);
+   
    // Reference model for correct result.
    function int model(int data, int width);
       automatic int 		     diff = 0;
@@ -96,7 +101,7 @@ module bit_diff_tb2;
    int 					passed, failed, reference;
    
    bit_diff_fsmd #(WIDTH) DUT (.*);
-
+ 
    function int model(int data, int width);
       automatic int 		     diff = 0;
       
@@ -150,3 +155,5 @@ module bit_diff_tb2;
    assert property (@(posedge clk) disable iff (rst) go && done |=> !done);
    
 endmodule
+
+

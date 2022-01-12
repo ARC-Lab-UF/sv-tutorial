@@ -262,3 +262,727 @@ module bit_diff_fsmd_2p
       endcase	  
    end      
 endmodule
+
+
+
+module register
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 	     clk,
+    input logic 	     rst,
+    input logic 	     en,
+    input logic [WIDTH-1:0]  in,
+    output logic [WIDTH-1:0] out
+    );
+
+   // Sequential logic should usually use the always_ff block. For a register
+   // or flip flop with an asynchronous reset, we want to update the output
+   // on any rising clock edge or reset edge.
+   always_ff @(posedge clk or posedge rst) begin      
+      if (rst)
+	out <= '0;
+      else if (en)
+	out <= in;
+   end
+endmodule // reg
+
+
+module mux2x1
+  #(
+    parameter WIDTH
+    )
+  (
+   input logic [WIDTH-1:0]  in0,
+   input logic [WIDTH-1:0]  in1,
+   input logic 		    sel,
+   output logic [WIDTH-1:0] out
+   );
+
+   assign out = sel == 1'b1 ? in1 : in0;
+
+endmodule
+
+module add
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic [WIDTH-1:0]  in0, in1,
+    output logic [WIDTH-1:0] sum
+    );
+
+   assign sum = in0 + in1;
+   
+endmodule
+
+
+module shift_right
+  #(
+    parameter WIDTH,
+    parameter SHIFT_AMOUNT
+    )
+   (
+    input logic [WIDTH-1:0]  in,
+    output logic [WIDTH-1:0] out
+    );
+
+   assign out = in >> SHIFT_AMOUNT;
+      
+endmodule
+
+
+module eq
+  #(
+    parameter WIDTH   
+    )
+   (
+    input logic [WIDTH-1:0] in0, in1,
+    output logic 	    out
+    );
+
+   assign out = in0 == in1 ? 1'b1 : 1'b0;
+         
+endmodule
+
+
+//`default_nettype none
+module datapath1
+  #(
+    parameter WIDTH
+    )
+   (
+    input  var logic clk,
+    input  var logic rst,
+    input  var logic [WIDTH-1:0] data, 
+    input  var logic data_sel,
+    input  var logic data_en,
+    input  var logic diff_sel,
+    input  var logic diff_en,
+    input  var logic count_sel,
+    input  var logic count_en,
+    input  var logic result_en,
+    output logic count_done,
+    output logic [$clog2(WIDTH*2+1)-1:0] result
+    );
+
+   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+      
+   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, diff_mux;
+  		     
+   // Mux that defines provides input to the data register.
+   mux2x1 #(.WIDTH(WIDTH)) DATA_MUX (.in0(data_shift), 
+				     .in1(data), 
+				     .sel(data_sel),
+				     .out(data_mux));
+
+   // The data register.
+   register #(.WIDTH(WIDTH)) DATA_REG (.en(data_en), 
+					.in(data_mux), 
+					.out(data_r), 
+					.*);
+   // Shifter for the data register.
+   shift_right #(.WIDTH(WIDTH), 
+		 .SHIFT_AMOUNT(1)) DATA_SHIFT (.in(data_r), 
+					       .out(data_shift));         
+
+   // Selects between a 1 or -1 input to the adder.
+   mux2x1 #(.WIDTH(DIFF_WIDTH)) ADD_IN1_MUX(.in0(DIFF_WIDTH'(-1)), 
+					    .in1(DIFF_WIDTH'(1)), 
+					    .sel(data_r[0]),
+					    .out(add_in1_mux));
+   
+   // Adds the current difference with the output of the add_in1_mux (1 or -1).
+   add #(.WIDTH(DIFF_WIDTH)) DIFF_ADD (.in0(diff_r),
+				       .in1(add_in1_mux),
+				       .sum(diff_add));
+   
+   // Selects between 0 or the diff adder.
+   mux2x1 #(.WIDTH(DIFF_WIDTH)) DIFF_MUX (.in0(diff_add), 
+					  .in1(DIFF_WIDTH'(0)), 
+					  .sel(diff_sel),
+					  .out(diff_mux));
+
+   // The diff register.
+   register #(.WIDTH(DIFF_WIDTH)) DIFF_REG (.en(diff_en), 
+				       .in(diff_mux), 
+				       .out(diff_r), 
+				       .*);
+   
+   // The result register.
+   register #(.WIDTH(DIFF_WIDTH)) RESULT_REG (.en(result_en), 
+					      .in(diff_mux), 
+					      .out(result), 
+					      .*);
+   
+   /*********************************************************************/
+   // Counter logic
+
+   logic [WIDTH-1:0] 	     count_mux, count_add, count_r;
+      
+   // Selects between 0 and the count adder.
+   mux2x1 #(.WIDTH(WIDTH)) COUNT_MUX (.in0(count_add), 
+				      .in1(WIDTH'(0)), 
+				      .sel(count_sel),
+				      .out(count_mux));
+
+   // Register for the count.
+   register #(.WIDTH(WIDTH)) COUNT_REG (.en(count_en), 
+					.in(count_mux), 
+					.out(count_r), 
+					.*);
+
+   // Increments the count.
+   add #(.WIDTH(WIDTH)) COUNT_ADD (.in0(WIDTH'(1)),
+				   .in1(count_r),
+				   .sum(count_add));
+   
+   // Comparator to check when the count is complete. Equivalent to
+   // count_r == WIDTH-1 from the FSMD.
+   eq #(.WIDTH(WIDTH)) COUNT_EQ (.in0(count_r),
+				 .in1(WIDTH'(WIDTH-1)),
+				 .out(count_done));   
+   
+endmodule
+//`default_nettype wire   
+
+module datapath2
+  #(
+    parameter WIDTH
+    )
+   (
+    input  var logic clk,
+    input  var logic rst,
+    input  var logic [WIDTH-1:0] data, 
+    input  var logic data_sel,
+    input  var logic data_en,
+    input  var logic diff_sel,
+    input  var logic diff_en,
+    input  var logic count_sel,
+    input  var logic count_en,
+    input  var logic result_en,
+    output logic count_done,
+    output logic [$clog2(WIDTH*2+1)-1:0] result
+    );
+
+   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+      
+   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, diff_mux, result_r;
+   logic [WIDTH-1:0] 	     count_mux, count_add, count_r;
+  		
+   assign data_mux = data_sel ? data : data_shift;
+   assign data_shift = data_r >> 1;
+      
+   assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
+   assign diff_add = diff_r + add_in1_mux;
+   assign diff_mux = diff_sel ? DIFF_WIDTH'(0) : diff_add;  
+
+   assign count_mux = count_sel ? WIDTH'(0) : count_add;
+   assign count_add = count_r + 1;
+   assign count_done = count_r == WIDTH'(WIDTH-1);
+
+   // Not necessary, but complies with my _r naming convention for registers
+   // created in an always block.
+   assign result = result_r;
+      
+   always_ff @(posedge clk or posedge rst) begin
+      if (rst) begin
+	 data_r <= '0;
+	 diff_r <= '0;
+	 result_r <= '0;
+	 count_r <= '0;	 
+      end
+      else begin
+	 if (data_en) data_r <= data_mux;
+	 if (diff_en) diff_r <= diff_mux;
+	 if (result_en) result_r <= diff_mux;
+	 if (count_en) count_r <= count_mux;		 
+      end      
+   end
+                   
+endmodule
+
+  
+module fsm1
+  (
+   input logic 	clk,
+   input logic 	rst,
+   input logic 	go,
+   input logic 	count_done,
+   output logic done,
+   output logic data_sel,
+   output logic data_en,
+   output logic diff_sel,
+   output logic diff_en,
+   output logic count_sel,
+   output logic count_en,
+   output logic result_en
+   );
+   
+   typedef enum {START, COMPUTE, RESTART} state_t;
+   state_t state_r, next_state;
+
+   always_ff @(posedge clk) begin
+      if (rst) state_r <= START;
+      else state_r <= next_state;      
+   end
+
+   always_comb begin
+
+      done = 1'b0;
+
+      result_en = 1'b0;
+      diff_en = 1'b0;
+      count_en = 1'b0;
+      data_en = 1'b0;
+
+      diff_sel = 1'b0;
+      count_sel = 1'b0;
+      data_sel = 1'b0;
+      			
+      case (state_r)
+	START : begin
+
+	   //diff_r <= '0;
+	   diff_en = 1'b1;
+	   diff_sel = 1'b1;
+	  
+	   // count_r <= '0;
+	   count_en = 1'b1;
+	   count_sel = 1'b1;
+ 
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+  
+	   if (go) next_state = COMPUTE;
+	end
+
+	COMPUTE : begin
+	   
+	   // diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;	  
+	   diff_en = 1'b1;
+
+	   // data_r <= data_r >> 1;
+	   data_en = 1'b1;
+
+	   // count_r <= count_r + 1;
+	   count_en = 1'b1;
+
+	   // count_r == WIDTH-1
+	   if (count_done) begin
+	      result_en = 1'b1;	      
+	      next_state = RESTART;
+	   end
+	end
+
+	RESTART : begin
+	   done = 1'b1;
+
+	   //diff_r <= '0;
+	   diff_en = 1'b1;
+	   diff_sel = 1'b1;
+	  
+	   // count_r <= '0;
+	   count_en = 1'b1;
+	   count_sel = 1'b1;
+ 
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+
+	   if (go) next_state = COMPUTE;	   
+	end	
+      endcase            
+   end 
+endmodule
+
+
+module bit_diff_fsm_plus_d1
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+
+   logic 					count_done;   
+   logic 					data_sel;
+   logic 					data_en;
+   logic 					diff_sel;
+   logic 					diff_en;
+   logic 					count_sel;
+   logic 					count_en;
+   logic 					result_en;
+   
+   
+   fsm1 CONTROLLER (.*);
+   datapath1 #(.WIDTH(WIDTH)) DATAPATH (.*);
+      
+endmodule // bit_diff_fsm_plus_d1
+
+
+module bit_diff_fsm_plus_d2
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+
+   logic 					count_done;   
+   logic 					data_sel;
+   logic 					data_en;
+   logic 					diff_sel;
+   logic 					diff_en;
+   logic 					count_sel;
+   logic 					count_en;
+   logic 					result_en;
+   
+   
+   fsm1 CONTROLLER (.*);
+   datapath2 #(.WIDTH(WIDTH)) DATAPATH (.*);
+      
+endmodule // bit_diff_fsm_plus_d2
+    
+
+
+module datapath3
+  #(
+    parameter WIDTH
+    )
+   (
+    input  var logic clk,
+    input  var logic rst,
+    input  var logic [WIDTH-1:0] data, 
+    input  var logic data_sel,
+    input  var logic data_en,
+    input  var logic diff_rst,
+    input  var logic diff_en,
+    input  var logic count_rst,
+    input  var logic count_en,
+    input  var logic result_en,
+    output logic count_done,
+    output logic [$clog2(WIDTH*2+1)-1:0] result
+    );
+
+   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+      
+   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, result_r;
+   logic [WIDTH-1:0] 	     count_add, count_r;
+  		
+   assign data_mux = data_sel ? data : data_shift;
+   assign data_shift = data_r >> 1;
+      
+   assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
+   assign diff_add = diff_r + add_in1_mux;
+
+   assign count_add = count_r + 1;
+   assign count_done = count_r == WIDTH'(WIDTH-1);
+
+   // Not necessary, but complies with my _r naming convention for registers
+   // created in an always block.
+   assign result = result_r;
+
+   // Register tied to the global reset.
+   always_ff @(posedge clk or posedge rst) begin
+      if (rst) begin
+	 data_r <= '0;
+	 result_r <= '0;
+      end
+      else begin
+	 if (data_en) data_r <= data_mux;
+	 if (result_en) result_r <= diff_add;
+      end      
+   end
+
+   // Register for counter, which has its own reset.
+   // This eliminates the need for the count_mux.
+   always_ff @(posedge clk or posedge count_rst) begin
+      if (count_rst) count_r <= '0;	 
+      else if (count_en) count_r <= count_add;      
+   end
+
+   // Register for diff, which has its own reset.
+   // This eliminates the need for the diff_mux.
+   always_ff @(posedge clk or posedge diff_rst) begin
+      if (diff_rst) diff_r <= '0;	 
+      else if (count_en) diff_r <= diff_add;      
+   end
+                   
+endmodule
+
+
+module fsm2
+  (
+   input logic 	clk,
+   input logic 	rst,
+   input logic 	go,
+   input logic 	count_done,
+   output logic done,
+   output logic data_sel,
+   output logic data_en,
+   output logic diff_rst,
+   output logic diff_en,
+   output logic count_rst,
+   output logic count_en,
+   output logic result_en
+   );
+   
+   typedef enum {START, COMPUTE, RESTART} state_t;
+   state_t state_r, next_state;
+
+   always_ff @(posedge clk) begin
+      if (rst) state_r <= START;
+      else state_r <= next_state;      
+   end
+
+   always_comb begin
+
+      done = 1'b0;
+
+      result_en = 1'b0;
+      diff_en = 1'b0;
+      count_en = 1'b0;
+      data_en = 1'b0;
+
+      data_sel = 1'b0;
+
+      diff_rst = 1'b0;
+      count_rst = 1'b0;
+      			
+      case (state_r)
+	START : begin
+
+	   //diff_r <= '0;
+	   diff_rst = 1'b1;
+	  
+	   // count_r <= '0;
+	   count_rst = 1'b1;
+	   
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+  
+	   if (go) next_state = COMPUTE;
+	end
+
+	COMPUTE : begin
+	   
+	   // diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;	  
+	   diff_en = 1'b1;
+
+	   // data_r <= data_r >> 1;
+	   data_en = 1'b1;
+
+	   // count_r <= count_r + 1;
+	   count_en = 1'b1;
+
+	   // count_r == WIDTH-1
+	   if (count_done) begin
+	      result_en = 1'b1;	      
+	      next_state = RESTART;
+	   end
+	end
+
+	RESTART : begin
+	   done = 1'b1;
+
+	   //diff_r <= '0;
+	   diff_rst = 1'b1;
+	   	  
+	   // count_r <= '0;
+	   count_rst = 1'b1;
+	    
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+
+	   if (go) next_state = COMPUTE;	   
+	end	
+      endcase            
+   end 
+endmodule
+
+
+module bit_diff_fsm_plus_d3
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+
+   logic 					count_done;   
+   logic 					data_sel;
+   logic 					data_en;
+   logic 					diff_rst;
+   logic 					diff_en;
+   logic 					count_rst;
+   logic 					count_en;
+   logic 					result_en;
+      
+   fsm2 CONTROLLER (.*);
+   datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
+      
+endmodule // bit_diff_fsm_plus_d3
+
+
+module fsm3
+  (
+   input logic 	clk,
+   input logic 	rst,
+   input logic 	go,
+   input logic 	count_done,
+   output logic done,
+   output logic data_sel,
+   output logic data_en,
+   output logic diff_rst,
+   output logic diff_en,
+   output logic count_rst,
+   output logic count_en,
+   output logic result_en
+   );
+   
+   typedef enum {START, INIT, COMPUTE, RESTART} state_t;
+   state_t state_r, next_state;
+
+   logic 	count_rst_r, next_count_rst;
+   logic 	diff_rst_r, next_diff_rst;
+
+   // Register the controlled asynchronous resets to be safer.
+   assign count_rst = count_rst_r;
+   assign diff_rst = diff_rst_r;
+      
+   always_ff @(posedge clk or posedge rst) begin
+      if (rst) begin
+	 state_r <= START;
+	 count_rst_r <= 1'b1;
+	 diff_rst_r <= 1'b1;	 
+      end
+      else begin
+	 state_r <= next_state;
+	 count_rst_r <= next_count_rst;
+	 diff_rst_r <= next_diff_rst;	 
+      end
+   end
+
+   always_comb begin
+
+      done = 1'b0;
+
+      result_en = 1'b0;
+      diff_en = 1'b0;
+      count_en = 1'b0;
+      data_en = 1'b0;
+
+      data_sel = 1'b0;
+
+      next_diff_rst = 1'b0;
+      next_count_rst = 1'b0;
+      			
+      case (state_r)
+	START : begin
+
+	   //diff_r <= '0;
+	   next_diff_rst = 1'b1;
+	  
+	   // count_r <= '0;
+	   next_count_rst = 1'b1;
+
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+	   
+	   if (go) next_state = INIT;
+	end
+
+	// We need this extra state to allow time for the registered resets
+	// to update.
+	INIT: begin
+	   next_state = COMPUTE;	   
+	end
+
+	COMPUTE : begin
+	   
+	   // diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;	  
+	   diff_en = 1'b1;
+
+	   // data_r <= data_r >> 1;
+	   data_en = 1'b1;
+
+	   // count_r <= count_r + 1;
+	   count_en = 1'b1;
+
+	   // count_r == WIDTH-1
+	   if (count_done) begin
+	      result_en = 1'b1;	      
+	      next_state = RESTART;
+	   end
+	end
+
+	RESTART : begin
+	   done = 1'b1;
+	   
+	   //diff_r <= '0;
+	   next_diff_rst = 1'b1;
+	   	  
+	   // count_r <= '0;
+	   next_count_rst = 1'b1;
+
+	   // data_r <= data
+	   data_en = 1'b1;
+	   data_sel = 1'b1;	  
+
+	   if (go) next_state = INIT;	   
+	end	
+      endcase            
+   end 
+endmodule
+
+
+module bit_diff_fsm_plus_d4
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+
+   logic 					count_done;   
+   logic 					data_sel;
+   logic 					data_en;
+   logic 					diff_rst;
+   logic 					diff_en;
+   logic 					count_rst;
+   logic 					count_en;
+   logic 					result_en;
+      
+   fsm3 CONTROLLER (.*);
+   datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
+      
+endmodule // bit_diff_fsm_plus_d4
