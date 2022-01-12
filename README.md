@@ -16,5 +16,6 @@ My biggest suggestion for writing synthesizable code in any language is to desig
 1. [Structural Architectures](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/structural)
 1. [Sequential Logic](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/sequential)
 1. [Finite-State Machines](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/fsm)
-1. [Finite-State Machines + Datapaths (TBD)]()
+1. [Finite-State Machines + Datapaths](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/fsmd)
+1. [Problematic Coding Practices (Gotchas)](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/gotchas)
 1. [Testbenches](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/testbenches)
