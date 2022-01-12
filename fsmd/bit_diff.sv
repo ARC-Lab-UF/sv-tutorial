@@ -2,9 +2,10 @@
 // University of Florida
 //
 // This file illustrates how to create a controller and datapath to implement
-// a higher-level algorithm.
+// a higher-level algorithm. See bit_diff.pdf for an illustration of the
+// different implementations.
 //
-// The algorithm being implemented is a bit-diffeence calculator. Given a
+// The algorithm being implemented is a bit-difference calculator. Given a
 // parameter for a specified WIDTH, the modules calculate the difference
 // between the number of 1s and 0s. E.g., if there are 3 more 1s than 0s, the
 // out is 3. If there are 3 more 0s than 1s, the output is -3.
@@ -26,30 +27,33 @@
  Parameter Descriptions
  
  WIDTH : An integer representing the bits of the input data (should be > 0) 
-===============================================================================
+ ===============================================================================
 
-===============================================================================
+ ===============================================================================
  Interface Description (all control inputs are active high)
 
  --- INPUTS ---
  clk   : Clock
  rst   : Asynchronous reset
  go    : Asserting starts the calculator for the specific data input. Has no
-         impact when the module is currently active (!done).
+ impact when the module is currently active (!done).
  data  : The input to be used to calculate the bit difference
  
  --- OUTPUTS ---
  result : The calculated result. Is valid when done is asserted.
  done : Asserted when the result output is valid. Remains asserted indefinitely
-        until go is asserted again, and then is cleared on the next cycle.
-============================================================================ */
+ until go is asserted again, and then is cleared on the next cycle.
+ ============================================================================ */
 
 
 ////////////////////////////////////////////////////////////////////////////
 // FSMD implementations
- 
+
 // Module: bit_dff_fsmd_1p
 // Description: A 1-process FSMD implementation of the calculator.
+//
+// See the FSMD illustration in bit_diff.pdf for a graphical representation
+// of this module.
 
 module bit_diff_fsmd_1p
   #(
@@ -60,7 +64,7 @@ module bit_diff_fsmd_1p
     input logic 				rst,
     input logic 				go,
     input logic [WIDTH-1:0] 			data,
-    
+   
     // The range of results can be from WIDTH to -WIDTH, which is
     // 2*WIDTH + 1 possible values, where the +1 includes 0.
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
@@ -134,11 +138,11 @@ module bit_diff_fsmd_1p
 	   COMPUTE : begin
 
 	      // Add one to the difference if asserted, else subtract one.
-	      diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;	  
+	      diff_r <= data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;	  
 
 	      // Shift out the current lowest bit.
 	      data_r <= data_r >> 1;
-	      count_r <= count_r + 1;
+	      count_r <= count_r + 1'b1;
 
 	      // We are done after checking WIDTH bits. The -1 is used because
 	      // the count_r assignment is non-blocking, which means that
@@ -211,7 +215,7 @@ module bit_diff_fsmd_2p
    logic signed [$clog2(2*WIDTH+1)-1:0] 	diff_r, next_diff;
 
    assign result = result_r;
-      
+   
    // The first process simply implements all the registers.
    // Done is now combinational logic, so it doesn't appear here.
    always_ff @(posedge clk or posedge rst) begin
@@ -241,7 +245,7 @@ module bit_diff_fsmd_2p
    always_comb begin
       
       logic [$bits(diff_r)-1:0] diff_temp;
-            
+      
       // Since this is combinational logic, we should never be assigning a
       // _r version of the signals. The left hand side should either be a next_
       // signal, or other variables that correspond to combinational logic.
@@ -259,7 +263,7 @@ module bit_diff_fsmd_2p
       // Done is combinational logic in this module, so it doesn't have a 
       // "next" version. 
       done = 1'b0;
-            
+      
       case (state_r)	
 	START : begin	   
 	   done <= 1'b0;
@@ -284,10 +288,10 @@ module bit_diff_fsmd_2p
 
 	   // To avoid the simulation loop, we simply use a temporary
 	   // variable declared inside the always block.
-	   diff_temp = data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;
+	   diff_temp = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
 	   next_diff = diff_temp;	   
 	   next_data = data_r >> 1;
-	   next_count = count_r + 1;
+	   next_count = count_r + 1'b1;
 
 	   // Here, we could compare with next_count also and get rid of the
 	   // -1. However, that would be non-ideal for two reasons. First,
@@ -368,12 +372,12 @@ module mux2x1
   #(
     parameter WIDTH
     )
-  (
-   input logic [WIDTH-1:0]  in0,
-   input logic [WIDTH-1:0]  in1,
-   input logic 		    sel,
-   output logic [WIDTH-1:0] out
-   );
+   (
+    input logic [WIDTH-1:0]  in0,
+    input logic [WIDTH-1:0]  in1,
+    input logic 	     sel,
+    output logic [WIDTH-1:0] out
+    );
 
    assign out = sel == 1'b1 ? in1 : in0;
 
@@ -403,7 +407,7 @@ module shift_right
     );
 
    assign out = in >> SHIFT_AMOUNT;
-      
+   
 endmodule
 
 module eq
@@ -416,12 +420,14 @@ module eq
     );
 
    assign out = in0 == in1 ? 1'b1 : 1'b0;
-         
+   
 endmodule
 
 
 // Module: datapath1
 // Description: This module creates the illustrated datapath structurally.
+//
+// See bit_diff.pdf for a graphical illustration of this datapath.
 
 //`default_nettype none
 module datapath1
@@ -429,25 +435,25 @@ module datapath1
     parameter WIDTH
     )
    (
-    input  var logic clk,
-    input  var logic rst,
-    input  var logic [WIDTH-1:0] data, 
-    input  var logic data_sel,
-    input  var logic data_en,
-    input  var logic diff_sel,
-    input  var logic diff_en,
-    input  var logic count_sel,
-    input  var logic count_en,
-    input  var logic result_en,
-    output logic count_done,
+    input 				 var logic clk,
+    input 				 var logic rst,
+    input 				 var logic [WIDTH-1:0] data, 
+    input 				 var logic data_sel,
+    input 				 var logic data_en,
+    input 				 var logic diff_sel,
+    input 				 var logic diff_en,
+    input 				 var logic count_sel,
+    input 				 var logic count_en,
+    input 				 var logic result_en,
+    output logic 			 count_done,
     output logic [$clog2(WIDTH*2+1)-1:0] result
     );
 
-   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-      
-   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, diff_mux;
-  		     
+   localparam int 			 DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+   
+   logic [WIDTH-1:0] 			 data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0] 		 diff_r, add_in1_mux, diff_add, diff_mux;
+   
    // Mux that defines provides input to the data register.
    mux2x1 #(.WIDTH(WIDTH)) DATA_MUX (.in0(data_shift), 
 				     .in1(data), 
@@ -456,19 +462,19 @@ module datapath1
 
    // The data register.
    register #(.WIDTH(WIDTH)) DATA_REG (.en(data_en), 
-					.in(data_mux), 
-					.out(data_r), 
-					.*);
+				       .in(data_mux), 
+				       .out(data_r), 
+				       .*);
    // Shifter for the data register.
    shift_right #(.WIDTH(WIDTH), 
 		 .SHIFT_AMOUNT(1)) DATA_SHIFT (.in(data_r), 
 					       .out(data_shift));         
 
    // Selects between a 1 or -1 input to the adder.
-   mux2x1 #(.WIDTH(DIFF_WIDTH)) ADD_IN1_MUX(.in0(DIFF_WIDTH'(-1)), 
-					    .in1(DIFF_WIDTH'(1)), 
-					    .sel(data_r[0]),
-					    .out(add_in1_mux));
+   mux2x1 #(.WIDTH(DIFF_WIDTH)) ADD_MUX(.in0(DIFF_WIDTH'(-1)), 
+					.in1(DIFF_WIDTH'(1)), 
+					.sel(data_r[0]),
+					.out(add_in1_mux));
    
    // Adds the current difference with the output of the add_in1_mux (1 or -1).
    add #(.WIDTH(DIFF_WIDTH)) DIFF_ADD (.in0(diff_r),
@@ -483,9 +489,9 @@ module datapath1
 
    // The diff register.
    register #(.WIDTH(DIFF_WIDTH)) DIFF_REG (.en(diff_en), 
-				       .in(diff_mux), 
-				       .out(diff_r), 
-				       .*);
+					    .in(diff_mux), 
+					    .out(diff_r), 
+					    .*);
    
    // The result register.
    register #(.WIDTH(DIFF_WIDTH)) RESULT_REG (.en(result_en), 
@@ -496,8 +502,8 @@ module datapath1
    /*********************************************************************/
    // Counter logic
 
-   logic [WIDTH-1:0] 	     count_mux, count_add, count_r;
-      
+   logic [WIDTH-1:0] 			 count_mux, count_add, count_r;
+   
    // Selects between 0 and the count adder.
    mux2x1 #(.WIDTH(WIDTH)) COUNT_MUX (.in0(count_add), 
 				      .in1(WIDTH'(0)), 
@@ -517,9 +523,9 @@ module datapath1
    
    // Comparator to check when the count is complete. Equivalent to
    // count_r == WIDTH-1 from the FSMD.
-   eq #(.WIDTH(WIDTH)) COUNT_EQ (.in0(count_r),
-				 .in1(WIDTH'(WIDTH-1)),
-				 .out(count_done));   
+   eq #(.WIDTH(WIDTH)) EQ (.in0(count_r),
+			   .in1(WIDTH'(WIDTH-1)),
+			   .out(count_done));   
    
 endmodule
 //`default_nettype wire   
@@ -530,31 +536,33 @@ endmodule
 // using behavioral logic. This is the preferred style for a simple module,
 // as long as the designer understands how behavior gets synthesized (see
 // sequential logic section of tutorial).
+//
+// See bit_diff.pdf for a graphical illustration of this datapath.
 
 module datapath2
   #(
     parameter WIDTH
     )
    (
-    input logic clk,
-    input logic rst,
-    input logic [WIDTH-1:0] data, 
-    input logic data_sel,
-    input logic data_en,
-    input logic diff_sel,
-    input logic diff_en,
-    input logic count_sel,
-    input logic count_en,
-    input logic result_en,
-    output logic count_done,
+    input logic 			 clk,
+    input logic 			 rst,
+    input logic [WIDTH-1:0] 		 data, 
+    input logic 			 data_sel,
+    input logic 			 data_en,
+    input logic 			 diff_sel,
+    input logic 			 diff_en,
+    input logic 			 count_sel,
+    input logic 			 count_en,
+    input logic 			 result_en,
+    output logic 			 count_done,
     output logic [$clog2(WIDTH*2+1)-1:0] result
     );
 
-   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-      
-   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, diff_mux, result_r;
-   logic [WIDTH-1:0] 	     count_mux, count_add, count_r;
+   localparam int 			 DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+   
+   logic [WIDTH-1:0] 			 data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0] 		 diff_r, add_in1_mux, diff_add, diff_mux, result_r;
+   logic [WIDTH-1:0] 			 count_mux, count_add, count_r;
 
    // Data mux and shift
    assign data_mux = data_sel ? data : data_shift;
@@ -567,7 +575,7 @@ module datapath2
 
    // Count mux, add, and done
    assign count_mux = count_sel ? WIDTH'(0) : count_add;
-   assign count_add = count_r + 1;
+   assign count_add = count_r + 1'b1;
    assign count_done = count_r == WIDTH'(WIDTH-1);
 
    // Not necessary, but complies with my _r naming convention for registers
@@ -589,7 +597,7 @@ module datapath2
 	 if (count_en) count_r <= count_mux;		 
       end      
    end
-                   
+   
 endmodule
 
 
@@ -598,7 +606,7 @@ endmodule
 // implement the same algorithm as the FSMD versions. In this controller,
 // we simply replace the previous datapath operations from the FSMD with
 // explicit control signals that configure the datapath to do the same thing.
-  
+
 module fsm1
   (
    input logic 	clk,
@@ -618,7 +626,7 @@ module fsm1
    typedef enum {START, COMPUTE, RESTART} state_t;
    state_t state_r, next_state;
 
-   always_ff @(posedge clk) begin
+   always_ff @(posedge clk or posedge rst) begin
       if (rst) state_r <= START;
       else state_r <= next_state;      
    end
@@ -635,22 +643,24 @@ module fsm1
       diff_sel = 1'b0;
       count_sel = 1'b0;
       data_sel = 1'b0;
-      			
+
+      next_state = state_r;
+            
       case (state_r)
 	START : begin
-	  
+	   
 	   // Replaces diff_r <= '0;
 	   diff_en = 1'b1;
 	   diff_sel = 1'b1;
-	  
+	   
 	   // Replaces count_r <= '0;
 	   count_en = 1'b1;
 	   count_sel = 1'b1;
- 
+	   
 	   // Replaces data_r <= data;
 	   data_en = 1'b1;
 	   data_sel = 1'b1;	  
-  
+	   
 	   if (go) next_state = COMPUTE;
 	end
 
@@ -683,11 +693,11 @@ module fsm1
 	   // Replaces diff_r <= '0;
 	   diff_en = 1'b1;
 	   diff_sel = 1'b1;
-	  
+	   
 	   // Replaces count_r <= '0;
 	   count_en = 1'b1;
 	   count_sel = 1'b1;
- 
+	   
 	   // Replaces data_r <= data
 	   data_en = 1'b1;
 	   data_sel = 1'b1;	  
@@ -728,7 +738,7 @@ module bit_diff_fsm_plus_d1
    
    fsm1 CONTROLLER (.*);
    datapath1 #(.WIDTH(WIDTH)) DATAPATH (.*);
-      
+   
 endmodule // bit_diff_fsm_plus_d1
 
 
@@ -761,46 +771,48 @@ module bit_diff_fsm_plus_d2
    
    fsm1 CONTROLLER (.*);
    datapath2 #(.WIDTH(WIDTH)) DATAPATH (.*);
-      
+   
 endmodule // bit_diff_fsm_plus_d2
-    
+
 
 // Module: datapath3
 // Description: An alternate datapath that eliminates the diff mux and count
 // mux by replacing the selects with a reset.
+//
+// See bit_diff.pdf for a graphical illustration of this datapath.
 
 module datapath3
   #(
     parameter WIDTH
     )
    (
-    input  var logic clk,
-    input  var logic rst,
-    input  var logic [WIDTH-1:0] data, 
-    input  var logic data_sel,
-    input  var logic data_en,
-    input  var logic diff_rst,
-    input  var logic diff_en,
-    input  var logic count_rst,
-    input  var logic count_en,
-    input  var logic result_en,
-    output logic count_done,
+    input 				 var logic clk,
+    input 				 var logic rst,
+    input 				 var logic [WIDTH-1:0] data, 
+    input 				 var logic data_sel,
+    input 				 var logic data_en,
+    input 				 var logic diff_rst,
+    input 				 var logic diff_en,
+    input 				 var logic count_rst,
+    input 				 var logic count_en,
+    input 				 var logic result_en,
+    output logic 			 count_done,
     output logic [$clog2(WIDTH*2+1)-1:0] result
     );
 
-   localparam int 	     DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-      
-   logic [WIDTH-1:0] 	     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]    diff_r, add_in1_mux, diff_add, result_r;
-   logic [WIDTH-1:0] 	     count_add, count_r;
-  		
+   localparam int 			 DIFF_WIDTH = $clog2(WIDTH*2 + 1);
+   
+   logic [WIDTH-1:0] 			 data_mux, data_r, data_shift;
+   logic [DIFF_WIDTH-1:0] 		 diff_r, add_in1_mux, diff_add, result_r;
+   logic [WIDTH-1:0] 			 count_add, count_r;
+   
    assign data_mux = data_sel ? data : data_shift;
    assign data_shift = data_r >> 1;
-      
+   
    assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
    assign diff_add = diff_r + add_in1_mux;
 
-   assign count_add = count_r + 1;
+   assign count_add = count_r + 1'b1;
    assign count_done = count_r == WIDTH'(WIDTH-1);
 
    assign result = result_r;
@@ -830,7 +842,7 @@ module datapath3
       if (diff_rst) diff_r <= '0;	 
       else if (count_en) diff_r <= diff_add;      
    end
-                   
+   
 endmodule
 
 
@@ -857,7 +869,7 @@ module fsm2
    typedef enum {START, COMPUTE, RESTART} state_t;
    state_t state_r, next_state;
 
-   always_ff @(posedge clk) begin
+   always_ff @(posedge clk or posedge rst) begin
       if (rst) state_r <= START;
       else state_r <= next_state;      
    end
@@ -876,20 +888,22 @@ module fsm2
       // Use resets now instead of selects.
       diff_rst = 1'b0;
       count_rst = 1'b0;
-      			
+
+      next_state = state_r;
+      
       case (state_r)
 	START : begin
 
 	   // Replaces diff_r <= '0;
 	   diff_rst = 1'b1;
-	  
+	   
 	   // Replaces count_r <= '0;
 	   count_rst = 1'b1;
 	   
 	   // Replaces data_r <= data
 	   data_en = 1'b1;
 	   data_sel = 1'b1;	  
-  
+	   
 	   if (go) next_state = COMPUTE;
 	end
 
@@ -916,10 +930,10 @@ module fsm2
 
 	   // Replaces diff_r <= '0;
 	   diff_rst = 1'b1;
-	   	  
+	   
 	   // Replaces count_r <= '0;
 	   count_rst = 1'b1;
-	    
+	   
 	   // Replaces data_r <= data
 	   data_en = 1'b1;
 	   data_sel = 1'b1;	  
@@ -964,10 +978,10 @@ module bit_diff_fsm_plus_d3
    logic 					count_rst;
    logic 					count_en;
    logic 					result_en;
-      
+   
    fsm2 CONTROLLER (.*);
    datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
-      
+   
 endmodule // bit_diff_fsm_plus_d3
 
 
@@ -1002,7 +1016,7 @@ module fsm3
    // Register the controlled asynchronous resets to be safer.
    assign count_rst = count_rst_r;
    assign diff_rst = diff_rst_r;
-      
+   
    always_ff @(posedge clk or posedge rst) begin
       if (rst) begin
 	 state_r <= START;
@@ -1029,7 +1043,9 @@ module fsm3
 
       next_diff_rst = 1'b0;
       next_count_rst = 1'b0;
-      			
+
+      next_state = state_r;
+      
       case (state_r)
 	START : begin
 
@@ -1097,8 +1113,34 @@ module bit_diff_fsm_plus_d4
    logic 					count_rst;
    logic 					count_en;
    logic 					result_en;
-      
+   
    fsm3 CONTROLLER (.*);
    datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
-      
+   
 endmodule // bit_diff_fsm_plus_d4
+
+
+// Module: bit_diff
+// Description: a top-level module for testing synthesis of the different
+// bit diff implementations.
+
+module bit_diff
+  #(
+    parameter WIDTH=16
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+
+   //bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
+   bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
+      
+endmodule

@@ -6,7 +6,7 @@
 `timescale 1 ns / 10 ps
 
 // Module: bit_diff_tb
-// Description: Testbench for the bit differenc calculator.
+// Description: Testbench for the bit difference calculator.
 
 module bit_diff_tb;
 
