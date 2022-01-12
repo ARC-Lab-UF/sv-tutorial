@@ -7,7 +7,9 @@ module priority_encoder_tb;
    logic [$clog2(NUM_INPUTS)-1:0] result;
    logic 			  valid;
    
-   priority_encoder #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
+   priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
+   //priority_encoder2 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
+   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
    
    initial begin
       logic [$clog2(NUM_INPUTS)-1:0] correct_result;
