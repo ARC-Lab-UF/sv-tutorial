@@ -143,9 +143,13 @@ module priority_encoder3
 endmodule // priority_encoder3
 
 
+// Module: priority_encoder
+// Description: A top-level module for choosing different implemenetations
+// for synthesis.
+
 module priority_encoder
   #(
-    parameter int NUM_INPUTS,
+    parameter int NUM_INPUTS=16,
     parameter int NUM_OUTPUTS = $clog2(NUM_INPUTS)
     )
    (
@@ -154,9 +158,9 @@ module priority_encoder
     output logic 		   valid
     );
 
-   priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
+   //priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
    //priority_encoder2 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
-   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
+   priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
    
    
 endmodule

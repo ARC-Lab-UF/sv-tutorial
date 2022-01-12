@@ -1,4 +1,12 @@
+// Greg Stitt
+// University of Florida
+
 `timescale 1 ns / 100 ps
+
+// Module: priority_encoder_tb
+// Description: A simple testbench for the priority_encoder module.
+// NOTE: The testbench is exhaustive, so large NUM_INPUTS values will not
+// be feasible to test here.
 
 module priority_encoder_tb;
    
@@ -6,10 +14,11 @@ module priority_encoder_tb;
    logic [NUM_INPUTS-1:0] inputs;
    logic [$clog2(NUM_INPUTS)-1:0] result;
    logic 			  valid;
-   
-   priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
-   //priority_encoder2 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
-   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) UUT (.*);
+
+   // Change comments to test different modules
+   priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) DUT (.*);
+   //priority_encoder2 #(.NUM_INPUTS(NUM_INPUTS)) DUT (.*);
+   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) DUT (.*);   
    
    initial begin
       logic [$clog2(NUM_INPUTS)-1:0] correct_result;
@@ -33,8 +42,10 @@ module priority_encoder_tb;
 	   $display("ERROR (time %0t): result = %b instead of %b.", $realtime, result, correct_result);
 
 	 if (valid != correct_valid)
-	   $display("ERROR (time %0t): valid = %b instead of %b.", $realtime, valid, correct_valid);	 
+	   $display("ERROR (time %0t): valid = %b instead of %b.", $realtime, valid, correct_valid);
       end
+
+      $display("Tests completed.");	 
    end
    
 endmodule
