@@ -703,22 +703,32 @@ module bit_diff_tb3;
      
 endmodule // bit_diff_tb3
 
-/*
 
-class env #(int num_tests);
+// One common testbench strategy is to encapsulate the generator, driver,
+// monitor, and scoreboard inside an "environment," which further simplifies
+// the main testbench.
+//
+// Here we create an initial environment which does this. It basically replaces
+// the code from the main testbench that declares, instantiates, and connects 
+// everything together.
 
-   generator1 #(.num_tests(num_tests)) gen;
-   driver2 drv;
-   monitor1 monitor;
-   scoreboard1 scoreboard;
-   virtual bit_diff_if vif;
+class env #(int NUM_TESTS, int WIDTH);
+
+   generator1 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) gen;
+   driver2  #(.WIDTH(WIDTH)) drv;
+   monitor1 #(.WIDTH(WIDTH)) monitor;
+   scoreboard1 #(.WIDTH(WIDTH)) scoreboard;
+   
+   virtual bit_diff_if #(.WIDTH(WIDTH)) vif;
    
    mailbox scoreboard_mailbox;
    mailbox driver_mailbox;
    
    event 	     driver_done_event;
    event 	     generator_done_event;
-   
+
+   // We give the environment a new method to create new instances of everything
+   // encapsulated by the environment.
    function new();
       gen = new;
       drv = new;
@@ -728,6 +738,9 @@ class env #(int num_tests);
       driver_mailbox = new;
    endfunction // new
 
+   // The environment's run task connects everything together and forks off
+   // the individual threads. The connects could have also been made in the
+   // new() method, but we need the fork code here.    
    virtual 	     task run();
       drv.vif = vif;
       monitor.vif = vif;
@@ -748,20 +761,34 @@ class env #(int num_tests);
 	 scoreboard.run();	 
       join_any
 
+      // When any of the tasks complete, report the status of the tests. While
+      // it might be confusing to wait for any of the tasks to complete, 
+      // instead of waiting for all tasks, the generator is the only task that 
+      // actually ever exits, which it does after all the tests have completed.
       scoreboard.report_status();      
    endtask // run   
 endclass
 
 
+// Module: bit_diff_tb4
+// Description: This testbench simplifies the previous one by using the newly
+// created environment. As before, this main testbench gets even simpler with
+// the environment.
+
 module bit_diff_tb4;
    
-   localparam NUM_TESTS = 100;
-   logic 	     clk;
-   env #(.num_tests(NUM_TESTS)) _env = new;
+   localparam NUM_TESTS = 1000;
+   localparam WIDTH = 16;
    
-   bit_diff_if _if (.clk(clk));   
-   fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .n(_if.n), .result(_if.result));
+   logic 	     clk;
+
+   // Instead of separately creating the generator, driver, monitor, and 
+   // scoreboard, we just create the environment.
+   env #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
+   
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+	    .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -770,12 +797,18 @@ module bit_diff_tb4;
    
    initial begin      
       $timeformat(-9, 0, " ns");
-      _env.vif = _if;      
+
+      // Connect the interface to the environment.
+      _env.vif = _if;
+
+      // Initialize the circuit.
       _if.rst = 1'b1;
       _if.go = 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
       _if.rst = 1'b0;
-      @(posedge clk);     
+      @(posedge clk);
+
+      // Run the environment.
       _env.run();
       disable generate_clock;      
    end
@@ -784,7 +817,7 @@ module bit_diff_tb4;
      
 endmodule // bit_diff_tb4
 
-
+/*
 class fib_item3;   
    rand bit [4:0] n;
    rand bit go;
