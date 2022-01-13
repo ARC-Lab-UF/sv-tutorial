@@ -47,7 +47,7 @@ module bit_diff_tb_basic;
    function int model(int data, int width);
       automatic int 		     diff = 0;
       
-      for (int i=0; i < WIDTH; i++) begin
+      for (int i=0; i < width; i++) begin
 	 diff = data[0] ? diff+1  : diff-1;
 	 data = data >> 1;	 
       end
@@ -319,7 +319,7 @@ module bit_diff_tb1;
    function int model(int data, int width);
       automatic int 		     diff = 0;
       
-      for (int i=0; i < WIDTH; i++) begin
+      for (int i=0; i < width; i++) begin
 	 diff = data[0] ? diff+1  : diff-1;
 	 data = data >> 1;	 
       end
@@ -487,7 +487,7 @@ module bit_diff_tb2;
    function int model(int data, int width);
       automatic int 		     diff = 0;
       
-      for (int i=0; i < WIDTH; i++) begin
+      for (int i=0; i < width; i++) begin
 	 diff = data[0] ? diff+1  : diff-1;
 	 data = data >> 1;	 
       end
@@ -593,7 +593,7 @@ class scoreboard1 #(parameter int WIDTH);
    function int model(int data, int width);
       automatic int 		     diff = 0;
       
-      for (int i=0; i < WIDTH; i++) begin
+      for (int i=0; i < width; i++) begin
 	 diff = data[0] ? diff+1  : diff-1;
 	 data = data >> 1;	 
       end
@@ -813,51 +813,102 @@ module bit_diff_tb4;
       disable generate_clock;      
    end
          
-   assert property (@(posedge _if.clk) $rose(_if.go) |=> !_if.done);
+   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
      
 endmodule // bit_diff_tb4
 
-/*
-class fib_item3;   
-   rand bit [4:0] n;
-   rand bit go;
-   bit [31:0] result;
-   
-   constraint c_go_dist { go dist{0 :/ 90, 1:/ 10 }; }       
+
+// Up to this point, the actual coverage is pretty weak. The generator simply
+// generates a test and then waits until that test is done. This done not test
+// modifying the data input while a test is ongoing. It also doesn't test 
+// toggling go while a test is ongoing.
+//
+// We now start to improve the testbench by adding these capabilities to the
+// generator. The generator is now responsible for generating values for the
+// data input and the go input, and it no longer waits for the driver to
+// finish the previous test.
+//
+// To support this new functionality, we need to expand our transaction object
+// with a go bit.
+
+class bit_diff_item3 #(WIDTH);
+   rand bit [WIDTH-1:0] data;
+   rand bit go;   
+   bit signed [$clog2(WIDTH*2+1)-1:0] result;
+
+   // A uniform distribution of go values probably isn't what we want, so
+   // we'll make sure go is 1'b0 90% of the time.
+   constraint c_go_dist { go dist{0 :/ 90, 1:/ 10 }; }
 endclass
 
-class generator2;
+
+// In the new generator, we make several changes. First, we use the new
+// transaction object to random produce go values. Second, we remove the for
+// loop. In this new version, the testbench won't wait for the generator to
+// finish. It will wait for the scoreboard to finish. Not only is this more
+// a intuitive way of waiting for completion, but it is also necessary.
+// Previously, the generator produced one data input per execution of the DUT.
+// Now, the generator produces input values as frequently as it can. Many of
+// those values will occur when the DUT is already active. So, if we simply
+// counted the number of inputs tested, the number of actual executions of the
+// DUT would be much smaller than before.
+
+class generator2 #(int WIDTH);
    mailbox driver_mailbox;
    event   driver_done_event;
   
    task run();
-      fib_item3 item = new;
+      bit_diff_item3 #(.WIDTH(WIDTH)) item;
 
-      forever begin	 
+      forever begin
+	 item = new;	 
 	 if (!item.randomize()) $display("Randomize failed");
-	 //$display("Time %0t [Generator]: Generating fib input %0d, go=%0b.", $time, item.n, item.go);
+
+	 // This display is commented out because this loop can potentially
+	 // execute every cycle, which could make the log overwhelming.
+	 //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
+
 	 driver_mailbox.put(item);
+
+	 // The generator still waits for the driver to finish driving the
+	 // current test, but we'll see that happens every cycle now, instead
+	 // of the driver waiting for completion of the DUT.
 	 @(driver_done_event);
       end
    endtask
 endclass // generator2
 
 
-class driver3;
-   virtual 	     bit_diff_if vif;
+// The new driver is more complicated because it no longer just has to wait
+// for a message from the generator. It still drives tests from the generator,
+// but since some of those tests will not actually produce an output from the
+// DUT, the driver must keep track of which inputs will affect the output.
+// For example, data inputs that don't coincide with assertions of go should
+// be ignored by the scoreboard. Similarly, assertions of go while the DUT
+// is already active should also be ignored by the scoreboard.
+//
+// We could potentially move this code to the monitor, in which case the monitor
+// would have to check the DUT inputs and outputs.
+
+class driver3 #(int WIDTH);
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
    mailbox 	     driver_mailbox;
-   mailbox 	     scoreboard_n_mailbox;
+
+   // Since only the driver knows when an input can cause the DUT to start a
+   // new execution, we create a new scoreboard mailbox that the driver will
+   // use to send data inputs that will produce an output from the DUT.
+   mailbox 	     scoreboard_data_mailbox;
    event 	     driver_done_event;
 
    task run();
+      // To know whether or not generated inputs will create a DUT output, 
+      // we need to know whether or not the DUT is currently active.
       logic is_first_test = 1'b1;      
       logic is_active = 1'b0;
       $display("Time %0t [Driver]: Driver starting.", $time);
             
       forever begin
-	 fib_item3 item;
-
-	 //@(posedge vif.clk);
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item;
 	 
 	 // If the circuit is reset at any point, reset the driver state.
 	 while (vif.rst) begin
@@ -871,11 +922,11 @@ class driver3;
 	 // go signal in order to test assertions of go while the DUT is already
 	 // active.
 	 driver_mailbox.get(item);
-	 //$display("Time %0t [Driver]: Driving n=%0d, go=%0b.", $time, item.n, item.go);
+	 //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
 	 
-	 // For this driver, we drive both the n and go inputs directly from the
-	 // generator.
-	 vif.n = item.n;
+	 // For this driver, we drive both the data and go inputs directly 
+	 // from the generator.
+	 vif.data = item.data;
 	 vif.go = item.go;
 
 	 // Wait until the next clock edge where the inputs will be seen.
@@ -886,14 +937,11 @@ class driver3;
 	 // scoreboard.
 	 @(posedge vif.clk);
 	 	 
-	 // If done is asserted and go isn't, or if this is the first_test, 
+	 // If done is asserted, or if this is the first_test, 
 	 // then the DUT should be inactive and ready for another test.  
 	 if (vif.done || is_first_test)
 	   is_active = 1'b0;
-	 	 
-	 //if (vif.n == 2)
-	 //  $display("Time %0t [Driver]: DEBUG n=%0d, is_active=%0b, go=%0b, done=%0b.", $time, vif.n, is_active, vif.go, vif.done);
-	 	 
+	 	 	 	 
 	 // If the DUT isn't already active, and we get a go signal, we are
 	 // starting a test, so inform the scoreboard. The scoreboard will
 	 // then wait to get the result from the monitor. This strategy allows
@@ -901,27 +949,38 @@ class driver3;
 	 // the start of a test because the DUT is already active. The DUT
 	 // should ignore these assertions.
 	 if (!is_active && vif.go) begin	    
-	    $display("Time %0t [Driver]: Sending start of test for n=%0d.", $time, item.n);
-	    scoreboard_n_mailbox.put(item);
+	    $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+	    scoreboard_data_mailbox.put(item);
 	    is_active = 1'b1;	    
 	    is_first_test = 1'b0;
 	 end
 
+	 // Tell the generator the driver has driven the last test, which
+	 // happens every cycle except during reset.
 	 -> driver_done_event;	 
       end              
    endtask       
 endclass
 
-class monitor2;
-   virtual 	     bit_diff_if vif;
+
+// The monitor becomes a little simpler now because the driver informs the
+// scoreboard of the corresponding input for the next output. So, the monitor
+// solely send the output to the scoreboard.
+
+class monitor2 #(int WIDTH);
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
+
+   // We rename the scoreboard mailbox since driver now uses a separate
+   // mailbox for sending data inputs.
    mailbox 	     scoreboard_result_mailbox;
 
    task run();
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 fib_item3 item = new;	
-	 @(posedge vif.done);
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+	 @(posedge vif.clk iff (vif.done == 1'b0));	 
+	 @(posedge vif.clk iff (vif.done == 1'b1));	 
 	 // In this version, we only care about the result, because the driver
 	 // already informed the scoreboard of the next n value to check.
 	 item.result = vif.result;
@@ -932,79 +991,82 @@ class monitor2;
 endclass
 
 
-class scoreboard2 #(int num_tests);
+// With the new scoreboard, we count the number of tests here.
+
+class scoreboard2 #(int NUM_TESTS, int WIDTH);
    mailbox scoreboard_result_mailbox;
-   mailbox scoreboard_n_mailbox;
+   mailbox scoreboard_data_mailbox;
    int 	   passed, failed, reference;
-   
-   function int model(int n);
-      int 	     x, y, i, temp;
-      x = 0;
-      y = 1;
-      i = 3;
-      if (n < 2)
-	return 0;      
+
+   function int model(int data, int width);
+      automatic int 		     diff = 0;
       
-      while (i <= n) begin
-	 temp = x+y;
-	 x = y;
-	 y = temp;
-	 i ++;	 
+      for (int i=0; i < width; i++) begin
+	 diff = data[0] ? diff+1  : diff-1;
+	 data = data >> 1;	 
       end
-      return y;
       
+      return diff;      
    endfunction
 
    task run();
       passed = 0;
       failed = 0;
 
-      for (int i=0; i < num_tests; i++) begin
-	 fib_item3 in_item, out_item;
-	 fib_item3 final_item = new;
+      for (int i=0; i < NUM_TESTS; i++) begin
+	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
+	 bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
+	 bit_diff_item3 #(.WIDTH(WIDTH)) final_item = new;
 
 	 // First wait until the driver informs us of a new test.
-	 scoreboard_n_mailbox.get(in_item);
-	 $display("Time %0t [Scoreboard]: Received start of test for n=%0d.", $time, in_item.n);
+	 scoreboard_data_mailbox.get(in_item);
+	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
 
-	 // Save the n value, otherwise it will be lost.
-	 final_item.n = in_item.n;
+	 // Save the n value, otherwise it will be lost because the driver
+	 // changes it. TODO: Potentially fix this by having the driver 
+	 // allocate new items.
+	 final_item.data = in_item.data;
 	 	 
 	 // Then, wait until the monitor tells us that test is complete.
 	 scoreboard_result_mailbox.get(out_item);
-	 $display("Time %0t [Scoreboard]: Received result=%0d for n=%0d.", $time, out_item.result, final_item.n);
+	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, final_item.data);
  
 	 final_item.result = out_item.result;
 
 	 // Get the correct result based on the n value at the start of the
 	 // test.
-	 reference = model(final_item.n);	 
+	 //reference = model(final_item.data, WIDTH);
+	 reference = model(in_item.data, WIDTH);	 
 	 if (final_item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for n=%0d", $time, final_item.n);
+	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, final_item.data);
 	    passed ++;
 	 end
 	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for n=%0d.", $time, final_item.result, reference, final_item.n);
+	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, final_item.result, reference, final_item.data);
 	    failed ++;	    
 	 end
       end
    endtask
 
    function void report_status();     
-      $display("Tests completed: %0d passed, %0d failed", passed, failed);
+      $display("Test status: %0d passed, %0d failed", passed, failed);
    endfunction   
    
 endclass // scoreboard2
 
-class env2 #(int num_tests);
 
-   generator2 gen;
-   driver3 drv;
-   monitor2 monitor;
-   scoreboard2 #(.num_tests(num_tests)) scoreboard;
-   virtual bit_diff_if vif;
+// The new environment only changes to use the new classes.
+
+class env2 #(int NUM_TESTS, int WIDTH);
+
+   generator2 #(.WIDTH(WIDTH)) gen;
+   driver3  #(.WIDTH(WIDTH)) drv;
+   monitor2 #(.WIDTH(WIDTH)) monitor;
+   scoreboard2 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard;
    
-   mailbox scoreboard_n_mailbox;
+   virtual bit_diff_if #(.WIDTH(WIDTH)) vif;
+
+   mailbox scoreboard_data_mailbox;
    mailbox scoreboard_result_mailbox;
    mailbox driver_mailbox;
 
@@ -1015,7 +1077,7 @@ class env2 #(int num_tests);
       drv = new;
       monitor = new;
       scoreboard = new;
-      scoreboard_n_mailbox = new;
+      scoreboard_data_mailbox = new;
       scoreboard_result_mailbox = new;
       driver_mailbox = new;
    endfunction // new
@@ -1027,15 +1089,17 @@ class env2 #(int num_tests);
       gen.driver_mailbox = driver_mailbox;
       drv.driver_mailbox = driver_mailbox;
       
-      drv.scoreboard_n_mailbox = scoreboard_n_mailbox;
-      scoreboard.scoreboard_n_mailbox = scoreboard_n_mailbox;
+      drv.scoreboard_data_mailbox = scoreboard_data_mailbox;
+      scoreboard.scoreboard_data_mailbox = scoreboard_data_mailbox;
       
       monitor.scoreboard_result_mailbox = scoreboard_result_mailbox;
       scoreboard.scoreboard_result_mailbox = scoreboard_result_mailbox;
    
       gen.driver_done_event = driver_done_event;
       drv.driver_done_event = driver_done_event;
-         
+
+      // In this new environment, the fork exits when the scoreboard finishes
+      // all tests.         
       fork
 	 gen.run();
 	 drv.run();
@@ -1044,19 +1108,26 @@ class env2 #(int num_tests);
       join_any
 
       scoreboard.report_status();      
-   endtask // run   
+   endtask 
 endclass
 
+
+// Module: bit_diff_tb5
+// Description: Simply updates the previous testbench to use the new
+// environment. Notice how significant changes can be made to other parts
+// without requiring any changes here.
 
 module bit_diff_tb5;
    
    localparam NUM_TESTS = 1000;
-   logic 	     clk;
-   env2 #(.num_tests(NUM_TESTS)) _env = new;
+   localparam WIDTH = 16;
    
-   bit_diff_if _if (.clk(clk));   
-   fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .n(_if.n), .result(_if.result));
+   logic 	     clk;
+   env2 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
+   
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+	    .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1079,7 +1150,7 @@ module bit_diff_tb5;
      
 endmodule // bit_diff_tb5
 
-
+/*
 // TODO illustate tests with multiple test sizes, repeats, different generation
 // strategies (increment vs random).
 
