@@ -991,9 +991,12 @@ class monitor2 #(int WIDTH);
 endclass
 
 
-// With the new scoreboard, we count the number of tests here.
+// With the new scoreboard, we count the number of tests here instead of in
+// the generator.
 
 class scoreboard2 #(int NUM_TESTS, int WIDTH);
+   // The scoreboard has two separate mailboxes now: one for the data input
+   // from the driver, and a second for the result output from the monitor.
    mailbox scoreboard_result_mailbox;
    mailbox scoreboard_data_mailbox;
    int 	   passed, failed, reference;
@@ -1014,35 +1017,26 @@ class scoreboard2 #(int NUM_TESTS, int WIDTH);
       failed = 0;
 
       for (int i=0; i < NUM_TESTS; i++) begin
+	 
 	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
 	 bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
-	 bit_diff_item3 #(.WIDTH(WIDTH)) final_item = new;
-
+	
 	 // First wait until the driver informs us of a new test.
 	 scoreboard_data_mailbox.get(in_item);
 	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
 
-	 // Save the n value, otherwise it will be lost because the driver
-	 // changes it. TODO: Potentially fix this by having the driver 
-	 // allocate new items.
-	 final_item.data = in_item.data;
-	 	 
 	 // Then, wait until the monitor tells us that test is complete.
 	 scoreboard_result_mailbox.get(out_item);
-	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, final_item.data);
- 
-	 final_item.result = out_item.result;
+	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
 
-	 // Get the correct result based on the n value at the start of the
-	 // test.
-	 //reference = model(final_item.data, WIDTH);
+	 // Get the correct result based on the input at the start of the test.
 	 reference = model(in_item.data, WIDTH);	 
-	 if (final_item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, final_item.data);
+	 if (out_item.result == reference) begin
+	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
 	    passed ++;
 	 end
 	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, final_item.result, reference, final_item.data);
+	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
 	    failed ++;	    
 	 end
       end
@@ -1150,11 +1144,23 @@ module bit_diff_tb5;
      
 endmodule // bit_diff_tb5
 
-/*
-// TODO illustate tests with multiple test sizes, repeats, different generation
-// strategies (increment vs random).
 
-class generator3;
+// The above style is common, but there is a safer way to construct class
+// objects. In object-oriented programming, one strategy is to make sure
+// that an object is fully initialized after being constructed. This way the
+// user of the object doesn't have to do anything else before using it.
+//
+// In the previous examples, class object were constructed with no parameters.
+// All of the class variables were then initialized externally. In general,
+// I recommend against this strategy. Instead, I prefer to add parameters
+// to the new method that establish all connections. Then, after calling new
+// I know the object is in a safe state and doesn't require further
+// initialization.
+
+// In the following generator, we transform the previous generator to establish
+// all the connections within the new method.
+ 
+class generator3 #(int WIDTH);
    mailbox driver_mailbox;
    event   driver_done_event;
 
@@ -1164,11 +1170,13 @@ class generator3;
    endfunction // new
   
    task run();
-      fib_item3 item = new;
+      bit_diff_item3 #(.WIDTH(WIDTH)) item;
 
-      forever begin	 
+      forever begin
+	 item = new;	 
 	 if (!item.randomize()) $display("Randomize failed");
-	 //$display("Time %0t [Generator]: Generating fib input %0d, go=%0b.", $time, item.n, item.go);
+	 //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
+
 	 driver_mailbox.put(item);
 	 @(driver_done_event);
       end
@@ -1176,29 +1184,32 @@ class generator3;
 endclass // generator3
 
 
-class driver4;   
-   virtual 	     bit_diff_if vif;
+// A new driver class with the similar style of constructor.
+
+class driver4 #(int WIDTH);
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
    mailbox 	     driver_mailbox;
-   mailbox 	     scoreboard_n_mailbox;
+   mailbox 	     scoreboard_data_mailbox;
    event 	     driver_done_event;
 
-   function new(virtual bit_diff_if _vif, mailbox _driver_mailbox, 
-		mailbox _scoreboard_n_mailbox, event _driver_done_event);
+   // New constructor to establish all connections.
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _driver_mailbox, 
+		mailbox _scoreboard_data_mailbox, event _driver_done_event);
       vif = _vif;      
       driver_mailbox = _driver_mailbox;
-      scoreboard_n_mailbox = _scoreboard_n_mailbox;
+      scoreboard_data_mailbox = _scoreboard_data_mailbox;
       driver_done_event = _driver_done_event;      
    endfunction // new
    
    task run();
+      // To know whether or not generated inputs will create a DUT output, 
+      // we need to know whether or not the DUT is currently active.
       logic is_first_test = 1'b1;      
       logic is_active = 1'b0;
       $display("Time %0t [Driver]: Driver starting.", $time);
             
       forever begin
-	 fib_item3 item;
-
-	 //@(posedge vif.clk);
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item;
 	 
 	 // If the circuit is reset at any point, reset the driver state.
 	 while (vif.rst) begin
@@ -1207,43 +1218,24 @@ class driver4;
 	    is_active = 1'b0;	    	    
 	 end
 	 
-	 // Wait for the generator to send an input to drive. Unlike before,
-	 // the generator now delivers inputs every cycle, and includes the
-	 // go signal in order to test assertions of go while the DUT is already
-	 // active.
 	 driver_mailbox.get(item);
-	 //$display("Time %0t [Driver]: Driving n=%0d, go=%0b.", $time, item.n, item.go);
+	 //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
 	 
-	 // For this driver, we drive both the n and go inputs directly from the
-	 // generator.
-	 vif.n = item.n;
+	 vif.data = item.data;
 	 vif.go = item.go;
-
-	 // Wait until the next clock edge where the inputs will be seen.
-	 // This is needed here because signals haven't changed yet on the
-	 // current clock cycle. So, if done is about to change, we won't see
-	 // it. That would cause the following code to mistake the DUT as
-	 // being active, which could prevent sending the test to the
-	 // scoreboard.
 	 @(posedge vif.clk);
 	 	 
-	 // If done is asserted and go isn't, or if this is the first_test, 
+	 // If done is asserted, or if this is the first_test, 
 	 // then the DUT should be inactive and ready for another test.  
 	 if (vif.done || is_first_test)
 	   is_active = 1'b0;
-	 	 
-	 //if (vif.n == 2)
-	 //  $display("Time %0t [Driver]: DEBUG n=%0d, is_active=%0b, go=%0b, done=%0b.", $time, vif.n, is_active, vif.go, vif.done);
-	 	 
+	 	 	 	 
 	 // If the DUT isn't already active, and we get a go signal, we are
 	 // starting a test, so inform the scoreboard. The scoreboard will
-	 // then wait to get the result from the monitor. This strategy allows
-	 // the testbench to test assertions of go that don't correspond to
-	 // the start of a test because the DUT is already active. The DUT
-	 // should ignore these assertions.
+	 // then wait to get the result from the monitor. 	 
 	 if (!is_active && vif.go) begin	    
-	    $display("Time %0t [Driver]: Sending start of test for n=%0d.", $time, item.n);
-	    scoreboard_n_mailbox.put(item);
+	    $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+	    scoreboard_data_mailbox.put(item);
 	    is_active = 1'b1;	    
 	    is_first_test = 1'b0;
 	 end
@@ -1254,23 +1246,24 @@ class driver4;
 endclass
 
 
-class monitor3;
-   virtual 	     bit_diff_if vif;
+// The new monitor adds the same type of constructor.
+
+class monitor3 #(int WIDTH);
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
    mailbox 	     scoreboard_result_mailbox;
 
-   function new(virtual bit_diff_if _vif, mailbox _scoreboard_result_mailbox);
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _scoreboard_result_mailbox);
       vif = _vif;
       scoreboard_result_mailbox = _scoreboard_result_mailbox;            
    endfunction // new
-      
+   
    task run();
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 fib_item3 item = new;	
-	 @(posedge vif.done);
-	 // In this version, we only care about the result, because the driver
-	 // already informed the scoreboard of the next n value to check.
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+	 @(posedge vif.clk iff (vif.done == 1'b0));	 
+	 @(posedge vif.clk iff (vif.done == 1'b1));	 
 	 item.result = vif.result;
 	 $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, vif.result);
 	 scoreboard_result_mailbox.put(item);
@@ -1279,99 +1272,95 @@ class monitor3;
 endclass
 
 
-class scoreboard3 #(int num_tests);
+// Here, we add the new constuctor to the scoreboard.
+
+class scoreboard3 #(int NUM_TESTS, int WIDTH);
    mailbox scoreboard_result_mailbox;
-   mailbox scoreboard_n_mailbox;
+   mailbox scoreboard_data_mailbox;
    int 	   passed, failed, reference;
 
-   function new(mailbox _scoreboard_n_mailbox, mailbox _scoreboard_result_mailbox);
-      scoreboard_n_mailbox = _scoreboard_n_mailbox;
+   function new(mailbox _scoreboard_data_mailbox, mailbox _scoreboard_result_mailbox);
+      scoreboard_data_mailbox = _scoreboard_data_mailbox;
       scoreboard_result_mailbox = _scoreboard_result_mailbox;
    endfunction // new
    
-   function int model(int n);
-      int 	     x, y, i, temp;
-      x = 0;
-      y = 1;
-      i = 3;
-      if (n < 2)
-	return 0;      
+   function int model(int data, int width);
+      automatic int 		     diff = 0;
       
-      while (i <= n) begin
-	 temp = x+y;
-	 x = y;
-	 y = temp;
-	 i ++;	 
+      for (int i=0; i < width; i++) begin
+	 diff = data[0] ? diff+1  : diff-1;
+	 data = data >> 1;	 
       end
-      return y;
       
+      return diff;      
    endfunction
 
    task run();
       passed = 0;
       failed = 0;
 
-      for (int i=0; i < num_tests; i++) begin
-	 fib_item3 in_item, out_item;
-	 fib_item3 final_item = new;
-
+      for (int i=0; i < NUM_TESTS; i++) begin
+	 
+	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
+	 bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
+	
 	 // First wait until the driver informs us of a new test.
-	 scoreboard_n_mailbox.get(in_item);
-	 $display("Time %0t [Scoreboard]: Received start of test for n=%0d.", $time, in_item.n);
+	 scoreboard_data_mailbox.get(in_item);
+	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
 
-	 // Save the n value, otherwise it will be lost.
-	 final_item.n = in_item.n;
-	 	 
 	 // Then, wait until the monitor tells us that test is complete.
 	 scoreboard_result_mailbox.get(out_item);
-	 $display("Time %0t [Scoreboard]: Received result=%0d for n=%0d.", $time, out_item.result, final_item.n);
- 
-	 final_item.result = out_item.result;
+	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
 
-	 // Get the correct result based on the n value at the start of the
-	 // test.
-	 reference = model(final_item.n);	 
-	 if (final_item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for n=%0d", $time, final_item.n);
+	 // Get the correct result based on the input at the start of the test.
+	 reference = model(in_item.data, WIDTH);	 
+	 if (out_item.result == reference) begin
+	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
 	    passed ++;
 	 end
 	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for n=%0d.", $time, final_item.result, reference, final_item.n);
+	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
 	    failed ++;	    
 	 end
       end
    endtask
 
    function void report_status();     
-      $display("%0d total tests: %0d passed, %0d failed", passed+failed, passed, failed);
+      $display("Test status: %0d passed, %0d failed", passed, failed);
    endfunction   
    
 endclass // scoreboard3
 
 
-class env3 #(int num_tests);
+// A new environment class to use the update classes with new constructors.
+// This illustrates the different initialization strategy. The environment
+// itself has a constructor that takes the interface as a parameter.
 
-   generator3 gen;
-   driver4 drv;
-   monitor3 monitor;
-   scoreboard3 #(.num_tests(num_tests)) scoreboard;
+class env3 #(int NUM_TESTS, int WIDTH);
+
+   generator3 #(.WIDTH(WIDTH)) gen;
+   driver4  #(.WIDTH(WIDTH)) drv;
+   monitor3 #(.WIDTH(WIDTH)) monitor;
+   scoreboard3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard;
    
-   mailbox scoreboard_n_mailbox;
+   mailbox scoreboard_data_mailbox;
    mailbox scoreboard_result_mailbox;
    mailbox driver_mailbox;
 
    event   driver_done_event;
-      
-   function new(virtual bit_diff_if vif);      
-      scoreboard_n_mailbox = new;
+   
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) vif);      
+      scoreboard_data_mailbox = new;
       scoreboard_result_mailbox = new;
       driver_mailbox = new;
 
       // This is a much less error-prone way to create the environment. In the
       // previous version, we instaniated each of these classes and then
       // connected their internal signals within the environment. The risk
-      // with that approach is that we don't get any compiler errors. The errors
-      // will only show up during simulation.
+      // with that approach is that we don't get any compiler errors if we
+      // forget to connect something. The errors will only show up during 
+      // simulation.
+      //
       // With this new approach, we only construct each instance when we have
       // all the information we need for it. In other words, every object is
       // fully initialized upon construction. If we leave out required
@@ -1380,9 +1369,9 @@ class env3 #(int num_tests);
       // at compile time.
       
       gen = new(driver_mailbox, driver_done_event);
-      drv = new(vif, driver_mailbox, scoreboard_n_mailbox, driver_done_event);
+      drv = new(vif, driver_mailbox, scoreboard_data_mailbox, driver_done_event);
       monitor = new(vif, scoreboard_result_mailbox);
-      scoreboard = new(scoreboard_n_mailbox, scoreboard_result_mailbox);
+      scoreboard = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
    endfunction // new
 
    virtual 	     task run();      
@@ -1398,18 +1387,23 @@ class env3 #(int num_tests);
 endclass
 
 
+// Module: bit_diff_tb6
+// Description: Here we update the testbench to use the new environment with
+// its new constructor.
+
 module bit_diff_tb6;
-   
+
    localparam NUM_TESTS = 1000;
+   localparam WIDTH = 16;   
    logic 	     clk;
    
-   bit_diff_if _if (.clk(clk));   
-   fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .n(_if.n), .result(_if.result));
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+	    .done(_if.done), .data(_if.data), .result(_if.result));
 
    // Pass the interface to the constructor so that the environment isn't
    // created in an invalid state that requires further initialization.
-   env3 #(.num_tests(NUM_TESTS)) _env = new(_if);
+   env3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new(_if);
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1431,7 +1425,7 @@ module bit_diff_tb6;
      
 endmodule // bit_diff_tb6
 
-
+/*
 class generator4 #(bit use_consecutive_inputs=1'b0);
    mailbox driver_mailbox;
    event   driver_done_event;
