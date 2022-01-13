@@ -1425,8 +1425,26 @@ module bit_diff_tb6;
      
 endmodule // bit_diff_tb6
 
-/*
-class generator4 #(bit use_consecutive_inputs=1'b0);
+
+// We now have a reasonably solid structure for a testbench. One other
+// abstraction that is often used in addition to an environment is a "test."
+// Think of a test as a single configuration of an environment. For example,
+// in one test we might configure the environment to do a different number
+// of tests, or to repeat the sequences some number of times, or to use a
+// different distribution, etc. 
+//
+// Here we will illustrate this concept by extending the environment with 
+// configuration options and then running multiple configuration (i.e. tests)
+// from the testbench module.
+
+
+// First, we will extend the generator with a configuration option to either
+// create random inputs, or to use a sequence of consecutive input values
+// (e.g., 0, 1, 2, 3, 4, etc.) with only one test running at a time. This
+// specific configuration option doesn't necessarily help with coverage, but
+// is useful for debugging when errors are deteched.
+
+class generator4 #(int WIDTH, bit CONSECUTIVE_INPUTS);
    mailbox driver_mailbox;
    event   driver_done_event;
 
@@ -1436,62 +1454,77 @@ class generator4 #(bit use_consecutive_inputs=1'b0);
    endfunction // new
   
    task run();
-      fib_item3 item = new;
-      bit [4:0] n = '0;
-                        
+      bit_diff_item3 #(.WIDTH(WIDTH)) item;
+
+      // Start the consecutive sequence at 0. This could also be modified with
+      // another configuration parameter.
+      bit [WIDTH-1:0] data = '0;     
+      
       forever begin
-	 if (!use_consecutive_inputs) begin
+	 item = new;	 
+	 if (!CONSECUTIVE_INPUTS) begin
 	    if (!item.randomize()) $display("Randomize failed");
-	    //$display("Time %0t [Generator]: Generating fib input %0d, go=%0b.", $time, item.n, item.go); 
+	    //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go); 
 	 end
 	 else begin
-	    item.n = n;
-	    n ++;	    
+	    item.data = data;
+	    data ++;	    
 	 end
 	 driver_mailbox.put(item);
 	 @(driver_done_event);
-      end
+      end     
    endtask
-endclass // generator3
+endclass // generator4
 
 
-class driver5 #(use_one_test_at_a_time=1'b0);   
-   virtual 	     bit_diff_if vif;
+// The new driver class has a new configuration option that selects from
+// the existing capability of driving tests each cycle, or alternatively
+// producing one test at a time until the DUT completes, which is what we
+// started with originally.
+
+class driver5 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
    mailbox 	     driver_mailbox;
-   mailbox 	     scoreboard_n_mailbox;
+   mailbox 	     scoreboard_data_mailbox;
    event 	     driver_done_event;
 
-   function new(virtual bit_diff_if _vif, mailbox _driver_mailbox, 
-		mailbox _scoreboard_n_mailbox, event _driver_done_event);
+   // New constructor to establish all connections.
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _driver_mailbox, 
+		mailbox _scoreboard_data_mailbox, event _driver_done_event);
       vif = _vif;      
       driver_mailbox = _driver_mailbox;
-      scoreboard_n_mailbox = _scoreboard_n_mailbox;
+      scoreboard_data_mailbox = _scoreboard_data_mailbox;
       driver_done_event = _driver_done_event;      
    endfunction // new
    
    task run();
-      fib_item3 item;
+      bit_diff_item3 #(.WIDTH(WIDTH)) item;
+      $display("Time %0t [Driver]: Driver starting.", $time);
 
-      if (use_one_test_at_a_time) begin
+      // If doing one test at a time, go back to the original strategy of
+      // waiting for DUT completion between tests.
+      if (ONE_TEST_AT_A_TIME) begin
 	 forever begin
 	    driver_mailbox.get(item);
-	    vif.n = item.n;
+	    vif.data = item.data;
+	    scoreboard_data_mailbox.put(item);
 	    vif.go = 1'b1;
-	    scoreboard_n_mailbox.put(item);
-	    @(posedge vif.done);
-	    vif.go = 1'b0;
 	    @(posedge vif.clk);
+	    vif.go = 1'b0;
+
+	    // Wait for DUT completion.
+	    @(posedge vif.clk iff (vif.done == 1'b0));	 
+	    @(posedge vif.clk iff (vif.done == 1'b1));
 	    -> driver_done_event;	    
 	 end
-      end
-      else begin      
+      end 
+      else begin
+	 // To know whether or not generated inputs will create a DUT output, 
+	 // we need to know whether or not the DUT is currently active.
 	 logic is_first_test = 1'b1;      
 	 logic is_active = 1'b0;
-	 $display("Time %0t [Driver]: Driver starting.", $time);
          
-	 forever begin	    
-	    //@(posedge vif.clk);
-	    
+	 forever begin	    	 
 	    // If the circuit is reset at any point, reset the driver state.
 	    while (vif.rst) begin
 	       @(posedge vif.clk);	  
@@ -1500,87 +1533,70 @@ class driver5 #(use_one_test_at_a_time=1'b0);
 	    end
 	    
 	    driver_mailbox.get(item);
-	    vif.n = item.n;
-	    vif.go = item.go;
+	    //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
 	    
-	    // Wait until the next clock edge where the inputs will be seen.
-	    // This is needed here because signals haven't changed yet on the
-	    // current clock cycle. So, if done is about to change, we won't see
-	    // it. That would cause the following code to mistake the DUT as
-	    // being active, which could prevent sending the test to the
-	    // scoreboard.
+	    vif.data = item.data;
+	    vif.go = item.go;
 	    @(posedge vif.clk);
 	    
-	    // If done is asserted and go isn't, or if this is the first_test, 
+	    // If done is asserted, or if this is the first_test, 
 	    // then the DUT should be inactive and ready for another test.  
 	    if (vif.done || is_first_test)
 	      is_active = 1'b0;
 	    
-	    //if (vif.n == 2)
-	    //  $display("Time %0t [Driver]: DEBUG n=%0d, is_active=%0b, go=%0b, done=%0b.", $time, vif.n, is_active, vif.go, vif.done);
-	    
 	    // If the DUT isn't already active, and we get a go signal, we are
 	    // starting a test, so inform the scoreboard. The scoreboard will
-	    // then wait to get the result from the monitor. This strategy allows
-	    // the testbench to test assertions of go that don't correspond to
-	    // the start of a test because the DUT is already active. The DUT
-	    // should ignore these assertions.
+	    // then wait to get the result from the monitor. 	 
 	    if (!is_active && vif.go) begin	    
-	       $display("Time %0t [Driver]: Sending start of test for n=%0d.", $time, item.n);
-	       scoreboard_n_mailbox.put(item);
+	       $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+	       scoreboard_data_mailbox.put(item);
 	       is_active = 1'b1;	    
 	       is_first_test = 1'b0;
 	    end
 	    
-	    -> driver_done_event;	 
-	 end       
-      end
+	    -> driver_done_event;
+	 end
+      end              
    endtask       
-endclass // driver5
+endclass
 
 
-class env4 #(int num_tests, bit use_consecutive_inputs=1'b0,
-	     bit use_one_test_at_a_time=1'b0 );
+// The new evironment just connects all the new classes together, while
+// taking the configuration options itself.
 
-   generator4 #(use_consecutive_inputs) gen;
-   driver5 #(use_one_test_at_a_time) drv;
-   monitor3 monitor;
-   scoreboard3 #(.num_tests(num_tests)) scoreboard;
-   
-   mailbox scoreboard_n_mailbox;
+class env4 #(int NUM_TESTS, int WIDTH, 
+	     bit CONSECUTIVE_INPUTS=1'b0,
+	     bit ONE_TEST_AT_A_TIME=1'b0 );
+
+   generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen;
+   driver5  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv;
+   monitor3 #(.WIDTH(WIDTH)) monitor;
+   scoreboard3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard;
+
+   mailbox scoreboard_data_mailbox;
    mailbox scoreboard_result_mailbox;
    mailbox driver_mailbox;
 
    event   driver_done_event;
-      
-   function new(virtual bit_diff_if vif);      
-      scoreboard_n_mailbox = new;
+   
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) vif);      
+      scoreboard_data_mailbox = new;
       scoreboard_result_mailbox = new;
       driver_mailbox = new;
-
-      // This is a much less error-prone way to create the environment. In the
-      // previous version, we instaniated each of these classes and then
-      // connected their internal signals within the environment. The risk
-      // with that approach is that we don't get any compiler errors. The errors
-      // will only show up during simulation.
-      // With this new approach, we only construct each instance when we have
-      // all the information we need for it. In other words, every object is
-      // fully initialized upon construction. If we leave out required
-      // parameters from the constructor, we will get compiler errors, which is
-      // what we want. Our goal is to always catch as many problems as possible
-      // at compile time.
       
       gen = new(driver_mailbox, driver_done_event);
-      drv = new(vif, driver_mailbox, scoreboard_n_mailbox, driver_done_event);
+      drv = new(vif, driver_mailbox, scoreboard_data_mailbox, driver_done_event);
       monitor = new(vif, scoreboard_result_mailbox);
-      scoreboard = new(scoreboard_n_mailbox, scoreboard_result_mailbox);
+      scoreboard = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
    endfunction // new
-
+     
+   // Here we add a new report status method that can be called from outside
+   // the environment (e.g., from the test class or main testbench).
    function void report_status();
       scoreboard.report_status();
    endfunction
    
-   virtual 	     task run();      
+   virtual task run();      
       fork
 	 gen.run();
 	 drv.run();
@@ -1593,24 +1609,42 @@ class env4 #(int num_tests, bit use_consecutive_inputs=1'b0,
 endclass // env4
 
 
-class test #(string name="default_test_name", int num_tests, bit use_consecutive_inputs=1'b0,
-	     bit use_one_test_at_a_time=1'b0, int repeats=0 );
+// Here we see our first test class, which takes the same configuration options
+// as the environment, in addition to a name for the test, and a number of
+// repeats. For the specified repeats, the test will simply re-execute the
+// environments run task as many times as specified.
 
-   virtual 	 bit_diff_if vif;
-   env4 #(num_tests, use_consecutive_inputs, use_one_test_at_a_time) e;
-   
-   function new(virtual bit_diff_if _vif);
+class test #(string NAME="default_test_name", 
+	     int NUM_TESTS, 
+	     int WIDTH, 
+	     bit CONSECUTIVE_INPUTS=1'b0,
+	     bit ONE_TEST_AT_A_TIME=1'b0, 
+	     int REPEATS=0);
+
+   virtual 	 bit_diff_if #(.WIDTH(WIDTH)) vif;
+   env4 #(.NUM_TESTS(NUM_TESTS),
+	  .WIDTH(WIDTH),
+	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
+	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
+
+   // Test test has its own constructor that initializes the interface.
+   function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif);
       vif = _vif;      
    endfunction // new
 
    function void report_status();
-      $display("Results for Test %0s", name);      
+      $display("Results for Test %0s", NAME);      
       e.report_status();
    endfunction
    
    task run();
-      $display("Time %0t [Test]: Starting test.", $time);      
-      for (int i=0; i < repeats+1; i++) begin
+      $display("Time %0t [Test]: Starting test %0s.", $time, NAME);
+
+      // Repeat the tests the specified number of times.
+      for (int i=0; i < REPEATS+1; i++) begin
+	 // Create a new environement each time since some of the current
+	 // threads run forever.
+	 // TODO: Should probably kill those threads upon completion.	 
 	 e = new(vif);      
 	 vif.rst = 1'b1;
 	 vif.go = 1'b0;      
@@ -1625,23 +1659,32 @@ class test #(string name="default_test_name", int num_tests, bit use_consecutive
 endclass // test
 
 
+// Module: bit_diff_tb7
+// Description: This version of the testbench uses multiple test instances
+// to illustrate how to configure and run multiple tests.
+
 module bit_diff_tb7;
-   
+
    localparam NUM_TESTS = 1000;
+   localparam WIDTH = 16;   
    logic 	     clk;
    
-   bit_diff_if _if (.clk(clk));   
-   fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .n(_if.n), .result(_if.result));
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+	    .done(_if.done), .data(_if.data), .result(_if.result));
 
-   test #(.name("Random Test"), .num_tests(1000)) test0 = new(_if);
-   test #(.name("Consecutive Test"), .num_tests(200), .use_consecutive_inputs(1'b1), .use_one_test_at_a_time(1'b1)) test1 = new(_if);
+   // Create one test for the normal random testing.
+   test #(.NAME("Random Test"), .NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) test0 = new(_if);
+   
+   // Create and additional test for consecutive inputs tested one at a time
+   // with a smaller number of tests.
+   test #(.NAME("Consecutive Test"), .NUM_TESTS(200), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1)) test1 = new(_if);
    
    initial begin : generate_clock
       clk = 1'b0;
       while(1) #5 clk = ~clk;
    end
-   
+
    initial begin      
       $timeformat(-9, 0, " ns");
       test0.run();      
@@ -1654,4 +1697,6 @@ module bit_diff_tb7;
    assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
      
 endmodule // bit_diff_tb7
-*/
+
+
+// If you made it this far, wow, I'm impressed.
