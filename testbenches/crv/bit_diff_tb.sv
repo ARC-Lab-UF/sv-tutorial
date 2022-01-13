@@ -351,6 +351,9 @@ module bit_diff_tb1;
 
    // Cleanup: wait until the generator is done, then print a final summary
    // message and disable the clock generation to end the simulation.
+   // Note that this only works because the generator waits on the driver,
+   // which waits for completion of each test it drives. In general, it is
+   // better to explicitly wait until all tests have completed.
    initial begin     
       @(generator_done_event);
       $display("Tests completed: %0d passed, %0d failed", passed, failed);
@@ -509,13 +512,11 @@ module bit_diff_tb2;
 	 passed ++;
       end
       else begin
-	 $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, _if.result, reference, _if.data);
+	 $display("Test failed (time %0t): result = %0d instead of %0d for input = h%h.", $time, _if.result, reference, _if.data);
 	 failed ++;	    
       end            
    end
 
-   // Cleanup: wait until the generator is done, then print a final summary
-   // message and disable the clock generation to end the simulation.
    initial begin     
       @(generator_done_event);
       $display("Tests completed: %0d passed, %0d failed", passed, failed);
@@ -527,55 +528,77 @@ module bit_diff_tb2;
 endmodule // bit_diff_tb2
 
 
-/*
-class fib_item2;
-   rand bit [4:0] n;
-   bit [31:0] result;
-      
-   // The sequence starts at 1, so don't test 0.
-   constraint c_n_range { n > 0; }
+// Next, we modify the testbench further by decoupling the monitor and
+// scoreboard from the main testbench code.
+//
+// To separate the monitor and scoreboard, we need to extend our transaction
+// object to include the result, which the monitor sends to the scoreboard.
+//
+// Notice that the result is not rand because it is provided as a DUT output.
+
+class bit_diff_item2 #(WIDTH);
+   rand bit [WIDTH-1:0] data;
+   bit signed [$clog2(WIDTH*2+1)-1:0] result;
 endclass
 
+// The monitor simply monitors the outputs of the DUT and looks for any
+// situation we want to verify. Since we only have one output for this example,
+// the monitor simply wait until completion and then passes the result output
+// to the scoreboard.
 
-class monitor1;
-   virtual 	     bit_diff_if vif;
+class monitor1 #(parameter int WIDTH);
+   // Like the driver and generator, we encapsulate all the DUT signals in an
+   // interface.
+   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
+
+   // Mailbox handle for sending results to the scoreboard for verification.
    mailbox 	     scoreboard_mailbox;
-
+   
    task run();
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 fib_item2 item = new;	
-	 @(posedge vif.done);
-	 item.n = vif.n;
+	 // Create the transaction object.
+	 bit_diff_item2 #(.WIDTH(WIDTH)) item = new;
+
+	 // Wait for completion.
+	 @(posedge vif.clk iff (vif.done == 1'b0));	 
+	 @(posedge vif.clk iff (vif.done == 1'b1));
+
+	 // Save the input data and result from the interface.
+	 item.data = vif.data;
 	 item.result = vif.result;
-	 $display("Time %0t [Monitor]: Monitor detected result=%0d for n=%0d.", $time, vif.result, vif.n);
+	 $display("Time %0t [Monitor]: Monitor detected result=%0d for data=h%h.", $time, vif.result, vif.data);
+
+	 // Send the input data and result to the scoreboard and go back to
+	 // monitoring.
 	 scoreboard_mailbox.put(item);
       end
    endtask       
 endclass
 
-class scoreboard1;
-   mailbox scoreboard_mailbox;
-   event   finished_event;   
+
+// The scoreboard waits for a transaction from the  monitor, which specifies 
+// the input being tested and the corresponding result. The scoreboard then
+// compares the result with the reference model, updates statistics, and
+// prints loggin information.
+
+class scoreboard1 #(parameter int WIDTH);
+   // Mailbox handle to receive data from the monitor.
+   mailbox scoreboard_mailbox;  
    int 	   passed, failed, reference;
-   
-   function int model(int n);
-      int 	     x, y, i, temp;
-      x = 0;
-      y = 1;
-      i = 3;
-      if (n < 2)
-	return 0;      
+
+   // We move the reference model into the scoreboard here, since it isn't
+   // needed anywhere else.
+   function int model(int data, int width);
+      automatic int 		     diff = 0;
       
-      while (i <= n) begin
-	 temp = x+y;
-	 x = y;
-	 y = temp;
-	 i ++;	 
+      for (int i=0; i < WIDTH; i++) begin
+	 diff = data[0] ? diff+1  : diff-1;
+	 data = data >> 1;	 
       end
-      return y;
       
+      return diff;      
    endfunction
 
    task run();
@@ -583,47 +606,55 @@ class scoreboard1;
       failed = 0;
             
       forever begin
-	 fib_item2 item;
+	 bit_diff_item2 #(.WIDTH(WIDTH)) item;
+	 
+	 // Wait until the monitor sends a result to verify.
 	 scoreboard_mailbox.get(item);
 
-	 reference = model(item.n);	 
+	 // Verify the result.
+	 reference = model(item.data, WIDTH);	 
 	 if (item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for n=%0d", $time, item.n);
+	    $display("Time %0t [Scoreboard] Test passed for input = h%h", $time, item.data);
 	    passed ++;
 	 end
 	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for n=%0d.", $time, item.result, reference, item.n);
+	    $display("Time %0t [Scoreboard] Test failed: result = %0d instead of %0d for input = h%h.", $time, item.result, reference, item.data);
 	    failed ++;	    
 	 end
       end
    endtask
 
+   // Method to report the status of the simulation at any point.
    function void report_status();     
-      $display("Tests completed: %0d passed, %0d failed", passed, failed);
-   endfunction   
-   
+      $display("Test status: %0d passed, %0d failed", passed, failed);
+   endfunction      
 endclass
 
 
+// Module: bit_diff_tb3
+// Description: Modified version of the previous testbench to decouple the
+// monitor and scoreboard. Notice that the main testbench module keeps getting
+// simpler because the different reponsibilities are moved elsewhere/
+
 module bit_diff_tb3;
    
-   localparam NUM_TESTS = 100;   
-   logic 	     clk, rst, go, done;  
-   logic [4:0] 	     n;
-   logic [31:0]      result;
+   localparam NUM_TESTS = 1000;
+   localparam WIDTH = 16;
    
+   logic 	     clk;
+  
    mailbox 	     driver_mailbox = new;
    mailbox 	     scoreboard_mailbox = new;
    event 	     driver_done_event;
    event 	     generator_done_event;
-   generator1 #(.num_tests(NUM_TESTS)) gen = new;
-   driver2 drv = new;
-   monitor1 monitor = new;
-   scoreboard1 scoreboard = new;
+   generator1 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) gen = new;
+   driver2  #(.WIDTH(WIDTH)) drv = new;
+   monitor1 #(.WIDTH(WIDTH)) monitor = new;
+   scoreboard1 #(.WIDTH(WIDTH)) scoreboard  = new;
    
-   bit_diff_if _if (.clk(clk));   
-   fib DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .n(_if.n), .result(_if.result));
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+		 .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -640,15 +671,20 @@ module bit_diff_tb3;
       drv.driver_done_event = driver_done_event;
       gen.generator_done_event = generator_done_event;
       drv.vif = _if;
+
+      // Initialize the monitor and scoreboard.
       monitor.vif = _if;
       monitor.scoreboard_mailbox = scoreboard_mailbox;
       scoreboard.scoreboard_mailbox = scoreboard_mailbox;      
-            
+
+      // Initialize the circuit.
       _if.rst = 1'b1;
       _if.go = 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
       _if.rst = 1'b0;
       @(posedge clk);
+
+      // Fork off threads for the other main components.
       fork
 	 gen.run();
 	 drv.run();
@@ -662,12 +698,12 @@ module bit_diff_tb3;
       scoreboard.report_status();
       disable generate_clock;      
    end
-   
-   assert property (@(posedge clk) $rose(go) |=> !done);
+
+   assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
      
 endmodule // bit_diff_tb3
 
-
+/*
 
 class env #(int num_tests);
 
