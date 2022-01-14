@@ -36,7 +36,7 @@ module add_carry_out_bad
    // sliced to form the sum and carry out.
    logic [WIDTH:0] 	     full_sum;   
    
-   always_comb begin
+   always_comb begin 
       // This incorrect code uses a non-blocking assignment to full_sum,
       // which is only updated at the end of the always block. Non-blocking
       // assignments cause subsequent accesses to the variable to use the
@@ -48,9 +48,13 @@ module add_carry_out_bad
       // One nice feature of SV (or Verilog) is that you don't need to declare
       // things differently. Everything is a variable and you can choose
       // different assignments in different contexts.
-      full_sum <= in0 + in1;     
+
+      // In this example, we also illustrate the concatenation operator, where
+      // we extend each input by 1 bit to give use WIDTH+1 bits. As we will
+      // see later, this is actually not necessary.
+      full_sum <= {1'b0, in0} + {1'b0, in1};     
       sum <= full_sum[WIDTH-1:0];
-      carry_out <= full_sum[WIDTH];      
+      carry_out <= full_sum[WIDTH];
    end
    
 endmodule // add_carry_out_bad
@@ -73,8 +77,11 @@ module add_carry_out1
 
    // The corrected version using blocking assignments, causing the accesses
    // to full_sum to use the newly updated value.
+   //
+   // SYNTHESIS CODING GUIDELINE 2 FOR COMBINATIONAL LOGIC:
+   // Only use blocking assignments for combinational logic.
    always_comb begin
-      full_sum = in0 + in1;     
+      full_sum = {1'b0, in0} + {1'b0, in1};     
       sum = full_sum[WIDTH-1:0];
       carry_out = full_sum[WIDTH];      
    end
@@ -97,9 +104,10 @@ module add_carry_out2
 
    // Instead of declaring a separate wider variable and then slicing into it,
    // we can instead use the concantenation operator on the LHS of the
-   // assignment. SV chooses the width of an operatoin based on the max of the
-   // operand widths and the result width. Since the result is 1 bit wider,
-   // SV will automatically 0 extend the operands to match.
+   // assignment. SV chooses the width of an operation based on the max of the
+   // operand widths AND the result width. Since the result is 1 bit wider,
+   // SV will automatically 0 extend the operands to match. We could have
+   // similarly remove the manual concatenations from the previous modules.
    assign {carry_out, sum} = in0 + in1;
    
 endmodule
@@ -129,11 +137,11 @@ endmodule
 
 // Module: add_carry_inout_overflow
 // Description: An extension of the previous adder to add a signed overflow.
-//   Note that overflow is avoid if the carry bit is preserved. However, in
-//   contexts where the adder is used with other operations that are WIDTH bits,
-//   the overflow output can be useful to detect signed overflow. It has no
-//   useful meaning for unsigned arithmetic, in which case carry should be
-//   checked.
+// Note that overflow is avoided if the carry bit is preserved. However, in
+// contexts where the adder is used with other operations that are WIDTH bits,
+// the overflow output can be useful to detect signed overflow. It has no
+// useful meaning for unsigned arithmetic, in which case carry should be
+// checked.
 
 module add_carry_inout_overflow
   #(
@@ -146,7 +154,7 @@ module add_carry_inout_overflow
     output logic 	     carry_out, overflow
     );
 
-   assign {carry_out, sum} = {1'b0, in0} + in1 + carry_in;
+   assign {carry_out, sum} = in0 + in1 + carry_in;
 
    // Signed overflow occurs if both inputs have the same sign and the output
    // has a different sign. Alternatively, we could xor the two highest carry

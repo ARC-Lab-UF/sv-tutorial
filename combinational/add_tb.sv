@@ -4,6 +4,9 @@
 
 `timescale 1 ns / 10 ps
 
+// Module: add_tb
+// Description: Use this testbench to test the add module from add.sv.
+
 module add_tb;
 
    localparam WIDTH = 16;
@@ -12,7 +15,7 @@ module add_tb;
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
 
-   add #(.WIDTH(WIDTH)) UUT (.*);
+   add #(.WIDTH(WIDTH)) DUT (.*);
 
    initial begin
       $timeformat(-9, 0, " ns");
@@ -30,6 +33,11 @@ module add_tb;
 endmodule // add_tb
 
 
+// Module: add_carry_out_tb
+// Description: Use this testbench to test the add_carry_out modules from 
+// add.sv. There are three versions that can be tested by uncommenting the 
+// corresponding DUT code below.
+
 module add_carry_out_tb;
 
    localparam WIDTH = 16;
@@ -39,9 +47,10 @@ module add_carry_out_tb;
    logic [WIDTH-1:0] sum;
    logic 	     carry_out;
 
-   //add_carry_bad #(.WIDTH(WIDTH)) UUT (.*);
-   //add_carry_out1 #(.WIDTH(WIDTH)) UUT (.*);
-   add_carry_out2 #(.WIDTH(WIDTH)) UUT (.*);
+   // Replace DUT with version you would like to test.
+   //add_carry_out_bad #(.WIDTH(WIDTH)) DUT (.*);
+   //add_carry_out1 #(.WIDTH(WIDTH)) DUT (.*);
+   add_carry_out2 #(.WIDTH(WIDTH)) DUT (.*);
 
    initial begin
       logic 	   correct_carry_out;
@@ -65,6 +74,9 @@ module add_carry_out_tb;
 endmodule // add_carry_out_tb
 
 
+// Module: add_carry_input_tb
+// Description: Use this testbench to test the add_carry_inout module in add.sv.
+
 module add_carry_inout_tb;
 
    localparam WIDTH = 16;
@@ -73,9 +85,9 @@ module add_carry_inout_tb;
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
    logic 	     carry_out, carry_in;
-
-   add_carry_inout #(.WIDTH(WIDTH)) UUT (.*);
-
+   
+   add_carry_inout #(.WIDTH(WIDTH)) DUT (.*);
+   
    initial begin
       logic 	   correct_carry_out;      
       $timeformat(-9, 0, " ns");
@@ -99,6 +111,10 @@ module add_carry_inout_tb;
 endmodule // add_carry_inout_tb
 
 
+// Module: add_carry_inout_overflow_tb
+// Description: Use this testbench to test the add_carry_inout_overflow module 
+// in add.sv.
+
 module add_carry_inout_overflow_tb;
 
    localparam WIDTH = 16;
@@ -108,7 +124,7 @@ module add_carry_inout_overflow_tb;
    logic [WIDTH-1:0] sum;
    logic 	     carry_out, carry_in, overflow;
 
-   add_carry_inout_overflow #(.WIDTH(WIDTH)) UUT (.*);
+   add_carry_inout_overflow #(.WIDTH(WIDTH)) DUT (.*);
 
    initial begin
       logic 	   correct_carry_out;
