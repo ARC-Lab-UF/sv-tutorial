@@ -186,6 +186,104 @@ module bit_diff_fsmd_1p
 endmodule
 
 
+// Module: bit_diff_fsmd_1p_2.
+// Description: This is an alternative to the previous 1-process FSMD that 
+// shrinks the FSM down to two states. Which one is better likely depends on
+// the targeted FPGA and the synthesis tool being used. In one test on Quartus
+// Prime Pro 19.4 targeting a Cylcone 10 FPGA, this module required 19 logic
+// elements, which was the same as the previous module. In general, don't worry
+// about minor optimizations such as this until the module becomes a bottleneck
+// in a larger application. It is counter-intuitive, but pre-optimizing a 
+// module can often decrease quality of a larger application due to increased
+// routing complexity. For anything that isn't a bottleneck, I generally prefer
+// an implementation that provides a decent balance of brevity and readability.
+// When I do optimize, I usually have a specific tradeoff in mind. e.g. Minimize
+// resources, maximize clock frequency, etc. Often these goals are opposing,
+// which is another reason not to pre-optimize until you know the appropriate
+// tradeoff your are looking for.
+
+module bit_diff_fsmd_1p_2
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 				clk,
+    input logic 				rst,
+    input logic 				go,
+    input logic [WIDTH-1:0] 			data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic 				done    
+    );
+   
+   typedef enum 				{START, COMPUTE} state_t;
+   state_t state_r;
+
+   logic [$bits(data)-1:0] 			data_r;
+   logic [$bits(result)-1:0] 			result_r;
+   logic [$clog2(WIDTH)-1:0] 			count_r;
+   logic signed [$clog2(2*WIDTH+1)-1:0] 	diff_r;
+   logic 					done_r;
+
+   assign result = result_r;
+   assign done = done_r;
+
+   // For this version, we can't use an always_ff because we have to use a
+   // blocking assignment in one state.
+   always @(posedge clk or posedge rst) begin
+      if (rst == 1'b1) begin	 
+	 
+	 result_r <= '0;
+	 done_r <= 1'b0;	 	 
+	 diff_r <= '0;	 
+	 count_r <= '0;
+	 data_r <= '0;	 
+	 state_r <= START;	 
+      end
+      else begin	 
+	 case (state_r)
+	   // In this version, we no longer set done_r to 0 in this state.
+	   // We omit this code because reset will initialize the done
+	   // register. Also, we want to eliminate the restart state,
+	   // which requires the START state to provide the same done
+	   // functionality. To accomplish that goal, the new START state
+	   // simply preserves the value of done_r.	   
+	   START : begin	   
+	      result_r <= '0;	     
+	      diff_r <= '0;
+	      count_r <= '0;
+	      data_r <= data;
+
+	      if (go == 1'b1) begin
+		 // In this version, we have to clear done when circuit is
+		 // started because the START state just preserves the
+		 // previous value.
+		 done_r <= 1'b0;		 
+		 state_r <= COMPUTE;
+	      end
+	   end
+
+	   COMPUTE : begin
+	      // We need a blocking assignment here because we need to
+	      // potentially assign the output the next value of diff.
+	      diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
+	      data_r <= data_r >> 1;
+	      count_r <= count_r + 1'b1;
+
+	      if (count_r == WIDTH-1) begin
+
+		 // By assigning these here, we can get rid of the RESTART
+		 // state entirely.
+		 done_r <= 1'b1;
+		 result_r <= diff_r;		 
+		 state_r <= START;
+	      end
+	   end
+	 endcase	  
+      end      
+   end   
+endmodule
+
+
 // Module: bit_diff_fsmd_2p
 // Description: This module implements a 2-process version of the FSMD.
 
@@ -1138,9 +1236,10 @@ module bit_diff
     );
 
    //bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
+   bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
-   bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
       
 endmodule
