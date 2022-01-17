@@ -1627,7 +1627,7 @@ class test #(string NAME="default_test_name",
 	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
 	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
 
-   // Test test has its own constructor that initializes the interface.
+   // Test has its own constructor that initializes the interface.
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif);
       vif = _vif;      
    endfunction // new
@@ -1697,6 +1697,333 @@ module bit_diff_tb7;
    assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
      
 endmodule // bit_diff_tb7
+
+
+// The current testbench provides a decent set of functionality, but still has
+// some significant limitations.
+// -In multiple places, we are waiting for the DUT to finish. Whenever possible,
+//  code should not be repeated because it will inevitably lead to errors at
+//  some point when one copy is changed but another is not.
+// -The driver has too many responsibilities. It both has to drive inputs and
+//  detect when one of those inputs starts the DUT so it can inform the
+//  scoreboard. In general, we should try to simplify each class so that it
+//  has one specific responsibility. This greatly improves scalability of code
+//  because when the handling of one responsibility is changed, it won't affect
+//  other parts of the code
+
+interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
+   logic 	     rst, go, done;
+   logic [WIDTH-1:0] data;
+   logic signed [$clog2(2*WIDTH+1)-1:0] result;
+
+   // In this new interface, we can use tasks to define certain behaviors. With
+   // the task, the method for waiting to completion is defined in one place,
+   // which makes it easy to change.
+   task automatic wait_for_done();
+      @(posedge clk iff (done == 1'b0));
+      @(posedge clk iff (done == 1'b1));      
+   endtask
+ 
+   // Similarly, we can create other commonly used functionality that can be
+   // called from different points in our testbench. These tasks are very useful
+   // because they provide a layer of abstraction where common functionality
+   // has a single definition within the VFM.
+   
+   // Reset the design.
+   task automatic reset(int cycles);
+      rst = 1'b1;
+      go = 1'b0;      
+      for (int i=0; i < cycles; i++) @(posedge clk);
+      rst = 1'b0;
+      @(posedge clk);      
+   endtask
+
+   // Start the DUT with the specified data by creating a 1-cycle pulse on go.
+   task automatic start(input logic [WIDTH-1:0] data_);    
+      data = data_;
+      go = 1'b1;      
+      @(posedge clk);
+      #1;      
+      go = 1'b0;    
+   endtask   
+endinterface
+
+
+// The new driver class uses the new BFM, and also no longer monitors for the
+// beginning of tests, which eliminates the need for the scoreboard mailbox.
+
+class driver6 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
+   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox 	     driver_mailbox;
+   event 	     driver_done_event;
+
+   // New constructor to establish all connections.
+   function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, mailbox _driver_mailbox, 
+		event _driver_done_event);
+      this.bfm = bfm;      
+      driver_mailbox = _driver_mailbox;
+      driver_done_event = _driver_done_event;      
+   endfunction // new
+   
+   task run();
+      bit_diff_item3 #(.WIDTH(WIDTH)) item;
+      $display("Time %0t [Driver]: Driver starting.", $time);
+
+      if (ONE_TEST_AT_A_TIME) begin
+	 forever begin
+	    driver_mailbox.get(item);
+
+	    // With the new BFM, we can just call the start method instead of
+	    // driving the signals directly.
+	    bfm.start(item.data);
+	   /*
+	    bfm.data = item.data;
+	    bfm.go = 1'b1;      
+	    @(posedge bfm.clk);
+	    #1;	    
+	    bfm.go = 1'b0;     
+	    @(posedge bfm.clk);       
+	    */	    
+	    // Similarly, now we call the BFM to Wait for DUT completion, which
+	    // makes the driver independent of the implementation details.
+	    bfm.wait_for_done();
+	    //@(posedge bfm.clk iff (bfm.done == 1'b0));
+	    //@(posedge bfm.clk iff (bfm.done == 1'b1));
+	    $display("Time %0t [Driver]: Detected done.", $time);	    
+	    -> driver_done_event;	    
+	 end
+      end 
+      else begin         
+	 forever begin	    	 	    
+	    driver_mailbox.get(item);
+	    //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
+
+	    // Here we don't use the BFM start method simply because we don't
+	    // necessarily want to start the DUT. We just want to drive the
+	    // inputs
+	    bfm.data = item.data;
+	    bfm.go = item.go;
+	    @(posedge bfm.clk);
+	    -> driver_done_event;
+	 end
+      end              
+   endtask       
+endclass
+
+
+class done_monitor #(int WIDTH);
+   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox 	     scoreboard_result_mailbox;
+
+   function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, mailbox _scoreboard_result_mailbox);
+      this.bfm = bfm;
+      scoreboard_result_mailbox = _scoreboard_result_mailbox;            
+   endfunction // new
+   
+   task run();
+      $display("Time %0t [Monitor]: Monitor starting.", $time);
+      
+      forever begin
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+
+	 // Here we use the BFM method to make the monitor independent from the
+	 // wait implementation.
+	 bfm.wait_for_done();
+	 item.result = bfm.result;
+	 $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, bfm.result);
+	 scoreboard_result_mailbox.put(item);
+      end
+   endtask       
+endclass
+
+
+// Here we create a new class start_monitor that replaces the responsibility
+// of detecting when the DUT is started, which was previously handled by the
+// driver.
+
+class start_monitor #(int WIDTH);
+   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox 	     scoreboard_data_mailbox;
+
+   function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, mailbox _scoreboard_data_mailbox);
+      this.bfm = bfm;      
+      scoreboard_data_mailbox = _scoreboard_data_mailbox;
+   endfunction // new
+   
+   task run();
+      // To know whether or not generated inputs will create a DUT output, 
+      // we need to know whether or not the DUT is currently active.
+      logic is_first_test = 1'b1;      
+      logic is_active = 1'b0;
+      
+      forever begin
+	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+	 	 
+	 // If the circuit is reset at any point, reset the driver state.
+	 while (bfm.rst) begin
+	    @(posedge bfm.clk);	  
+	    is_first_test = 1'b1;
+	    is_active = 1'b0;	    	    
+	 end
+
+	 //bfm.wait_for_start(is_first_test);
+	 //is_first_test = 1'b0;
+	 	 
+	 @(posedge bfm.clk);
+	 item.data = bfm.data;
+	 //if (bfm.go)
+	 //  $display("Time %0t [start_monitor]: go = 1", $time);
+
+	 // If done is asserted, or if this is the first_test, 
+	 // then the DUT should be inactive and ready for another test.  
+	 if (bfm.done || is_first_test)
+	   is_active = 1'b0;
+	 
+	 // If the DUT isn't already active, and we get a go signal, we are
+	 // starting a test, so inform the scoreboard. The scoreboard will
+	 // then wait to get the result from the monitor. 	 
+	 if (!is_active && bfm.go) begin	    
+	    $display("Time %0t [start_monitor]: Sending start of test for data=h%h.", $time, item.data);
+	    scoreboard_data_mailbox.put(item);
+	    is_active = 1'b1;	    
+	    is_first_test = 1'b0;
+	 end
+//	 else
+//	   $display("Time %0t [start_monitor]: is_active=%0b, is_first_test=%0b, go=%0b", $time, is_active, is_first_test, bfm.go);
+
+	 //@(posedge bfm.clk);
+      end              
+   endtask       
+endclass
+
+
+class env5 #(int NUM_TESTS, int WIDTH, 
+	     bit CONSECUTIVE_INPUTS=1'b0,
+	     bit ONE_TEST_AT_A_TIME=1'b0 );
+
+   generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen;
+   driver6  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv;
+   done_monitor #(.WIDTH(WIDTH)) done_monitor_h;
+   start_monitor #(.WIDTH(WIDTH)) start_monitor_h;
+   scoreboard3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard;
+
+   mailbox scoreboard_data_mailbox;
+   mailbox scoreboard_result_mailbox;
+   mailbox driver_mailbox;
+
+   event   driver_done_event;
+   
+   function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm);      
+      scoreboard_data_mailbox = new;
+      scoreboard_result_mailbox = new;
+      driver_mailbox = new;
+      
+      gen = new(driver_mailbox, driver_done_event);
+      drv = new(bfm, driver_mailbox, driver_done_event);
+      done_monitor_h = new(bfm, scoreboard_result_mailbox);
+      start_monitor_h = new(bfm, scoreboard_data_mailbox);
+      scoreboard = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
+   endfunction // new
+     
+   // Here we add a new report status method that can be called from outside
+   // the environment (e.g., from the test class or main testbench).
+   function void report_status();
+      scoreboard.report_status();
+   endfunction
+   
+   virtual task run();      
+      fork
+	 gen.run();
+	 drv.run();
+	 done_monitor_h.run();
+	 start_monitor_h.run();
+	 scoreboard.run();	 
+      join_any
+
+      disable fork;      
+   endtask // run   
+endclass // env5
+
+
+// The new test class uses the new environment, and replaces some code with a
+// call to a BFM method.
+
+class test2 #(string NAME="default_test_name", 
+	      int NUM_TESTS, 
+	      int WIDTH, 
+	      bit CONSECUTIVE_INPUTS=1'b0,
+	      bit ONE_TEST_AT_A_TIME=1'b0, 
+	      int REPEATS=0);
+
+   virtual 	  bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   env5 #(.NUM_TESTS(NUM_TESTS),
+	  .WIDTH(WIDTH),
+	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
+	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
+
+   int 		  passed, failed;
+      
+   function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm);
+      this.bfm = bfm;
+      e = new(bfm);
+   endfunction // new
+
+   function void report_status();
+      $display("Results for Test %0s", NAME);      
+      e.report_status();
+   endfunction
+   
+   task run();
+      $display("Time %0t [Test]: Starting test %0s.", $time, NAME);
+      
+      // Repeat the tests the specified number of times.
+      for (int i=0; i < REPEATS+1; i++) begin
+	 
+	 // We update the test to use the BFM reset method.
+	 bfm.reset(5);
+	 e.run();
+	 @(posedge bfm.clk);	 
+      end
+      $display("Time %0t [Test]: Test completed.", $time);      
+   endtask   
+endclass
+
+
+// Module: bit_diff_tb8
+// Description: This testbench uses the new BFM and test2 class.
+
+module bit_diff_tb8;
+
+   localparam NUM_RANDOM_TESTS = 10000;
+   localparam NUM_CONSECUTIVE_TESTS = 200;
+   localparam WIDTH = 16;   
+   logic 	     clk;
+   
+   bit_diff_bfm #(.WIDTH(WIDTH)) bfm (.clk(clk));   
+   bit_diff DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
+	    .done(bfm.done), .data(bfm.data), .result(bfm.result));
+
+   test2 #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH)) test0 = new(bfm);
+   test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1)) test1 = new(bfm);
+   
+   initial begin : generate_clock
+      clk = 1'b0;
+      while(1) #5 clk = ~clk;
+   end
+
+   initial begin      
+      $timeformat(-9, 0, " ns");
+      test0.run();      
+      test1.run();
+      test0.report_status();
+      test1.report_status();      
+      disable generate_clock;      
+   end
+      
+   assert property (@(posedge bfm.clk) disable iff (bfm.rst) bfm.go && bfm.done |=> !bfm.done);
+     
+endmodule // bit_diff_tb8
+
 
 
 // If you made it this far, wow, I'm impressed.
