@@ -1282,6 +1282,9 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
    function new(mailbox _scoreboard_data_mailbox, mailbox _scoreboard_result_mailbox);
       scoreboard_data_mailbox = _scoreboard_data_mailbox;
       scoreboard_result_mailbox = _scoreboard_result_mailbox;
+
+      passed = 0;
+      failed = 0;
    endfunction // new
    
    function int model(int data, int width);
@@ -1296,9 +1299,6 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
    endfunction
 
    task run();
-      passed = 0;
-      failed = 0;
-
       for (int i=0; i < NUM_TESTS; i++) begin
 	 
 	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
@@ -1322,6 +1322,13 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
 	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
 	    failed ++;	    
 	 end
+
+	 // Remove any leftover messages that might be in the mailbox upon
+	 // completion. This is needed for the repeat functionality to work.
+	 // If data is left in the mailbox when repeating a test, that data
+	 // will be detected as part of the current test.
+	 scoreboard_data_mailbox.get(in_item);
+	 scoreboard_result_mailbox.get(out_item);
       end
    endtask
 
@@ -1922,11 +1929,11 @@ class env5 #(int NUM_TESTS, int WIDTH,
 	     bit CONSECUTIVE_INPUTS=1'b0,
 	     bit ONE_TEST_AT_A_TIME=1'b0 );
 
-   generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen;
-   driver6  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv;
+   generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen_h;
+   driver6  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv_h;
    done_monitor #(.WIDTH(WIDTH)) done_monitor_h;
    start_monitor #(.WIDTH(WIDTH)) start_monitor_h;
-   scoreboard3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard;
+   scoreboard3 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) scoreboard_h;
 
    mailbox scoreboard_data_mailbox;
    mailbox scoreboard_result_mailbox;
@@ -1939,26 +1946,26 @@ class env5 #(int NUM_TESTS, int WIDTH,
       scoreboard_result_mailbox = new;
       driver_mailbox = new;
       
-      gen = new(driver_mailbox, driver_done_event);
-      drv = new(bfm, driver_mailbox, driver_done_event);
+      gen_h = new(driver_mailbox, driver_done_event);
+      drv_h = new(bfm, driver_mailbox, driver_done_event);
       done_monitor_h = new(bfm, scoreboard_result_mailbox);
       start_monitor_h = new(bfm, scoreboard_data_mailbox);
-      scoreboard = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
+      scoreboard_h = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
    endfunction // new
      
    // Here we add a new report status method that can be called from outside
    // the environment (e.g., from the test class or main testbench).
    function void report_status();
-      scoreboard.report_status();
+      scoreboard_h.report_status();
    endfunction
    
    virtual task run();      
       fork
-	 gen.run();
-	 drv.run();
+	 gen_h.run();
+	 drv_h.run();
 	 done_monitor_h.run();
 	 start_monitor_h.run();
-	 scoreboard.run();	 
+	 scoreboard_h.run();	 
       join_any
 
       disable fork;      
@@ -1980,16 +1987,16 @@ class test2 #(string NAME="default_test_name",
    env5 #(.NUM_TESTS(NUM_TESTS),
 	  .WIDTH(WIDTH),
 	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
-	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
+	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) env_h;
 
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm);
       this.bfm = bfm;
-      e = new(bfm);
+      env_h = new(bfm);
    endfunction // new
 
    function void report_status();
       $display("Results for Test %0s", NAME);      
-      e.report_status();
+      env_h.report_status();
    endfunction
    
    task run();
@@ -1997,12 +2004,12 @@ class test2 #(string NAME="default_test_name",
       
       // Repeat the tests the specified number of times.
       for (int i=0; i < REPEATS+1; i++) begin
-
+	 if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);
+	 
 	 // We update the test to use the BFM reset method.
 	 bfm.reset(5);
-	 e.run();
-	 @(posedge bfm.clk);
-	 $display("REPEATING!!!!!!!");	 
+	 env_h.run();
+	 @(posedge bfm.clk);	 
       end
       $display("Time %0t [Test]: Test completed.", $time);      
    endtask   
@@ -2014,8 +2021,9 @@ endclass
 
 module bit_diff_tb8;
 
-   localparam NUM_RANDOM_TESTS = 5;
+   localparam NUM_RANDOM_TESTS = 1000;
    localparam NUM_CONSECUTIVE_TESTS = 200;
+   localparam NUM_REPEATS = 2;   
    localparam WIDTH = 16;   
    logic 	     clk;
    
@@ -2023,8 +2031,8 @@ module bit_diff_tb8;
    bit_diff DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
 	    .done(bfm.done), .data(bfm.data), .result(bfm.result));
 
-   test2 #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH)) test0 = new(bfm);
-   test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1)) test1 = new(bfm);
+   test2 #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(bfm);
+   test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(bfm);
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -2034,7 +2042,7 @@ module bit_diff_tb8;
    initial begin      
       $timeformat(-9, 0, " ns");
       test0.run();      
-      //test1.run();
+      test1.run();
       test0.report_status();
       test1.report_status();      
       disable generate_clock;      
