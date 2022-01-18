@@ -1636,7 +1636,8 @@ class test #(string NAME="default_test_name",
 
    // Test has its own constructor that initializes the interface.
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif);
-      vif = _vif;      
+      vif = _vif;
+      e = new(vif);      
    endfunction // new
 
    function void report_status();
@@ -1649,10 +1650,7 @@ class test #(string NAME="default_test_name",
 
       // Repeat the tests the specified number of times.
       for (int i=0; i < REPEATS+1; i++) begin
-	 // Create a new environement each time since some of the current
-	 // threads run forever.
-	 // TODO: Should probably kill those threads upon completion.	 
-	 e = new(vif);      
+	 if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);	 
 	 vif.rst = 1'b1;
 	 vif.go = 1'b0;      
 	 for (int i=0; i < 5; i++) @(posedge vif.clk);
@@ -1661,7 +1659,7 @@ class test #(string NAME="default_test_name",
 	 e.run();
 	 @(posedge vif.clk);     
       end
-      $display("Time %0t [Test]: Test completed.", $time);      
+      $display("Time %0t [Test]: Test completed.", $time);
    endtask   
 endclass // test
 
@@ -1672,20 +1670,21 @@ endclass // test
 
 module bit_diff_tb7;
 
-   localparam NUM_TESTS = 1000;
+   localparam NUM_RANDOM_TESTS = 1000;
+   localparam NUM_CONSECUTIVE_TESTS = 200;
+   localparam NUM_REPEATS = 2;   
    localparam WIDTH = 16;   
    logic 	     clk;
-   
+      
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
 	    .done(_if.done), .data(_if.data), .result(_if.result));
 
    // Create one test for the normal random testing.
-   test #(.NAME("Random Test"), .NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) test0 = new(_if);
-   
-   // Create and additional test for consecutive inputs tested one at a time
-   // with a smaller number of tests.
-   test #(.NAME("Consecutive Test"), .NUM_TESTS(200), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1)) test1 = new(_if);
+   test #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(_if);
+
+   // Create one test for the normal random testing.
+   test #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(_if);
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1929,6 +1928,15 @@ class env5 #(int NUM_TESTS, int WIDTH,
 	     bit CONSECUTIVE_INPUTS=1'b0,
 	     bit ONE_TEST_AT_A_TIME=1'b0 );
 
+   // I tend to use an _h suffix for handles to avoid variables having the same
+   // name as the class. Since I use done_monitor_h and start_monitor_h, I
+   // made all the other use the same convention.
+   //
+   // I have no idea why the conventional style of SystemVerilog is to not
+   // capitalize class names like in other OOP languages. For example,
+   //    Done_monitor #(.WIDTH(WIDTH)) done_monitor
+   // would solve this problem. I have also seen other people simply add a
+   // number suffix, or sometimes a _ suffix or prefix.
    generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen_h;
    driver6  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv_h;
    done_monitor #(.WIDTH(WIDTH)) done_monitor_h;
