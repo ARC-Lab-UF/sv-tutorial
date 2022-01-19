@@ -14,10 +14,10 @@ module mult_tb;
 
    // TODO: Change comments to test different modules.
    // Apparently SV doesn't allow the .* operator for parameters, only ports.
-   //mult #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) UUT_SIGNED (.product(product_signed), .*);
-   //mult #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) UUT_UNSIGNED (.product(product_unsigned), .*);
-   mult2 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) UUT_SIGNED (.product(product_signed), .*);
-   mult2 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) UUT_UNSIGNED (.product(product_unsigned), .*);
+   //mult1 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) DUT_SIGNED (.product(product_signed), .*);
+   //mult1 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) DUT_UNSIGNED (.product(product_unsigned), .*);
+   mult2 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) DUT_SIGNED (.product(product_signed), .*);
+   mult2 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) DUT_UNSIGNED (.product(product_unsigned), .*);
 
    initial begin
 
@@ -53,10 +53,10 @@ module mult_high_low_tb;
 
    // TODO: Change comments to test different modules.
    // Apparently SV doesn't allow the .* operator for parameters, only ports.
-   mult_high_low #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) UUT_SIGNED (.high(high_signed), .low(low_signed), .*);
-   mult_high_low #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) UUT_UNSIGNED (.high(high_unsigned), .low(low_unsigned), .*);
-   //mult_high_low2 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) UUT_SIGNED (.high(high_signed), .low(low_signed), .*);
-   //mult_high_low2 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) UUT_UNSIGNED (.high(high_unsigned), .low(low_unsigned), .*);
+   mult_high_low1 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) DUT_SIGNED (.high(high_signed), .low(low_signed), .*);
+   mult_high_low1 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) DUT_UNSIGNED (.high(high_unsigned), .low(low_unsigned), .*);
+   //mult_high_low2 #(.IS_SIGNED(1'b1), .INPUT_WIDTH(INPUT_WIDTH)) DUT_SIGNED (.high(high_signed), .low(low_signed), .*);
+   //mult_high_low2 #(.IS_SIGNED(1'b0), .INPUT_WIDTH(INPUT_WIDTH)) DUT_UNSIGNED (.high(high_unsigned), .low(low_unsigned), .*);
 
    initial begin
 

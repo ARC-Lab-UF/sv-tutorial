@@ -1,14 +1,14 @@
 // Greg Stitt
 // University of Florida
 
-// Module: mult
+// Module: mult1
 // Description: Implements a multiplier that prevents overflow by producing
 // a product that is twice the width of the inputs. It uses a paremeter to
 // specify the input width, and whether or not the inputs are signed.
 
-module mult
+module mult1
   #(
-    parameter INPUT_WIDTH=16,
+    parameter INPUT_WIDTH,
     parameter logic IS_SIGNED = 1'b0
     )
    (
@@ -20,7 +20,7 @@ module mult
       if (IS_SIGNED) 
 	// SV arithmetic operations are unsigned by default, so we have to
 	// explicitly cast both inputs to signed.
-	// The width of an expression is determined automatically as the 
+	// The width of the expression is determined automatically as the 
 	// maximum width of all operands and the result. Since the product is 
 	// twice as wide as the operands, the multiplication will already 
 	// match the width of the product by extending the operand widths.
@@ -29,16 +29,17 @@ module mult
 	product = in0 * in1;
       
    end     
-endmodule // mult
+endmodule // mult1
 
 
-// Module: mult2:
+// Module: mult2
 // Description: An alternative implementation that uses a generate statement
-// instead of an always block.
+// instead of an always block. This is a brief preview of generate blocks,
+// which will be expanded on in the structural tutorial.
 
 module mult2
   #(
-    parameter INPUT_WIDTH=16,
+    parameter INPUT_WIDTH,
     parameter logic IS_SIGNED = 1'b0
     )
    (
@@ -51,48 +52,64 @@ module mult2
    // always block. The two should synthesize identically since the
    // if condition is a constant, which should be optimized to eliminate the 
    // unused path.
+   //
+   // The generate/endgenerate wrapper is optional according the the language 
+   // definition. Any if/for/case using a parameter or localparam should be 
+   // automatically detected as a generate block. However, some tools still
+   // explicitly require the generate/endgenerate.
+   //
+   // IMPORTANT: As we will see in later examples, it is often useful to be
+   // able to refer to variables, functions, modules instances, etc. within
+   // other generate statements. To do this, each if/for/case within a generate
+   // requires a label. It is optional in general, but you won't be able to
+   // reference things inside the scope of those generates without the label.
+   // See the structural architecture tutorial for more examples.
    generate
-      if (IS_SIGNED) begin
+      if (IS_SIGNED) begin : l_is_signed
 	 assign product = signed'(in0) * signed'(in1);                
       end
-      else begin
+      else begin : l_is_unsigned
 	 assign product = in0 * in1;
       end
    endgenerate  
 endmodule
 
 
-// Module: mult_high_low
+// Module: mult_high_low1
 // Description: An alternative implementation that replaces the INPUT_WIDTH*2
 // bit product with a high and low output. This generally isn't needed since
 // it is easy to slice into the larger product, but is used to illustrate
 // several new constructs.
 
-module mult_high_low
+module mult_high_low1
   #(
-    parameter INPUT_WIDTH=16,
+    parameter INPUT_WIDTH,
     parameter logic IS_SIGNED = 1'b0
     )
    (
     input logic [INPUT_WIDTH-1:0]  in0, in1,
     output logic [INPUT_WIDTH-1:0] high, low
     );
-   
-   generate
+
+   always_comb begin : l_mult
       // Use a tempory variable to store the full product.
+      // Variables can have the scope of an always_block, but if you do this,
+      // it is a good idea to give the always block a label (e.g. l_mult)
+      // otherwise you will have to figure out the automatic name given to it
+      // by the simulator.
       logic [INPUT_WIDTH*2-1:0]    product;
+      
       if (IS_SIGNED) begin	 
-	 always_comb product = signed'(in0) * signed'(in1);
+	 product = signed'(in0) * signed'(in1);
       end
       else begin
-	 always_comb product = in0 * in1;
+	 product = in0 * in1;
       end
 
       // Slice into the product to get the high and low outputs.
-      assign high = product[INPUT_WIDTH*2-1:INPUT_WIDTH];
-      assign low = product[INPUT_WIDTH-1:0];      
-      
-   endgenerate  
+      high = product[INPUT_WIDTH*2-1:INPUT_WIDTH];
+      low = product[INPUT_WIDTH-1:0];
+   end
 endmodule
 
 
@@ -102,7 +119,7 @@ endmodule
 
 module mult_high_low2
   #(
-    parameter INPUT_WIDTH=16,
+    parameter INPUT_WIDTH,
     parameter logic IS_SIGNED = 1'b0
     )
    (
@@ -110,14 +127,38 @@ module mult_high_low2
     output logic [INPUT_WIDTH-1:0] high, low
     );
 
-   generate
+   always_comb begin
       if (IS_SIGNED) begin
 	 // Use concatenation on the outputs to avoid the extra variable. This
 	 // synthesizes to the exact same circuit, but is more concise.
-	 assign {high,low} = signed'(in0) * signed'(in1);              
+	 {high,low} = signed'(in0) * signed'(in1);              
       end
       else begin
-	 assign {high,low} = in0 * in1;
+	 {high,low} = in0 * in1;
       end
-   endgenerate  
+   end
+
+endmodule
+
+
+// Module: mult
+// Description: Top level for testing synthesis of each module. Change the
+// comments to change the top-level module.
+
+module mult
+  #(
+    parameter INPUT_WIDTH=16,
+    parameter logic IS_SIGNED = 1'b0
+    )
+   (
+    input logic [INPUT_WIDTH-1:0]    in0, in1,
+    output logic [INPUT_WIDTH*2-1:0] product
+    );
+
+   mult1 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
+   //mult2 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
+
+   //mult_high_low1 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.high(product[2*INPUT_WIDTH-1:INPUT_WIDTH]), .low(product[INPUT_WIDTH-1:0]), .*);
+   //mult_high_low2 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.high(product[2*INPUT_WIDTH-1:INPUT_WIDTH]), .low(product[INPUT_WIDTH-1:0]), .*);
+   
 endmodule
