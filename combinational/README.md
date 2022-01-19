@@ -22,11 +22,10 @@ As with all circuits, first design the combinational circuit, then write the cod
     - Introduces how to convert an integer to any number of bits to avoid width mismatch problems.
 1. [Adders](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/add.sv)
     - Introduces arithmetic operations, blocking vs. non-blocking assignments, concatenation, automatic variable resizing.
-    - Illustrates a variety of adders (no carry, carry out, carry in & out, carry in, out, and overlay)
+    - Illustrates a variety of adders (no carry, carry out, carry in & out, carry in, out, and overflow)
 1. [Multipliers](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/mult.sv)
-    - Introduces signed and unsigned, generate statements, and slicing.
-    - Multiple testbenches to support the different multiplier interfaces.
-    - A separate top-level module (mult_top.sv) for synthesizing the different modules.
+    - Introduces signed and unsigned, generate statements, variable scope, and slicing.
+    - Multiple testbenches to support the different multiplier interfaces. Each testbench tests signed and unsigned instances.    
 1. [ALU](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/alu.sv)
     - Introduces common problems with latches, strategies for avoiding latches, local parameters, and tasks.    
 
