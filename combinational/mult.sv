@@ -75,6 +75,73 @@ module mult2
 endmodule
 
 
+// Module: mult3
+// Description: Illustrates case generate block, and hierarchical access of 
+// functions within a generate block. Nobody would ever create a multiplier 
+// this way, but it is a convenient way of introducing these constructs.
+
+module mult3
+  #(
+    parameter INPUT_WIDTH,
+    parameter logic IS_SIGNED = 1'b0
+    )
+   (
+    input logic [INPUT_WIDTH-1:0]    in0, in1,
+    output logic [INPUT_WIDTH*2-1:0] product
+    );
+
+   // Here, we can use a single multiply function to handle both signed and
+   // unsigned. The prefix l_mult_func. basically states to find a generate
+   // block (in this example, but it could also refer to class objects) with
+   // the same name. In general, this would be:
+   //     <generate_block_name>.<function_name>
+   // If the hierarchy was deeper, we could just add more labels separated by
+   // periods. You can also access things other than functions. Basically,
+   // anything that falls within the generate block can be accessed (e.g.
+   // variables, modules, functions).
+   assign product = l_mult_func.multiply(in0, in1);
+
+   // We still want the function to behave differently depending on the 
+   // signedness. It is overkill for this example, but one way of doing this
+   // if with a case (or if) generate block. If we give this block a label, we
+   // can access the contents of that block from anywhere in the module.
+   // Notice how we now have two different implementations of the multiply
+   // function, but only one will exist at compile time because the generate
+   // case (or if) can only use parameters, which are known at compile time.
+   //
+   // There are obviously many other ways of accomplishing this same goal. For
+   // example, we could just add an if to the multiply function that selects
+   // between signed and unsigned. This new construct becomes more useful as the
+   // different function possibilities become more complex. For example, there
+   // is a CRC example using different polynomials here:
+   //     https://www.systemverilog.io/generate
+   //
+   // Personally, while I use case and if generates all the time, I have never
+   // had a need to hierachically access anything within a generate block for
+   // synthesizable code. I'm sure there are situations where hierarchical 
+   // access provides a more elegant solution, but I haven't seen a convincing
+   // example yet in synthesizable code. However, adding the labels does allow
+   // for hierachical access by testbenches, which can be very useful, so my
+   // recommendation is to add the labels even if you aren't using them in your
+   // synthesizable code.
+   generate
+      case (IS_SIGNED)
+	1'b0: begin: l_mult_func
+	   function automatic [INPUT_WIDTH*2-1:0] multiply(input [$bits(in0)-1:0] x, y);
+	      
+	      return x * y;
+	   endfunction
+	end
+	1'b1: begin: l_mult_func
+	     function automatic [INPUT_WIDTH*2-1:0] multiply(input [$bits(in0)-1:0] x, y);
+		
+		return signed'(x) * signed'(y);
+	     endfunction
+	end
+      endcase
+   endgenerate  
+endmodule
+
 // Module: mult_high_low1
 // Description: An alternative implementation that replaces the INPUT_WIDTH*2
 // bit product with a high and low output. This generally isn't needed since
@@ -155,10 +222,11 @@ module mult
     output logic [INPUT_WIDTH*2-1:0] product
     );
 
-   mult1 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
+   //mult1 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
    //mult2 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
+   //mult3 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.*);
 
    //mult_high_low1 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.high(product[2*INPUT_WIDTH-1:INPUT_WIDTH]), .low(product[INPUT_WIDTH-1:0]), .*);
-   //mult_high_low2 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.high(product[2*INPUT_WIDTH-1:INPUT_WIDTH]), .low(product[INPUT_WIDTH-1:0]), .*);
+   mult_high_low2 #(.INPUT_WIDTH(INPUT_WIDTH), .IS_SIGNED(IS_SIGNED)) top (.high(product[2*INPUT_WIDTH-1:INPUT_WIDTH]), .low(product[INPUT_WIDTH-1:0]), .*);
    
 endmodule
