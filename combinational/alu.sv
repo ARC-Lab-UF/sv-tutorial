@@ -48,6 +48,7 @@ module alu_bad
     );
 
    always_comb begin
+
       case (sel)
 	// Addition
 	2'b00 : begin
@@ -105,6 +106,7 @@ module alu_bad
 	   out = in0 & in1;
 	end
 
+	// Or
 	2'b11 : begin
 	   out = in0 | in1;
 	end	   
@@ -227,10 +229,6 @@ module alu3
     );
 
    // We can define constants with meaningful names to replace hardcoded values.
-   // We could take this a step further and define an enum type, put that
-   // type in a header, and change the input type for the select to the enum.
-   // That is likely overkill for this simple ALU but could be useful for a
-   // module that provides a huge number of different modes.
    localparam logic [1:0]    ADD_SEL = 2'b00;
    localparam logic [1:0]    SUB_SEL = 2'b01;
    localparam logic [1:0]    AND_SEL = 2'b10;
@@ -274,7 +272,114 @@ module alu3
 endmodule
 
 
+// Module: alu4
+// Description: This version uses a separate package (see alu_pkg.sv) to
+// define a custom enum type for the select. This allows us to see meaningful
+// select names in simulation.
+   
+import alu_pkg::*;
+     
+module alu4
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic [WIDTH-1:0]  in0,
+    input logic [WIDTH-1:0]  in1,
+    input alu_sel_t 	     sel,
+    output logic 	     neg,
+    output logic 	     pos,
+    output logic 	     zero, 
+    output logic [WIDTH-1:0] out
+    );
+   
+   task update_flags();
+      pos = 1'b0;
+      neg = 1'b0;
+      zero = 1'b0;
+      if (out == 0) zero = 1'b1;
+      else if (out[WIDTH-1] == 1'b0) pos = 1'b1;
+      else neg = 1'b1;
+   endtask
+   
+   always_comb begin
+      neg = 1'b0;
+      pos = 1'b0;
+      zero = 1'b0;
+      
+      case (sel)
+	ADD_SEL : begin 
+	   out = in0 + in1;
+	   update_flags();	   
+	end
+	SUB_SEL : begin 
+	   out = in0 - in1;
+	   update_flags();	   
+	end
+	AND_SEL : out = in0 & in1;
+	OR_SEL : out = in0 | in1;   
+      endcase
+   end   
+endmodule
 
+
+// Module: alu5
+// Description: Nearly identical to the previous module, except this version
+// uses the scope resolution operator (::) to specify where the constants
+// come from. This can be useful for readability, but is sometimes necessary
+// when multiple packages have the same name for constants, functions, etc.
+// This issue is known as "namespace" collision." In these cases, we can
+// resolve the collision with explicit scope resolution.   
+
+import alu_pkg::*;
+
+module alu5
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic [WIDTH-1:0]  in0,
+    input logic [WIDTH-1:0]  in1,
+    input alu_sel_t 	     sel,
+    output logic 	     neg,
+    output logic 	     pos,
+    output logic 	     zero, 
+    output logic [WIDTH-1:0] out
+    );
+   
+   task update_flags();
+      pos = 1'b0;
+      neg = 1'b0;
+      zero = 1'b0;
+      if (out == 0) zero = 1'b1;
+      else if (out[WIDTH-1] == 1'b0) pos = 1'b1;
+      else neg = 1'b1;
+   endtask
+   
+   always_comb begin
+      neg = 1'b0;
+      pos = 1'b0;
+      zero = 1'b0;
+      
+      case (sel)
+	alu_pkg::ADD_SEL : begin 
+	   out = in0 + in1;
+	   update_flags();	   
+	end
+	alu_pkg::SUB_SEL : begin 
+	   out = in0 - in1;
+	   update_flags();	   
+	end
+	alu_pkg::AND_SEL : out = in0 & in1;
+	alu_pkg::OR_SEL : out = in0 | in1;   
+      endcase
+   end   
+endmodule
+
+
+// Module: alu
+// Description: top-level module for testing synthesis of each alu module.
+   //    
 module alu
   #(
     parameter WIDTH=8
@@ -289,6 +394,13 @@ module alu
     output logic [WIDTH-1:0] out
     );
 
-   alu3 #(.WIDTH(WIDTH)) alu (.*);
+   
+   //alu_bad #(.WIDTH(WIDTH)) alu (.*);
+   //alu1 #(.WIDTH(WIDTH)) alu (.*);
+   //alu2 #(.WIDTH(WIDTH)) alu (.*);
+   //alu3 #(.WIDTH(WIDTH)) alu (.*);
+
+   //alu4 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
+   alu5 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
    
 endmodule
