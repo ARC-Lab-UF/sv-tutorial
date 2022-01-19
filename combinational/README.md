@@ -28,4 +28,5 @@ As with all circuits, first design the combinational circuit, then write the cod
     - Multiple testbenches to support the different multiplier interfaces. Each testbench tests signed and unsigned instances.    
 1. [ALU](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/alu.sv)
     - Introduces common problems with latches, strategies for avoiding latches, local parameters, and tasks.    
+    - Introduces packages, importing, and scope resolution to avoid namespace conflicts.    
 
