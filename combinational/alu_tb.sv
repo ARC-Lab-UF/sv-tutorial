@@ -50,6 +50,8 @@ module alu_tb;
 	      $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);
 
 	 if (sel == 2'b00 || sel == 2'b01) check_flags();	 
-      end      
+      end 
+
+      $display("Tests completed.");      
    end	         
 endmodule
