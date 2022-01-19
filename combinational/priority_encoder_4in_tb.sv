@@ -6,11 +6,8 @@ module priority_encoder_4in_tb;
    logic [1:0] result;
    logic       valid;
       
-   priority_encoder_4in_if UUT_IF (.*);
-   //priority_encoder_4in_case1 UUT_CASE1 (.*);
-   //priority_encoder_4in_case2 UUT_CASE2 (.*);
-   //priority_encoder_4in_case3 UUT_CASE3 (.*);   
-   
+   priority_encoder_4in DUT (.*);
+      
    initial begin
       logic [1:0] correct_result;
       logic 	  correct_valid;
@@ -35,6 +32,8 @@ module priority_encoder_4in_tb;
 	 if (valid != correct_valid)
 	   $display("ERROR (time %0t): valid = %b instead of %b.", $realtime, valid, correct_valid);	 
       end
+
+      $display("Tests completed.");      
    end
 endmodule
 
