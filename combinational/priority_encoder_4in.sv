@@ -109,6 +109,31 @@ module priority_encoder_4in_case3
    output logic [1:0] result
    );
 
+   always_comb begin
+      valid = 1'b1;
+
+      // By using "case inside," we can specify ranges of values for each case.
+      case (inputs) inside     
+	4'b0000 : begin result = 2'b00; valid = 1'b0; end
+	4'b0001 : result = 2'b00;
+	[4'b0010:4'b0011] : result = 2'b01;
+	[4'b0100:4'b0111] : result = 2'b10;
+	[4'b1000:4'b1111] : result = 2'b11;
+      endcase	
+   end
+endmodule // priority_encoder_4in_case3
+
+
+// Module: priority_encoder_4in_case4
+// Description: A simplified case statement implementation using wildcards.
+
+module priority_encoder_4in_case4
+  (
+   input logic [3:0]  inputs,
+   output logic       valid,
+   output logic [1:0] result
+   );
+
    always_comb     begin
       valid = 1'b1;
 
@@ -122,11 +147,12 @@ module priority_encoder_4in_case3
 	4'b0000 : begin result = 2'b00; valid = 1'b0; end
       endcase	
    end
-endmodule // priority_encoder_4in_case3
+endmodule // priority_encoder_4in_case4
 
 
 // Module: priority_encoder_4in
-// Description: A top-level entity that can be used for synthesis.
+// Description: A top-level module that can be used to change the module used
+// for synthesis and simulation.
 
 module priority_encoder_4in
   (
@@ -140,4 +166,5 @@ module priority_encoder_4in
    //priority_encoder_4in_case1 pe (.*);
    //priority_encoder_4in_case2 pe (.*);
    //priority_encoder_4in_case3 pe (.*);
+   //priority_encoder_4in_case4 pe (.*);
 endmodule
