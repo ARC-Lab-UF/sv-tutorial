@@ -1299,11 +1299,11 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
    endfunction
 
    task run();
+      bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
+      bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
+      
       for (int i=0; i < NUM_TESTS; i++) begin
-	 
-	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
-	 bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
-	
+	 	
 	 // First wait until the driver informs us of a new test.
 	 scoreboard_data_mailbox.get(in_item);
 	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
@@ -1322,14 +1322,15 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
 	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
 	    failed ++;	    
 	 end
+      end // for (int i=0; i < NUM_TESTS; i++)
 
-	 // Remove any leftover messages that might be in the mailbox upon
-	 // completion. This is needed for the repeat functionality to work.
-	 // If data is left in the mailbox when repeating a test, that data
-	 // will be detected as part of the current test.
-	 scoreboard_data_mailbox.get(in_item);
-	 scoreboard_result_mailbox.get(out_item);
-      end
+      
+      // Remove any leftover messages that might be in the mailbox upon
+      // completion. This is needed for the repeat functionality to work.
+      // If data is left in the mailbox when repeating a test, that data
+      // will be detected as part of the current test.
+      while(scoreboard_data_mailbox.try_get(in_item));
+      while(scoreboard_result_mailbox.try_get(out_item));
    endtask
 
    function void report_status();     
@@ -2031,7 +2032,7 @@ module bit_diff_tb8;
 
    localparam NUM_RANDOM_TESTS = 1000;
    localparam NUM_CONSECUTIVE_TESTS = 200;
-   localparam NUM_REPEATS = 2;   
+   localparam NUM_REPEATS = 4;   
    localparam WIDTH = 16;   
    logic 	     clk;
    
