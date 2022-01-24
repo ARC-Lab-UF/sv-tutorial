@@ -18,3 +18,5 @@ whenever possible. To avoid these situations, it is very important to avoid thes
     - Note: there is no testbench for this example. The intent is to synthesize it and see that there are no errors are warnings, despite an obvious problem in the code.
 1. [structure](structure.sv)
     - Gotcha: width mismatches in structural architectures.
+1. [multiple_add](multiple_add.sv)
+    - Gotcha: inputs can accidentally be driven internally from a module via port mapping, which causes synthesis to optimize away parts of the design.
