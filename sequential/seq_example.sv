@@ -370,8 +370,8 @@ module arch5
    end // always_ff @
 
    // Despite add_out being a blocking assignment, which by itself leads to
-   // combinational logic, the following assignment requires that value to be   
-   // preservered, which requires a register. However, that register is not
+   // combinational logic, the following assignment requires the value to be   
+   // preserved, which requires a register. However, that register is not
    // placed between the adder and the multiplier, so the functionality is still
    // correct.
    //
