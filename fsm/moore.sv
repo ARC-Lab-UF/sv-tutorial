@@ -35,13 +35,55 @@ module moore_1p
    // Those names then show up in simulation, which is much easier to track.
    // Also, with this enum approach, we are leaving it to the synthesis tool
    // to come up with the state encoding, which is usually a good idea.
-   typedef enum       {
+
+   /*typedef enum       {
 		       STATE0,
 		       STATE1,
 		       STATE2,
 		       STATE3
-		       } state_t;
+		       } state_t;*/
 
+   // By default, SV uses a signed integer type for the enum values, where the
+   // first value gets assigned 0, and every subsequent value is 1 higher. 
+   // Unfortunately, the resulting synthesis behavior is tool dependent.
+   // Some versions of Quartus will not infer a state-machine for signed int
+   // values:
+   // https://www.intel.com/content/www/us/en/docs/programmable/683082/21-3/systemverilog-state-machine-coding-example.html
+   //
+   // Although the design will still work, it will be less efficient.
+   // To workaround this, there are several options.
+   // For Quartus, you could use unsigned int values. The risk in using integers
+   // is that the state register is now 32 bits. Quartus will optimize it to
+   // whatever encoding you want, but other synthesis tools might not.
+   // Uncomment the following to test different styles in your tool.
+   
+   /*typedef enum int unsigned {
+                               STATE0,
+                               STATE1,
+                               STATE2,
+                               STATE3 
+                              } state_t;*/    
+
+   // Probably a safer alternative is to declare a logic array, like below.
+   // Again, the potential risk in doing this is that a particular synthesis
+   // tool might restrict the encoding to binary. Quartus does not, and
+   // usually disregards the number of bits to use a 1-hot encoding, but other
+   // tools may behave differently.
+   //
+   // MY RECOMMENDATION: To maximize portability across tools, start with the
+   // logic array version and assume a binary encoding. If the FSM becomes a 
+   // bottleneck, adjust the encoding to optimize for your specific tool.
+   typedef enum logic [1:0]  {
+                               STATE0,
+                               STATE1,
+                               STATE2,
+                               STATE3 
+                              } state_t;
+
+   // NOTE: I tried the following to avoid having to change the number of bits
+   // when I add states and it crashed the version of Quartus I was using.
+   //typedef enum logic [$clog2(STATE3+1)-1:0]  {
+                          
    // Declare a represent the state register (i.e. the current state). Notice
    // that its type is state_t.
    state_t state_r;
@@ -95,9 +137,12 @@ module moore_1p_2
    );
 
    // If we have a a good reason to choose our own state encoding, we can
-   // do so by declaring the type as a logic array, and then manually assigning
-   // a value to each state. If the logic type is used but values are not
-   // given, then by default a binary encoding is used.
+   // do so manually assigning a value to each state. However, some tools
+   // will not guarantee this encoding and may change it. In my tests on
+   // Quartus, synthesis changed this encoding to a 1-hot encoding, despite
+   // the explicit binary encoding. To avoid this, synthesis tools will have
+   // flags that can specify the desired encoding:
+   // https://www.intel.com/content/www/us/en/programmable/quartushelp/current/index.htm#hdl/vlog/vlog_file_dir_syn_encoding.htm
    //
    // SUGGESTION: Unless you have a very good reason to use a specific encoding,
    // don't use one. Omitting the encoding allows the synthesis tool to choose
@@ -153,7 +198,7 @@ module moore_2p
    output logic [3:0] out
    );
 
-   typedef enum       {
+   typedef enum logic[1:0] {
 		       STATE0,
 		       STATE1,
 		       STATE2,
@@ -224,13 +269,13 @@ module moore_2p_2
    output logic [3:0] out
    );
 
-   typedef enum       {
+   typedef enum logic[1:0] {
 		       STATE0,
 		       STATE1,
 		       STATE2,
 		       STATE3
 		       } state_t;
-
+   
    state_t state_r, next_state;
 
    always_ff @(posedge clk, posedge rst) 
@@ -280,7 +325,10 @@ module moore
    input logic 	      clk, rst, en,
    output logic [3:0] out
    );
-   
-   moore_2p_2 fsm (.*);
+
+   moore_1p fsm (.*);
+   //moore_1p_2 fsm (.*);
+   //moore_2p fsm (.*);
+   //moore_2p_2 fsm (.*);
       
 endmodule
