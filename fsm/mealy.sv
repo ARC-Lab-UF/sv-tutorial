@@ -11,13 +11,13 @@
 // Description: 2-process/block implementation of the Mealy FSM shown in
 // fsm.pdf
 
-module mealy
+module mealy_2p
   (
    input logic 	clk, rst, go, ack,
    output logic en, done
    );
 
-   typedef enum {START, COMPUTE, FINISH, RESTART} state_t;
+   typedef enum logic [1:0] {START, COMPUTE, FINISH, RESTART} state_t;
    state_t state_r, next_state;
 
    always_ff @(posedge clk, posedge rst)
@@ -96,7 +96,7 @@ module mealy_hybrid
    output logic en, done
    );
 
-   typedef enum {START, COMPUTE, FINISH, RESTART} state_t;
+   typedef enum logic [1:0] {START, COMPUTE, FINISH, RESTART} state_t;
    state_t state_r, next_state;
 
    always_ff @(posedge clk, posedge rst)
@@ -171,4 +171,20 @@ module mealy_hybrid
 	end          	   	 
       endcase
    end         
+endmodule
+
+
+// Module: mealy
+// Description: Top-level moduel for testing synthesis and simulation of each
+// architecture.
+
+module mealy
+  (
+   input logic 	clk, rst, go, ack,
+   output logic en, done
+   );
+
+   mealy_2p top (.*);
+   //mealy_hybrid top (.*);
+      
 endmodule
