@@ -43,6 +43,13 @@ for comparison.
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
     - Introduces $past and $stable.
+1. [Simple Pipeline](assertions/simple_pipeline.sv)
+    - Corresponding [module](assertions/simple_pipeline.sv) and [testbench](assertions/simple_pipeline_tb.sv).
+    - Introduces common problem with using functions in assertion properties.
+    - Introduces generalized template for pipelines without an enable.
+1. [Simple Pipeline w/ Enable](assertions/simple_pipeline_with_en.sv)
+    - Corresponding [module](assertions/simple_pipeline_with_en.sv) and [testbench](assertions/simple_pipeline_with_en_tb.sv).
+    - Extends the simple pipeline testbench to illustrate how to account for the enable in assertion properties.    
 1. [FIFO](assertions/fifo.sv)
     - Corresponding [module](assertions/fifo.sv) and [testbench](assertions/fifo_tb.sv).
     - Introduces access of variables inside other modules, while also demonstrating using assertions to replace a reference model.
