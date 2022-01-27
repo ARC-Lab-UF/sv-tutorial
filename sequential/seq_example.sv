@@ -9,7 +9,8 @@
 // outputs) on a rising clock edge, the synthesis tool will infer a register.
 //
 // Blocking assignments may or may not become registers depending on the usage,
-// which is illustrated in the examples.
+// which is illustrated in the examples. See the bottom of the file for
+// final thoughts and overal suggestions.
 //
 // It is common to accidentally introduce registers by assigning variables on a
 // rising clock. Always keep in mind exactly how many registers you want. If
@@ -382,9 +383,54 @@ module arch5
    // block, there will still be a register. The added register will not be
    // placed in between resouces that read the variable on the rising clock edge
    // after the assignment.
-   assign out1 = add_out;   
+   //
+   // Due to being so error prone, I recommend avoiding this style. See the
+   // next architecture for the recommended solution to arch5.  
+   assign out1 = add_out;      
       
 endmodule // arch5
+
+
+// Module: arch5_2
+// Less error prone implemenation of the arch5 architecture 
+
+module arch5_2
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic 	     clk,
+    input logic 	     rst,
+    input logic [WIDTH-1:0]  in1, in2, in3,
+    output logic [WIDTH-1:0] out1, out2
+    );
+
+   logic [WIDTH-1:0] 	     in1_r, in2_r, in3_r, add_out;
+
+   always @(posedge clk or posedge rst) begin
+      if (rst) begin
+	 out2 <= '0;
+	 in1_r <= '0;
+	 in2_r <= '0;
+	 in3_r <= '0;
+      end
+      else begin
+	 in1_r <= in1;
+	 in2_r <= in2;
+	 in3_r <= in3;
+	 
+	 add_out = in1_r + in2_r;
+
+	 // In this case out1 becomes a register, which is what we want. It
+	 // is also much more explicit than the previous example. Note that
+	 // add_out is just a wire because all uses of add_out occur within
+	 // this block and after the definition.
+	 out1 <= add_out;	 
+	 out2 <= add_out * in3_r;
+      end      
+   end // always_ff @
+      
+endmodule // arch5_2
 
 
 // Module: arch6
@@ -468,6 +514,30 @@ module arch6_bad
 endmodule // arch6_bad
 
 
+// Final thoughts and suggestions:
+//
+// I've seen a wide range of suggestions for sequential logic coding styles.
+// Some people require always_ff and prevent any use of blocking operators.
+// Although that is a safe suggestion for beginners, it is overly restrictive 
+// if you understand how code gets synthesized.
+//
+// My personal suggestion is to always start with always_ff and non-blocking
+// assignments. However, when you encounter a situation where it makes sense
+// and is more readable to use a blocking assignment, it is fine to do so,
+// as long as it synthesizes to the intended circuit.
+//
+// My personal threshold for switching to blocking assignments is when
+// separating large amounts of code into multiple blocks would make it
+// considerably harder to read and understand the code. If I'm constantly
+// jumping back and forth between blocks to understand functionality, the
+// potential risks of blocking assignments are outweighed by considerably better
+// readability and maintability of the code.
+//
+// The overall goal is to write concise, readable, maintainable, extensible
+// code that synthesizes to the structure of a pre-designed circuit. As always,
+// design the circuit, then write the code.
+
+
 // Module: seq_example
 // Description: Top-level module for synthesizing each of the above 
 // architectures.
@@ -484,7 +554,8 @@ module seq_example
     );
 
    // Change the module name to synthesize a different architecture.
-   arch1 #(.WIDTH(WIDTH)) arch (.*);
+   //arch1 #(.WIDTH(WIDTH)) arch (.*);
+   arch5_2 #(.WIDTH(WIDTH)) arch (.*);
    
 endmodule
 
