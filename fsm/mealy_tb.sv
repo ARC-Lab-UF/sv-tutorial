@@ -59,7 +59,8 @@ module mealy_tb;
 	$display("ERROR (time %0t): done not asserted after restart.", $realtime);	      
       go = 1'b0;
 
-      disable generate_clock;      
+      disable generate_clock;
+      $display("Tests completed.");
    end
    
 endmodule
