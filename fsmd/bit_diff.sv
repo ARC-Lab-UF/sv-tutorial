@@ -79,7 +79,7 @@ module bit_diff_fsmd_1p
    logic [$bits(data)-1:0] 			data_r;
    logic [$bits(result)-1:0] 			result_r;
    logic [$clog2(WIDTH)-1:0] 			count_r;
-   logic signed [$clog2(2*WIDTH+1)-1:0] 	diff_r;
+   logic signed [$bits(result)-1:0] 		diff_r;
    logic 					done_r;
 
    // These concurrent assignments aren't necessary, but they preserve the 
@@ -142,6 +142,18 @@ module bit_diff_fsmd_1p
 
 	      // Shift out the current lowest bit.
 	      data_r <= data_r >> 1;
+
+	      // Update the count. IMPORTANT: count_r ++ would not work in this
+	      // situation. count_r ++ is equivalent to count_r = count_r + 1'b1
+	      // which uses a blocking assigning. The blocking assignment will
+	      // cause the following if statement to be off by 1. We could
+	      // potentially fix that issue by doing count_r == WIDTH, but that
+	      // would cause an infinite loop because count_r doesn't have
+	      // enough bits to ever represent WIDTH. We could make count_r
+	      // one bit wider, but that would increase area with no real
+	      // benefit. In addition, even if the ++ worked, we would be
+	      // using a block operator within an always_ff block, which could
+	      // cause synthesis/linter warnings.
 	      count_r <= count_r + 1'b1;
 
 	      // We are done after checking WIDTH bits. The -1 is used because
@@ -221,12 +233,12 @@ module bit_diff_fsmd_1p_2
    logic [$bits(data)-1:0] 			data_r;
    logic [$bits(result)-1:0] 			result_r;
    logic [$clog2(WIDTH)-1:0] 			count_r;
-   logic signed [$clog2(2*WIDTH+1)-1:0] 	diff_r;
+   logic signed [$bits(result)-1:0] 		diff_r;
    logic 					done_r;
-
+   
    assign result = result_r;
    assign done = done_r;
-
+   
    // For this version, we can't use an always_ff because we have to use a
    // blocking assignment in one state.
    always @(posedge clk or posedge rst) begin
@@ -310,7 +322,7 @@ module bit_diff_fsmd_2p
    logic [$bits(data)-1:0] 			data_r, next_data;
    logic [$bits(result)-1:0] 			result_r, next_result;
    logic [$clog2(WIDTH)-1:0] 			count_r, next_count;
-   logic signed [$clog2(2*WIDTH+1)-1:0] 	diff_r, next_diff;
+   logic signed [$bits(result)-1:0] 		diff_r, next_diff;
 
    assign result = result_r;
    
@@ -1235,8 +1247,8 @@ module bit_diff
     output logic 				done    
     );
 
-   //bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
-   bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
+   bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);

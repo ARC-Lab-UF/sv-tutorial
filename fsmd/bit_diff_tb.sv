@@ -18,14 +18,9 @@ module bit_diff_tb;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
    int 					passed, failed, reference;
 
-   // Uncomment to test different implementations.
-   //bit_diff_fsmd_1p #(WIDTH) DUT (.*);
-   bit_diff_fsmd_1p_2 #(WIDTH) DUT (.*);
-   //bit_diff_fsmd_2p #(WIDTH) DUT (.*);
-   //bit_diff_fsm_plus_d1 #(WIDTH) DUT (.*);
-   //bit_diff_fsm_plus_d2 #(WIDTH) DUT (.*);
-   //bit_diff_fsm_plus_d3 #(WIDTH) DUT (.*);
-   //bit_diff_fsm_plus_d4 #(WIDTH) DUT (.*);
+   // Change the instantiated implementation in the bit_diff module of 
+   // bit_diff.sv to test different implementations.
+   bit_diff #(WIDTH) DUT (.*);
    
    // Reference model for correct result.
    function int model(int data, int width);
