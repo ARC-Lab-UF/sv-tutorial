@@ -138,7 +138,7 @@ module bit_diff_fsmd_1p
 	   COMPUTE : begin
 
 	      // Add one to the difference if asserted, else subtract one.
-	      diff_r <= data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;	  
+	      diff_r <= data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
 
 	      // Shift out the current lowest bit.
 	      data_r <= data_r >> 1;
@@ -180,11 +180,15 @@ module bit_diff_fsmd_1p
 	      done_r <= 1'b1;
 
 	      // Reset internal state.
-	      diff_r <= '0;
 	      count_r <= '0;
 	      data_r <= data;
 	      
 	      if (go == 1'b1) begin
+		 // We need to clear diff_r here in case the FSMD stays in
+		 // the restart state for multiple cycles, in which case
+		 // result_r would only be valid for 1 cycle.
+		 diff_r <= '0;
+		 
 		 // If we don't clear done here, then we'll get an assertion
 		 // error because it will take an extra cycle for done to be
 		 // cleared after the circuit is restarted.
@@ -259,9 +263,8 @@ module bit_diff_fsmd_1p_2
 	   // which requires the START state to provide the same done
 	   // functionality. To accomplish that goal, the new START state
 	   // simply preserves the value of done_r.	   
-	   START : begin	   
-	      result_r <= '0;	     
-	      diff_r <= '0;
+	   START : begin
+	      diff_r <= '0;	   
 	      count_r <= '0;
 	      data_r <= data;
 
@@ -384,7 +387,9 @@ module bit_diff_fsmd_2p
 
 	   // Without the default assignment at the beginning of the block,
 	   // this would result in a latch in the 2-process FSMD.
-	   if (go == 1'b1) next_state <= COMPUTE;	       
+	   if (go == 1'b1) begin
+	      next_state <= COMPUTE;
+	   end
 	end
 	
 	COMPUTE : begin	
