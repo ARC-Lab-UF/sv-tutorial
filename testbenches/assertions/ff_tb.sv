@@ -1,107 +1,40 @@
+// Greg Stitt
+// University of Florida
+
 `timescale 1 ns / 10 ps
 
 // Module: ff_tb1
-// Description: Testbench for the ff module, which illustrates how to check
-// functionality using a simple reference model.
-
-module ff_tb1;
-
-   localparam NUM_TESTS = 1000;      
-   logic clk=1'b0, rst, en, in, out;
-
-   ff DUT (.*);
-
-   // Generate a clock with a 10 ns period
-   initial begin : generate_clock
-      while(1)
-	#5 clk = ~clk;      
-   end
-
-   initial begin : drive_inputs
-      $timeformat(-9, 0, " ns");         
-
-      // Reset the FF
-      rst = 1'b1;
-      in = 1'b1;      
-      en = 1'b0;
-
-      // Wait 5 cycles
-      for (int i=0; i < 5; i++)
-	@(posedge clk);
-
-      // Clear reset
-      rst = 1'b0;
-
-      // Generate NUM_TESTS random inputs and enables, once per cycle
-      for (int i=0; i < NUM_TESTS; i++) begin	 
-	 in = $random;
-	 en = $random;
-	 @(posedge clk);
-      end
-
-      // Disable the other initial blocks so that the simulation terminates
-      disable generate_clock;
-      disable check_output;            
-      $display("Tests completed.");
-   end 
-   
-   logic prev_out, prev_in, prev_en;
-
-   // Create a simple reference model and compare outputs.
-   always begin : check_output
-      // On each rising edge, save the previous input and output values.
-      @(posedge clk);
-      prev_en = en;
-      prev_in = in;
-      prev_out = out;
-
-      // Give the output time to change
-      @(negedge clk);
-
-      // If enable was asserted, out should be equal to the previous in.
-      if (prev_en && prev_in != out)
-	$display("ERROR (time %0t): out = %d instead of %d.", $realtime, out, prev_in);
-
-      // If enable wasn't asserted, the output shouldn't change.
-      if (!prev_en && out != prev_out)
-	$display("ERROR (time %0t): out = %d instead of %d.", $realtime, out, prev_out);      
-   end   
-      
-endmodule
-
-
-// Module: ff_tb2
 // Description: This module implements a testbench for the FF using assertions,
 // with the simplifying assumption that enable is always asserted.
 
-module ff_tb2;
+module ff_tb1;
 
-   localparam NUM_TESTS = 1000;   
+   localparam NUM_TESTS = 10000;   
    logic clk=1'b0, rst, en, in, out;
 
    ff DUT (.en(1'b1), .*);
 
    initial begin : generate_clock
       while(1)
-	#5 clk = ~clk;      
+        #5 clk = ~clk;      
    end
 
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
       rst = 1'b1;
-      in = 1'b1;      
+      in = 1'b0;      
       en = 1'b0;
 
       for (int i=0; i < 5; i++)
-	@(posedge clk);
+        @(posedge clk);
 
       rst = 1'b0;
 
-      for (int i=0; i < NUM_TESTS; i++) begin	 
-	 in = $random;
-	 en = $random;
-	 @(posedge clk);
+      for (int i=0; i < NUM_TESTS; i++) begin    
+         in = $random;
+         en = $random;
+         @(posedge clk);
       end
 
       disable generate_clock;
@@ -130,8 +63,8 @@ module ff_tb2;
    
    // We should also check to make sure the reset is working correctly.
    // Technically, this is checking for an synchronous reset because it checks
-   // to see if out is not asserted on every rising edge that rst is 1.
-   assert property(@(posedge clk) rst |-> !out);
+   // to see if out is not asserted on every rising edge after rst is 1.
+   assert property(@(posedge clk) rst |=> !out);
    
    // To check for the asynchronous reset, we can use an immediate assertion.
    always @(rst) begin
@@ -142,38 +75,38 @@ module ff_tb2;
 endmodule
 
 
-// Module: ff_tb3
+// Module: ff_tb2
 // Description: This testbench extends the previous one to handle the enable
 // and to cover more tests.
 
-module ff_tb3;
+module ff_tb2;
 
-   localparam NUM_TESTS = 1000;   
+   localparam NUM_TESTS = 10000;   
    logic clk=1'b0, rst, en, in, out;
 
    ff DUT (.*);
 
    initial begin : generate_clock
       while(1)
-	#5 clk = ~clk;      
+        #5 clk = ~clk;      
    end
 
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
       rst = 1'b1;
-      in = 1'b1;      
+      in = 1'b0;      
       en = 1'b0;
       
       for (int i=0; i < 5; i++)
-	@(posedge clk);
+        @(posedge clk);
 
       rst = 1'b0;
 
-      for (int i=0; i < NUM_TESTS; i++) begin	 
-	 in = $random;
-	 en = $random;
-	 @(posedge clk);
+      for (int i=0; i < NUM_TESTS; i++) begin    
+         in = $random;
+         en = $random;
+         @(posedge clk);
       end
 
       disable generate_clock;
@@ -195,7 +128,7 @@ module ff_tb3;
    // the output on the previous cycle, or by using the $stable function, which
    // is semantically equivalent.
    //
-   //assert property(@(posedge clk) disable iff (rst) !en |=> out == $past(out,1));
+   assert property(@(posedge clk) disable iff (rst) !en |=> out == $past(out,1));
    assert property(@(posedge clk) disable iff (rst) !en |=> $stable(out));
 
    // The always block from the previous testbench can be simplified to this:
