@@ -25,9 +25,9 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
     - Demonstration of common race condition problems, and how to avoid them.
 
 1. [Register](../sequential/register_tb.sv)
-    - Corresponding [module](../sequential/register.sv) and [testbench](../sequential/register_tb.sv).
-    - Introduces clock generation, waiting for rising edges, $random, $stop, $finish, disable.
-
+    - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
+    - Introduces clock generation, waiting for rising edges, $random, $stop, $finish, disable. 
+    - Demonstrates a commonly used problematic testbench strategy.
     
 ## Assertions
 
