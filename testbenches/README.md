@@ -42,9 +42,13 @@ for comparison.
 1. [Flip-flop](assertions/ff_tb.sv)
     - Corresponding [module](assertions/ff.sv) and [testbench](assertions/ff_tb.sv).
     - Introduces concurrent assertions (assertion properties) and implication.    
+1. [Register](assertions/register_tb.sv)
+    - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
+    - Expands on implication and illustrates a significant improvement to the earlier register testbench that lacked assertions.
+    - Introduces $past and $stable.
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
-    - Introduces $past and $stable.
+    - Expands on $past and $stable. Demonstrates how to disable assertion properties.
 1. [Simple Pipeline](assertions/simple_pipeline.sv)
     - Corresponding [module](assertions/simple_pipeline.sv) and [testbench](assertions/simple_pipeline_tb.sv).
     - Introduces common problem with using functions in assertion properties.
