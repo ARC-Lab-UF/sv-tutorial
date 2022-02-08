@@ -17,7 +17,7 @@ testbench strategies, to more advanced and more formal strategies such as UVM.
 
 Here are examples of non-ideal, but easy to understand testbenches that introduce basic constructs. We will later improve upon all these examples.
 
-1. [2:1 Mux](../combinational/mux2x1_tb.sv)
+1. [2:1 Mux](basic/mux2x1_tb.sv)
     - Corresponding [module](basic/mux2x1.sv) and [testbench](basic/mux2x1_tb.sv).
     - Basic introduction into testbenches. Introduces timescale, waiting, functions, $timeformat, and $display.
 
