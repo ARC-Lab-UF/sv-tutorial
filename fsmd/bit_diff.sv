@@ -71,7 +71,7 @@ module bit_diff_fsmd_1p
     output logic                                done    
     );
    
-   typedef enum                                 {START, COMPUTE, RESTART} state_t;
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
    // We only have one process, so we'll only have a state_r variable.
    state_t state_r;
 
@@ -195,7 +195,9 @@ module bit_diff_fsmd_1p
                  done_r <= 1'b0;                 
                  state_r <= COMPUTE;
               end
-           end
+           end 
+
+           default : state_r <= XXX;
          endcase          
       end      
    end   
@@ -230,8 +232,12 @@ module bit_diff_fsmd_1p_2
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
     output logic                                done    
     );
-   
-   typedef enum                                 {START, COMPUTE} state_t;
+
+   // This could potentially just be one bit, but we generally want FPGA
+   // synthesis to use one-hot encoding. In Quartus, it doesn't matter because
+   // it will ignore the width unless it is smaller than what is needed for
+   // a binary encoding.
+   typedef enum logic[1:0] {START, COMPUTE, XXX='x} state_t;
    state_t state_r;
 
    logic [$bits(data)-1:0]                      data_r;
@@ -292,7 +298,9 @@ module bit_diff_fsmd_1p_2
                  result_r <= diff_r;             
                  state_r <= START;
               end
-           end
+           end     
+
+           default : state_r <= XXX;       
          endcase          
       end      
    end   
@@ -315,7 +323,7 @@ module bit_diff_fsmd_2p
     output logic                                done    
     );
 
-   typedef enum                                 {START, COMPUTE, RESTART} state_t;
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
 
    // For a 2-process FSMD, every register needs a variable for the output of
    // the register, which is the current value represented by the _r suffix,
@@ -434,6 +442,8 @@ module bit_diff_fsmd_2p
               next_state = COMPUTE;
            end
         end
+
+        default : next_state = XXX;
       endcase     
    end      
 endmodule
@@ -464,7 +474,7 @@ module bit_diff_fsmd_2p_2
     output logic                                done    
     );
 
-   typedef enum                                 {START, COMPUTE, RESTART} state_t;
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
 
    state_t state_r, next_state;
    logic [$bits(data)-1:0]                      data_r, next_data;
@@ -494,8 +504,6 @@ module bit_diff_fsmd_2p_2
 
    always_comb begin
       
-      logic [$bits(diff_r)-1:0] diff_temp;
-      
       next_result = result_r;
       next_diff = diff_r;
       next_data = data_r;
@@ -521,8 +529,7 @@ module bit_diff_fsmd_2p_2
         
         COMPUTE : begin 
 
-           diff_temp = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
-           next_diff = diff_temp;          
+           next_diff = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
            next_data = data_r >> 1;
            next_count = count_r + 1'b1;
 
@@ -533,10 +540,7 @@ module bit_diff_fsmd_2p_2
               // to send it to the result register this cycle. Also, we need
               // to use the next version of diff since the register won't be
               // updated yet.
-              //
-              // Note that we are using diff_temp here instead of next_diff
-              // to avoid the infinite simulation loop.
-              next_result = diff_temp;
+              next_result = next_diff;
            end
         end
 
@@ -562,14 +566,453 @@ module bit_diff_fsmd_2p_2
            // problem.
            if (go == 1'b1) next_state = COMPUTE;
         end
+
+        default : next_state = XXX;
       endcase     
    end      
 endmodule
 
 
+// Module: bit_diff_fsmd_2p_3
+// Description: Tthe first 2-process FSMD separated all registered logic into 
+// two processes, where each signal has a _r and next version. The 2nd 2-process
+// FSMD made the done signal combinational logic, while leaving the rest of the
+// code the same. Since the vast majority of the design is registered, a third 
+// alternative is to leave all registered logic within the original process used
+// in the 1-process model, and only pull out the combination logic into the
+// combinational process. The advantage of this strategy is that you don't need
+// the next version of most of the signals.
+
+module bit_diff_fsmd_2p_3
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic                                 go,
+    input logic [WIDTH-1:0]                     data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic                                done    
+    );
+   
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+   state_t state_r;
+
+   logic [$bits(data)-1:0]                      data_r;
+   logic [$bits(result)-1:0]                    result_r;
+   logic [$clog2(WIDTH)-1:0]                    count_r;
+   logic signed [$bits(result)-1:0]             diff_r;
+
+   assign result = result_r;
+
+   // Note that this code is almost identical to a 1-process FSMD. We have
+   // simply removed the done logic.
+   always @(posedge clk or posedge rst) begin
+      if (rst == 1'b1) begin              
+         result_r <= '0;   
+         diff_r <= '0;   
+         count_r <= '0;
+         data_r <= '0;   
+         state_r <= START;       
+      end
+      else begin         
+         case (state_r)
+           START : begin
+              result_r <= '0;
+              diff_r <= '0;
+              count_r <= '0;
+              data_r <= data;              
+              if (go == 1'b1) state_r <= COMPUTE;              
+           end
+
+           COMPUTE : begin
+              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
+              data_r <= data_r >> 1;
+              count_r <= count_r + 1'b1;
+              if (count_r == WIDTH-1) begin
+                 result_r <= diff_r;
+                 state_r <= RESTART; 
+              end
+           end
+
+           RESTART : begin
+              count_r <= '0;
+              data_r <= data;
+              diff_r <= '0;                              
+              if (go == 1'b1) state_r <= COMPUTE;
+           end
+
+           default : state_r <= XXX;
+         endcase          
+      end      
+   end
+
+   // Since we actually want register for all the code above, it is not
+   // necessary to add next signals for any of them, including the state_r.
+   // Instead, we'll just pull out the done_r signal and make it combinational
+   // logic in this process.
+   always_comb begin
+      case (state_r)
+         START : begin 
+            done = 1'b0;
+         end
+        
+        COMPUTE : begin 
+            done = 1'b0;
+         end
+
+        RESTART : begin
+           done = 1'b1;
+        end     
+      endcase 
+      
+      // Could be simplified to the following if you never plan on having any
+      // other logic in this process.
+      // done = state_r == RESTART;
+   end   
+endmodule
+
+
+module bit_diff_fsmd_2p_4
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic                                 go,
+    input logic [WIDTH-1:0]                     data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic                                done    
+    );
+   
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+   state_t state_r, next_state;
+
+   logic [$bits(data)-1:0]                      data_r;
+   logic [$bits(result)-1:0]                    result_r;
+   logic [$clog2(WIDTH)-1:0]                    count_r;
+   logic signed [$bits(result)-1:0]             diff_r;
+
+   assign result = result_r;
+
+   // Note that this code is almost identical to a 1-process FSMD. We have
+   // simply removed the done logic.
+   always @(posedge clk or posedge rst) begin
+      if (rst == 1'b1) begin              
+         result_r <= '0;   
+         diff_r <= '0;   
+         count_r <= '0;
+         data_r <= '0;   
+         state_r <= START;       
+      end
+      else begin
+
+         // To add the next_state variable, this process now simply creates
+         // the state register.
+         state_r <= next_state;
+
+         // All other signals are still registered with a next version, since
+         // we don't have a need for the next version.
+         case (state_r)
+           START : begin
+              result_r <= '0;
+              diff_r <= '0;
+              count_r <= '0;
+              data_r <= data;
+              // Notice there is no next-state logic here anymore. It is moved
+              // to the combinational process.
+           end
+
+           COMPUTE : begin
+              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
+              data_r <= data_r >> 1;
+              count_r <= count_r + 1'b1;
+              // This is non-ideal, but we have to replicate the 
+              // transition-sensitive logic here. One disadvantage of this
+              // approach is that replicating this logic is error prone because
+              // if we change it in one place, we might forget to change it in
+              // another.
+              // We could also change result to have a next version, and move
+              // this transition entirely to the combinational process.
+              if (count_r == WIDTH-1) begin
+                 result_r <= diff_r;           
+              end
+           end
+
+           RESTART : begin
+              count_r <= '0;
+              data_r <= data;
+              diff_r <= '0;                                            
+           end
+         endcase          
+      end      
+   end
+
+   // In this version, we have done here since it isn't registered, in addition
+   // to the next_state logic, so we can see both the current state and the
+   // next state.
+   always_comb begin
+
+      next_state = state_r;
+      
+      case (state_r)
+         START : begin 
+            done = 1'b0;
+            if (go == 1'b1) next_state = COMPUTE;
+         end
+        
+        COMPUTE : begin 
+           done = 1'b0;
+           if (count_r == WIDTH-1) next_state = RESTART;    
+        end
+        
+        RESTART : begin
+           done = 1'b1;
+           if (go == 1'b1) next_state = COMPUTE;
+        end  
+
+        default : next_state = XXX;  
+      endcase      
+   end   
+endmodule
+
+
+// Module: bit_diff_fsmd_3p
+// Description: A modification of the previous module to use 3-processes.
+//
+// NOTE: Personally, I have never encountered an example where I would use this
+// strategy.
+
+module bit_diff_fsmd_3p
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic                                 go,
+    input logic [WIDTH-1:0]                     data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic                                done    
+    );
+   
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+   state_t state_r, next_state;
+
+   logic [$bits(data)-1:0]                      data_r;
+   logic [$bits(result)-1:0]                    result_r;
+   logic [$clog2(WIDTH)-1:0]                    count_r;
+   logic signed [$bits(result)-1:0]             diff_r;
+
+   assign result = result_r;
+
+   // In the 3-process model, one process is always just an always_ff for
+   // the state register.
+   always @(posedge clk or posedge rst)
+      if (rst == 1'b1) state_r <= START;       
+      else state_r <= next_state;
+   
+   // The second process is another always_ff (usually assuming no blocking
+   // assignments) that handles all the other registered logic. In other words,
+   // we have simply taken the one always_ff block from the previous module and
+   // separated it into two: one of the state register, and one for everything
+   // else.
+   always @(posedge clk or posedge rst) begin
+      if (rst == 1'b1) begin              
+         result_r <= '0;   
+         diff_r <= '0;   
+         count_r <= '0;
+         data_r <= '0;   
+      end
+      else begin
+         case (state_r)
+           START : begin
+              result_r <= '0;
+              diff_r <= '0;
+              count_r <= '0;
+              data_r <= data;
+           end
+
+           COMPUTE : begin
+              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
+              data_r <= data_r >> 1;
+              count_r <= count_r + 1'b1;
+              if (count_r == WIDTH-1) result_r <= diff_r;
+           end
+
+           RESTART : begin
+              count_r <= '0;
+              data_r <= data;
+              diff_r <= '0;                                            
+           end
+         endcase          
+      end      
+   end
+
+   // The third process handles all the combinational logic, which is identical
+   // to the previous example.
+   always_comb begin
+
+      next_state = state_r;
+      
+      case (state_r)
+         START : begin 
+            done = 1'b0;
+            if (go == 1'b1) next_state = COMPUTE;
+         end
+        
+        COMPUTE : begin 
+           done = 1'b0;
+           if (count_r == WIDTH-1) next_state = RESTART; 
+         end
+
+        RESTART : begin
+           done = 1'b1;
+           if (go == 1'b1) next_state = COMPUTE;
+        end
+        
+        default : next_state = XXX;   
+      endcase      
+   end   
+endmodule
+
+
+// Module: bit_diff_fsmd_4p
+// Description: This module adds another process to further separate 
+// functionality by process.
+
+module bit_diff_fsmd_4p
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic                                 go,
+    input logic [WIDTH-1:0]                     data,
+    output logic signed [$clog2(2*WIDTH+1)-1:0] result,
+    output logic                                done    
+    );
+   
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+   state_t state_r, next_state;
+
+   logic [$bits(data)-1:0]                      data_r, next_data;
+   logic [$bits(result)-1:0]                    result_r, next_result;
+   logic [$clog2(WIDTH)-1:0]                    count_r, next_count;
+   logic signed [$bits(result)-1:0]             diff_r, next_diff;
+
+   assign result = result_r;
+
+   // In the 1-process model, one process is always just an always_ff for
+   // the state register.
+   always @(posedge clk or posedge rst)
+      if (rst == 1'b1) state_r <= START;       
+      else state_r <= next_state;
+
+   // The second process is combinational logic solely for the next state
+   // transitions.
+   always_comb begin
+      next_state = state_r;
+            
+      case (state_r)
+        START : if (go == 1'b1) next_state = COMPUTE;
+        COMPUTE : if (count_r == WIDTH-1) next_state = RESTART;
+        RESTART : if (go == 1'b1) next_state = COMPUTE;
+        default : next_state = XXX;
+      endcase      
+   end 
+   
+   // The 3rd process simply allocates all other registers.
+   always @(posedge clk or posedge rst) begin
+      if (rst == 1'b1) begin              
+         result_r <= '0;   
+         diff_r <= '0;   
+         count_r <= '0;
+         data_r <= '0;   
+      end
+      else begin         
+         result_r <= next_result;
+         diff_r <= next_diff;
+         count_r <= next_count;
+         data_r <= next_data;
+      end      
+   end // always @ (posedge clk or posedge rst)
+
+   // The 4th process is all remaining combinational logic, which includes
+   // non-registered output logic, and all non-state register inputs.
+   always_comb begin
+      
+      next_result = result_r;
+      next_diff = diff_r;
+      next_data = data_r;
+      next_count = count_r;
+
+      done = 1'b0;
+      
+      case (state_r)    
+        START : begin      
+           done = 1'b0;
+           next_result = '0;       
+           next_diff = '0;
+           next_data = data;
+           next_count = '0;
+        end
+        
+        COMPUTE : begin 
+           next_diff = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
+           next_data = data_r >> 1;
+           next_count = count_r + 1'b1;
+           if (count_r == WIDTH-1) next_result = next_diff;
+        end
+
+        RESTART : begin   
+           done = 1'b1;            
+           next_diff = '0;
+           next_count = '0;
+           next_data = data;
+        end
+      endcase     
+   end      
+endmodule
+
+
+// FINAL THOUGHTS ON FSMD MODELS:
+// According to my tests on a MAX 10 FPGA, the model you use has no impact on
+// the resource requirements. Modules bit_diff_fsmd_2p_2 through 
+// bit_diff_fsmd_4p are all conceptually identical, just using different numbers
+// of processes. All 5 of these modules synthesize to the exact same resources.
+// I have not tested timing differences yet, but I suspect those would be
+// identical also.
+//
+// This is actually great news because ultimately what matters is designing the
+// circuit you want. You can then use whatever model you want from the previous
+// examples based on what is most convenient for that circuit. Assuming the
+// number of registers matches the designed circuit, all these models should
+// synthesize identically.
+//
+// There are other models that do things slightly differenly. e.g.:
+//
+// http://www.sunburst-design.com/papers/CummingsSNUG2019SV_FSM1.pdf
+//
+// I haven't yet evaluated all their models, but I would bet that the 
+// differences in resources that they report are from different numbers of
+// registers in the different models, or from modifications in the logic.
+// For example, their 3-process model uses next state to decide registered
+// output assignments. This has the advantage of enabling registered outputs
+// without a 1-cycle delay, but the same thing can be achieved in my models
+// by simply moving the registered output assignment onto a state transition
+// from the previous state.
+//
+// Ultimately, I still highly suggest my methodology: design the circuit first,
+// then write the code that synthesizes into that circuit. Don't pick a model
+// and then hope that it synthesizes the circuit you want.
+
+
 ////////////////////////////////////////////////////////////////////////////
 // FSM+D implementations
-
 
 // Misc modules needed for a structural datapath
 
@@ -660,18 +1103,18 @@ module datapath1
     parameter WIDTH
     )
    (
-    input                                var logic clk,
-    input                                var logic rst,
-    input                                var logic [WIDTH-1:0] data, 
-    input                                var logic data_sel,
-    input                                var logic data_en,
-    input                                var logic diff_sel,
-    input                                var logic diff_en,
-    input                                var logic count_sel,
-    input                                var logic count_en,
-    input                                var logic result_en,
-    output logic                         count_done,
-    output logic [$clog2(WIDTH*2+1)-1:0] result
+    input                                       var logic clk,
+    input                                       var logic rst,
+    input                                       var logic [WIDTH-1:0] data, 
+    input                                       var logic data_sel,
+    input                                       var logic data_en,
+    input                                       var logic diff_sel,
+    input                                       var logic diff_en,
+    input                                       var logic count_sel,
+    input                                       var logic count_en,
+    input                                       var logic result_en,
+    output logic                                count_done,
+    output logic signed [$clog2(WIDTH*2+1)-1:0] result
     );
 
    localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
@@ -769,18 +1212,18 @@ module datapath2
     parameter WIDTH
     )
    (
-    input logic                          clk,
-    input logic                          rst,
-    input logic [WIDTH-1:0]              data, 
-    input logic                          data_sel,
-    input logic                          data_en,
-    input logic                          diff_sel,
-    input logic                          diff_en,
-    input logic                          count_sel,
-    input logic                          count_en,
-    input logic                          result_en,
-    output logic                         count_done,
-    output logic [$clog2(WIDTH*2+1)-1:0] result
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic [WIDTH-1:0]                     data, 
+    input logic                                 data_sel,
+    input logic                                 data_en,
+    input logic                                 diff_sel,
+    input logic                                 diff_en,
+    input logic                                 count_sel,
+    input logic                                 count_en,
+    input logic                                 result_en,
+    output logic                                count_done,
+    output logic signed [$clog2(WIDTH*2+1)-1:0] result
     );
 
    localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
@@ -848,7 +1291,7 @@ module fsm1
    output logic result_en
    );
    
-   typedef enum {START, COMPUTE, RESTART} state_t;
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
    state_t state_r, next_state;
 
    always_ff @(posedge clk or posedge rst) begin
@@ -929,6 +1372,8 @@ module fsm1
 
            if (go) next_state = COMPUTE;           
         end     
+
+        default : next_state = XXX;
       endcase            
    end 
 endmodule
@@ -1011,18 +1456,18 @@ module datapath3
     parameter WIDTH
     )
    (
-    input                                var logic clk,
-    input                                var logic rst,
-    input                                var logic [WIDTH-1:0] data, 
-    input                                var logic data_sel,
-    input                                var logic data_en,
-    input                                var logic diff_rst,
-    input                                var logic diff_en,
-    input                                var logic count_rst,
-    input                                var logic count_en,
-    input                                var logic result_en,
-    output logic                         count_done,
-    output logic [$clog2(WIDTH*2+1)-1:0] result
+    input logic                                 clk,
+    input logic                                 rst,
+    input logic [WIDTH-1:0]                     data, 
+    input logic                                 data_sel,
+    input logic                                 data_en,
+    input logic                                 diff_rst,
+    input logic                                 diff_en,
+    input logic                                 count_rst,
+    input logic                                 count_en,
+    input logic                                 result_en,
+    output logic                                count_done,
+    output logic signed [$clog2(WIDTH*2+1)-1:0] result
     );
 
    localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
@@ -1091,7 +1536,7 @@ module fsm2
    output logic result_en
    );
    
-   typedef enum {START, COMPUTE, RESTART} state_t;
+   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
    state_t state_r, next_state;
 
    always_ff @(posedge clk or posedge rst) begin
@@ -1165,6 +1610,8 @@ module fsm2
 
            if (go) next_state = COMPUTE;           
         end     
+
+        default : next_state = XXX;
       endcase            
    end 
 endmodule
@@ -1232,7 +1679,7 @@ module fsm3
    output logic result_en
    );
    
-   typedef enum {START, INIT, COMPUTE, RESTART} state_t;
+   typedef enum logic[2:0] {START, INIT, COMPUTE, RESTART, XXX='x} state_t;
    state_t state_r, next_state;
 
    logic        count_rst_r, next_count_rst;
@@ -1308,6 +1755,8 @@ module fsm3
 
            if (go) next_state = INIT;      
         end     
+
+        default : next_state = XXX;
       endcase            
    end 
 endmodule
@@ -1366,6 +1815,10 @@ module bit_diff
    //bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsmd_2p_2 #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_2p_3 #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_2p_4 #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_3p #(.WIDTH(WIDTH)) TOP (.*);
+   //bit_diff_fsmd_4p #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
    //bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
