@@ -1,46 +1,29 @@
 // Greg Stitt
 // University of Florida
 //
-// This file illustrates how to implement a versatile delay module structurally
+// This file illustrates how to implement a delay module structurally
 // as a sequence of registers. It introduces the unpacked array construct.
 
 
 // Module: register
-// Description: Register with flexible parameters.
+// Description: Basic register.
 
 module register
   #(
-    parameter WIDTH,
-    parameter logic HAS_ASYNC_RESET = 1'b1,
-    parameter logic RESET_ACTIVATION_LEVEL = 1'b1,
-    parameter logic [WIDTH-1:0] RESET_VALUE = '0
+    parameter WIDTH
     )
    (
-    input logic 	     clk,
-    input logic 	     rst,
-    input logic 	     en,
+    input logic              clk,
+    input logic              rst,
+    input logic              en,
     input logic [WIDTH-1:0]  in,
     output logic [WIDTH-1:0] out
     );
 
-   generate
-      if (HAS_ASYNC_RESET) begin
-	 always_ff @(posedge clk or posedge rst) begin
-	    if (rst == RESET_ACTIVATION_LEVEL)
-	      out <= RESET_VALUE;
-	    else if (en)
-	      out <= in;    	
-	 end
-      end
-      else begin
-	 always_ff @(posedge clk) begin
-	    if (rst == RESET_ACTIVATION_LEVEL)
-	      out <= RESET_VALUE;	      
-	    else if (en)
-	      out <= in;
-	 end	
-      end
-   endgenerate
+   always_ff @(posedge clk or posedge rst)
+     if (rst) out <= '0;
+     else if (en) out <= in;            
+   
 endmodule // register
 
 
@@ -54,44 +37,49 @@ endmodule // register
 
 module delay
   #(
-    parameter int 		CYCLES=4,
-    parameter int 		WIDTH=8,
-    parameter logic 		HAS_ASYNC_RESET = 1'b1,
-    parameter logic 		RESET_ACTIVATION_LEVEL = 1'b1,
-    parameter logic [WIDTH-1:0] RESET_VALUE = '0
+    parameter int CYCLES=4,
+    parameter int WIDTH=8
     )
    (
-    input logic 	     clk, rst, en,
+    input logic              clk, rst, en,
     input logic [WIDTH-1:0]  in,
     output logic [WIDTH-1:0] out
     );
-
+   
    // Ideally, every module would validate its parameters because often
    // certain values are undefined. For example, a negative cycles delay
    // doesn't make sense. Similarly, only positive widths make sense.
    // Unfortunately, parameter validation is somewhat lacking in SystemVerilog,
    // at least in the older versions. Some of the possibilities are shown
    // below.
-   
+
+   // Assertions seem like a natural choice for validation, but Quartus ignores
+   // these:
+   /*
+    always_comb assert(CYCLES >= 0);
+    assert property (@(posedge clk) CYCLES >= 0);
+    */
+
+   // Alternatively, we can use if generates for validation.
    if (CYCLES < 0) begin
       // One workaround to missing validation constructs is to simply call
       // an undefined module with a name that specifies the error.
-      cycles_parameter_must_be_ge_0();
+      cycles_parameter_must_be_ge_0 ();
 
       // The 2009 SV standard defines the $error function, which prints during
       // compilation. However, not every tool supports it yet. Also, despite 
       // the name, $error only created a warning in the version of Quartus
       // used for testing.
       //
-      // $error("ERROR: CYCLES parameter must be >= 0.");
+      //$error("ERROR: CYCLES parameter must be >= 0.");
 
-      // $fatal does caused Quartus synthesis to terminate, but is not 
+      // $fatal does cause Quartus synthesis to terminate, but is not 
       // supported by every synthesis tool.
       //
-      // $fatal("ERROR: CYCLES parameter must be >= 0.");
+      //$fatal(1, "ERROR: CYCLES parameter must be >= 0.");
    end
    if (WIDTH < 1) begin
-      width_parameter_must_be_gt_0();      
+      width_parameter_must_be_gt_0 ();      
       //$error("ERROR: WIDTH parameter must be >= 1.");
       //$fatal(1, "ERROR: WIDTH parameter must be >= 1.");      
    end
@@ -114,22 +102,21 @@ module delay
    // VHDL COMPARISON: packed arrays are missing from VHDL, where you instead 
    // have to create a custom array type. In SV, every signal can become an
    // unpacked array simply by adding [], which is very convenient.
-   logic [WIDTH-1:0] 	     regs[CYCLES+1];
+   logic [WIDTH-1:0]         regs[CYCLES+1];
    
-   if (CYCLES == 0) begin
+   if (CYCLES == 0) begin : l_cycles_eq_0
       // For CYCLES == 0, there is no delay, so just use a wire.
       assign out = in;
    end
-   else if (CYCLES > 0) begin
+   else if (CYCLES > 0) begin : l_cycles_gt_0
       // Create a sequence of CYCLES registers, where each register adds one
       // cycle to the delay.
-      
-      for (genvar i=0; i < CYCLES; i++) begin : reg_array
-	 register #(.WIDTH(WIDTH),
-		    .HAS_ASYNC_RESET(HAS_ASYNC_RESET),
-		    .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL),
-		    .RESET_VALUE(RESET_VALUE))
-	 reg_array (.in(regs[i]), .out(regs[i+1]), .*);	 	 
+
+      // Old versions of Quartus require the genvar outside the loop.
+      genvar i;
+      for (i=0; i < CYCLES; i++) begin : reg_array
+         register #(.WIDTH(WIDTH))    
+         reg_array (.in(regs[i]), .out(regs[i+1]), .*);          
       end
 
       // The first register's input comes from the delay's input.
