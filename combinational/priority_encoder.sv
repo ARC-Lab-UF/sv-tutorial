@@ -16,9 +16,9 @@ module priority_encoder1
     parameter NUM_INPUTS
     )
    (
-    input logic [NUM_INPUTS-1:0] 	  inputs,
+    input logic [NUM_INPUTS-1:0]          inputs,
     output logic [$clog2(NUM_INPUTS)-1:0] result,
-    output logic 			  valid
+    output logic                          valid
     );
    
    // Local parameters are just constants inside the scope of the module.
@@ -36,32 +36,32 @@ module priority_encoder1
       // IMPORTANT: Keep in mind that synthesis will always fully unroll a for
       // loop and optimize accordingly. 
       for (int i=NUM_INPUTS-1; i >= 0; i--) begin
-	 if (inputs[i] == 1'b1) begin
+         if (inputs[i] == 1'b1) begin
 
-	    // The following is a common technique, but can cause warnings
-	    // about width mismatches in some tools. These warnings are good
-	    // in my opinion because we are storing a 32-bit integer value
-	    // into an array with fewer bits, which requires truncation. While
-	    // we might be ok with that truncation here, there will be times
-	    // where we do it on accident, which would require extra debugging
-	    // during simulation.
-	    //
-	    // result = i;
+            // The following is a common technique, but can cause warnings
+            // about width mismatches in some tools. These warnings are good
+            // in my opinion because we are storing a 32-bit integer value
+            // into an array with fewer bits, which requires truncation. While
+            // we might be ok with that truncation here, there will be times
+            // where we do it on accident, which would require extra debugging
+            // during simulation.
+            //
+            // result = i;
 
-	    // To eliminate this warning, I often see people try the following
-	    // syntax to match other literals:
-	    //
-	    // result = NUM_OUTPUTS'i;
-	    //
-	    // Unfortunately, this doesn't work, even if i is hardcoded.
-	    // Fortunately, there is a way of specifying the width of any
-	    // expression, which just requires parantheses. So, we can do this
-	    // to eliminate any warnings.
+            // To eliminate this warning, I often see people try the following
+            // syntax to match other literals:
+            //
+            // result = NUM_OUTPUTS'i;
+            //
+            // Unfortunately, this doesn't work, even if i is hardcoded.
+            // Fortunately, there is a way of specifying the width of any
+            // expression, which just requires parantheses. So, we can do this
+            // to eliminate any warnings.
 
-	    result = NUM_OUTPUTS'(i);	        	    	    
-	    valid = 1'b1;
-	    break;	    
-	 end
+            result = NUM_OUTPUTS'(i);                               
+            valid = 1'b1;
+            break;          
+         end
       end      
    end   
 endmodule // priority_encoder1
@@ -80,9 +80,9 @@ module priority_encoder2
     parameter int NUM_INPUTS
     )
    (
-    input logic [NUM_INPUTS-1:0] 	  inputs,
+    input logic [NUM_INPUTS-1:0]          inputs,
     output logic [$clog2(NUM_INPUTS)-1:0] result,
-    output logic 			  valid
+    output logic                          valid
     );
 
    // Localpararms also do not require a type, but it is good practice 
@@ -95,10 +95,10 @@ module priority_encoder2
       // Similar code as before, but we start from bit 0. Because we start with
       // the lowest priority bit, we don't break when finding an asserted bit.
       for (int i=0; i < NUM_INPUTS; i++) begin
-	 if (inputs[i] == 1'b1) begin
-	    result = NUM_OUTPUTS'(i);	        	    	    
-	    valid = 1'b1;
-	 end
+         if (inputs[i] == 1'b1) begin
+            result = NUM_OUTPUTS'(i);                               
+            valid = 1'b1;
+         end
       end      
    end   
 endmodule // priority_encoder2
@@ -125,7 +125,7 @@ module priority_encoder3
 
     // Here we use the new parameter to define the width of the result.
     output logic [NUM_OUTPUTS-1:0] result,
-    output logic 		   valid
+    output logic                   valid
     );
       
    always_comb begin
@@ -133,14 +133,54 @@ module priority_encoder3
       valid = 1'b0;
 
       for (int i=NUM_INPUTS-1; i >= 0; i--) begin
-	 if (inputs[i] == 1'b1) begin
-	    result = NUM_OUTPUTS'(i);	        	    	    
-	    valid = 1'b1;
-	    break;	    
-	 end
+         if (inputs[i] == 1'b1) begin
+            result = NUM_OUTPUTS'(i);                               
+            valid = 1'b1;
+            break;          
+         end
       end      
    end   
 endmodule // priority_encoder3
+
+
+// Module: priority_encoder4
+// Description: This version illustrates how to define local parameters to
+// avoid the risk of the previous module.
+//
+// It is commented out by default because Quartus Prime does not support this.
+// It works fine in Quartus Prime Pro.
+/*
+module priority_encoder4
+  #(
+    parameter int  NUM_INPUTS,
+
+    // To address the risk of a user accidentally overriding the NUM_OUTPUTS
+    // parameter, we can make it a localparam here and still use it on the port.
+    //
+    // NOTE: This causes a compilation error in Quartus Prime, but works in
+    // Quartus Prime Pro.
+    localparam int NUM_OUTPUTS = $clog2(NUM_INPUTS)
+    )
+   (
+    input logic [NUM_INPUTS-1:0]   inputs,
+    output logic [NUM_OUTPUTS-1:0] result,
+    output logic                   valid
+    );
+      
+   always_comb begin
+      result = '0;
+      valid = 1'b0;
+
+      for (int i=NUM_INPUTS-1; i >= 0; i--) begin
+         if (inputs[i] == 1'b1) begin
+            result = NUM_OUTPUTS'(i);                               
+            valid = 1'b1;
+            break;          
+         end
+      end      
+   end   
+endmodule // priority_encoder4
+*/
 
 
 // Module: priority_encoder
@@ -155,12 +195,34 @@ module priority_encoder
    (
     input logic [NUM_INPUTS-1:0]   inputs,
     output logic [NUM_OUTPUTS-1:0] result,
-    output logic 		   valid
+    output logic                   valid
     );
 
-   //priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
+   priority_encoder1 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
    //priority_encoder2 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
-   priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
-   
-   
+   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
+
+   // The risk of this module if that someone could potentially redefine
+   // NUM_OUTPUTS since it is a parameter.
+   //priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS),.NUM_OUTPUTS(44)) BAD (.*);
+
+   //priority_encoder4 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.*);
+
+   // One potential use for a local parameter is to use that constant to declare
+   // a variable outside the module. For example, there could be situations
+   // where we declare an output variable with the width defined by the 
+   // localparam instead of copying its initialization. The following 
+   // illustrates this functionality. It works here in Modelsim, but likely
+   // does not have widespread support for synthesis. It does not work in
+   // any version of Quartus that I have tested.
+   /*logic [TOP.NUM_OUTPUTS-1:0]     temp;
+   priority_encoder4 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.result(temp), .*);
+   assign result = temp;*/
+    
+   // We could have done the same thing for the parameter version, but I don't
+   // recommend ever using a parameter that isn't supposed to be changed.
+   /*logic [TOP.NUM_OUTPUTS-1:0]           temp;
+   priority_encoder3 #(.NUM_INPUTS(NUM_INPUTS)) TOP (.result(temp), .*);
+   assign result = temp;*/
+      
 endmodule
