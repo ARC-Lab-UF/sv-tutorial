@@ -1,7 +1,6 @@
 // Greg Stitt
 // University of Florida
-// Module: mux_2x1_tb
-// Description: This module illustrates two testbenches. The first is a very 
+// Description: This file illustrates two testbenches. The first is a very 
 // basic SV testbench for the mux2x1 module. The second demonstrates how to
 // test multiple modules that should behave identically.
 
