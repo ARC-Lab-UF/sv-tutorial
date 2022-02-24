@@ -91,7 +91,7 @@ module delay
    // When creating an array this way, the CYCLES+1 section creates an unpacked
    // array. The [WIDTH-1:0] section creates a packed array. Packed arrays and
    // unpacked arrays support different operations, but generally you will use
-   // the unpacked section to specify bits, and the unpacked section to specify
+   // the packed section to specify bits, and the unpacked section to specify
    // the total number of elements.
    //
    // The CYCLES+1 notation is short for [0:CYCLES+1-1]. A common convention is
