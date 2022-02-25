@@ -21,8 +21,11 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
     - Corresponding [module](basic/mux2x1.sv) and [testbench](basic/mux2x1_tb.sv).
     - Basic introduction into testbenches. Introduces timescale, waiting, functions, $timeformat, and $display.
 
-1. [Race Conditions (VERY IMPORTANT)](basic/race.sv)
+1. [Race Condition Intro (VERY IMPORTANT)](basic/race.sv)
     - Demonstration of common race condition problems, and how to avoid them.
+
+1. [Reset Race Conditions)](basic/reset_race.sv)
+    - Demonstration of reset race conditions, and how to avoid them.
 
 1. [Register](basic/register_tb.sv)
     - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
@@ -37,7 +40,7 @@ to verify complex behaviors concisely. In many cases, assertion propeties can co
 for comparison.
 
 1. [2:1 Mux (Different than earlier example)](assertions/mux2x1_tb.sv)
-    - Corresponding [module](assertions/mux2x1.sv) and [testbench](assertions/mux_2x1_tb.sv).
+    - Corresponding [module](assertions/mux2x1.sv) and [testbench](assertions/mux2x1_tb.sv).
     - Shows basic syntax for immediate assertions.    
 1. [Flip-flop](assertions/ff_tb.sv)
     - Corresponding [module](assertions/ff.sv) and [testbench](assertions/ff_tb.sv).
