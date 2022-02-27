@@ -33,6 +33,9 @@ module race;
       end
 
       $display("Tests completed.");
+
+      // Stops the simulation. $finish can also be used, but will actually
+      // exit the simulator, which isn't appropriate when using a GUI.
       $stop;
    end
 
