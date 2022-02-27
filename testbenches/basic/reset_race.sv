@@ -21,7 +21,10 @@ module reset_race;
    int               ones = 0;
 
    // Toggle the clock.
-   initial while (1) #5 clk = ~clk;
+   initial begin : generate_clock
+      clk = 1'b0;
+      while (1) #5 clk = ~clk;
+   end
 
    // Toggle the reset every cycle. This is only done to demonstrate the
    // race condition.
@@ -51,7 +54,11 @@ module reset_race;
       // register's input. If the register's block is processed first, then
       // reset will still be asserted and the register will output 0.
       $display("%d zeros, %d ones", zeros, ones);
-      $stop;
+      
+      // Disable the other  blocks so that the simulation terminates.
+      // This provides a cleaner way of ending a simulation, especially
+      // when using a GUI.
+      disable generate_clock;
    end 
 
    // The actual register. For this testbench, we move the register code into
@@ -98,8 +105,10 @@ module reset_race_fix;
    int               zeros = 0;
    int               ones = 0;
 
-
-   initial while (1) #5 clk = ~clk;
+   initial begin : generate_clock
+      clk = 1'b0;
+      while (1) #5 clk = ~clk;
+   end
 
    // By using a non-blocking assignment, reset gets updated at the end of
    // the time step, so when the register's always block reads reset, it will
@@ -122,7 +131,7 @@ module reset_race_fix;
       end 
 
       $display("%d zeros, %d ones", zeros, ones);
-      $stop;
+      disable generate_clock;
    end 
 
    always_ff @(posedge clk or posedge rst) begin
