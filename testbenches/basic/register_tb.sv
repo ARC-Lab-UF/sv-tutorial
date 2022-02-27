@@ -5,6 +5,11 @@
 // testbenches, followed by a much simpler approach. It also illustrates how to
 // generate a clock signal, how to change inputs every cycle, how to check
 // for correct outputs every cycle, and how to terminate the simulation.
+//
+// We will soon see that neither of these testbenches are a great way of
+// testing a register, so neither of these is recommended. They are instead
+// intended to explain basic constructs as we work up to more powerful
+// tehcniques.
 
 `timescale 1ns / 100 ps
 
@@ -32,7 +37,8 @@ module register_tb1;
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");
 
-      // Reset the register
+      // Reset the register. Gollowing the advice from the previous example,
+      // Reset is asserted with a non-blocking assignment.
       rst <= 1'b1;
       in <= '0;      
       en <= 1'b0;
@@ -41,8 +47,10 @@ module register_tb1;
       for (int i=0; i < 5; i++)
         @(posedge clk);
 
-      // Clear reset
+      // Clear reset on a falling edge (as suggested in previous example)
+      @(negedge clk);
       rst <= 1'b0;
+      @(posedge clk);
 
       // Generate NUM_TESTS random inputs, once per cycle
       for (int i=0; i < NUM_TESTS; i++) begin    
@@ -50,12 +58,9 @@ module register_tb1;
          en <= $random;
          @(posedge clk);
       end
-      
+
       $display("Tests completed.");
-      
-      // Stops the simulation. $finish can also be used, but will actually
-      // exit the simulator, which isn't appropriate when using a GUI.
-      $stop;             
+      $stop;
    end 
    
    always begin : check_output
@@ -118,7 +123,7 @@ module register_tb2;
    logic [WIDTH-1:0] in, out;
    logic [WIDTH-1:0] prev_in, prev_out, prev_en;
    
-   register #(.WIDTH(WIDTH)) UUT (.*);
+   register #(.WIDTH(WIDTH)) DUT (.*);
 
    // Here we change the always block to an initial block with an infinite loop.
    // We do this because we will later use a disable statement, which is similar
@@ -143,7 +148,9 @@ module register_tb2;
         @(posedge clk);
 
       // Clear reset
+      @(negedge clk);
       rst <= 1'b0;
+      @(posedge clk);
 
       // Generate NUM_TESTS random inputs, once per cycle
       for (int i=0; i < NUM_TESTS; i++) begin    
@@ -160,8 +167,6 @@ module register_tb2;
       end
 
       // Disable the other initial blocks so that the simulation terminates.
-      // This provides a much cleaner way of ending a simulation, especially
-      // when using a GUI.
       disable generate_clock;
       disable check_output;
       
