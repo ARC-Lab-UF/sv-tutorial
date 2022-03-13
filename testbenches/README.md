@@ -23,13 +23,15 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 
 1. [Race Condition Intro (VERY IMPORTANT)](basic/race.sv)
     - Demonstration of common race condition problems, and how to avoid them.
+    - Introduces $stop, $finish. 
 
-1. [Reset Race Conditions)](basic/reset_race.sv)
+1. [Reset Race Conditions](basic/reset_race.sv)
     - Demonstration of reset race conditions, and how to avoid them.
+    - Introduces clock generation, waiting for rising edges, disable. 
 
 1. [Register](basic/register_tb.sv)
     - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
-    - Introduces clock generation, waiting for rising edges, $random, $stop, $finish, disable. 
+    - Introduces $random and special cases for disable. 
     - Demonstrates a commonly used problematic testbench strategy.
     
 ## Assertions
@@ -44,11 +46,11 @@ for comparison.
     - Shows basic syntax for immediate assertions.    
 1. [Flip-flop](assertions/ff_tb.sv)
     - Corresponding [module](assertions/ff.sv) and [testbench](assertions/ff_tb.sv).
-    - Introduces concurrent assertions (assertion properties) and implication.    
+    - Introduces concurrent assertions (assertion properties) and implication.
+    - Introduces $past and $stable.
 1. [Register](assertions/register_tb.sv)
     - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
-    - Expands on implication and illustrates a significant improvement to the earlier register testbench that lacked assertions.
-    - Introduces $past and $stable.
+    - Expands on implication and illustrates a significant improvement to the earlier register testbench that lacked assertions.    
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
     - Expands on $past and $stable. Demonstrates how to disable assertion properties.
