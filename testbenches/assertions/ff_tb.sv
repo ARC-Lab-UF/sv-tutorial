@@ -22,18 +22,19 @@ module ff_tb1;
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
-      rst = 1'b1;
-      in = 1'b0;      
-      en = 1'b0;
+      rst <= 1'b1;
+      in <= 1'b0;      
+      en <= 1'b0;
 
       for (int i=0; i < 5; i++)
         @(posedge clk);
 
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       for (int i=0; i < NUM_TESTS; i++) begin    
-         in = $random;
-         en = $random;
+         in <= $random;
+         en <= $random;
          @(posedge clk);
       end
 
@@ -94,18 +95,19 @@ module ff_tb2;
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
-      rst = 1'b1;
-      in = 1'b0;      
-      en = 1'b0;
+      rst <= 1'b1;
+      in <= 1'b0;      
+      en <= 1'b0;
       
       for (int i=0; i < 5; i++)
         @(posedge clk);
 
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       for (int i=0; i < NUM_TESTS; i++) begin    
-         in = $random;
-         en = $random;
+         in <= $random;
+         en <= $random;
          @(posedge clk);
       end
 
