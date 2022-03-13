@@ -32,18 +32,19 @@ module register_tb1;
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
-      rst = 1'b1;
-      in = 1'b0;      
-      en = 1'b1;
+      rst <= 1'b1;
+      in <= 1'b0;      
+      en <= 1'b1;
 
       for (int i=0; i < 5; i++)
         @(posedge clk);
 
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       // Perform the tests.
       for (int i=0; i < NUM_TESTS; i++) begin    
-         in = $random;
+         in <= $random;
          @(posedge clk);
       end
 
@@ -53,9 +54,13 @@ module register_tb1;
 
    // Verify the output:
 
-   // Probably the simplest way of verifying the output. However, this will
-   // fail the first test after reset if the input is not equal to the output
-   // during reset.
+   // The following is a potential way to validate the output that was similar
+   // to what was shown in the earlier FF example. There is actually one 
+   // potential problem with this, which is that it will throw an error if the
+   // input is not equal to 0 during reset. This problem occurs because $past
+   // still tracks the previous inputs during reset.
+   // To see this problem, change the initialization value of in to 1 during
+   // reset.
    assert property(@(posedge clk) disable iff (rst) out == $past(in,1));
      
    // Instead of explicitly disabling the check when the reset is asserted, we
@@ -97,18 +102,18 @@ module register_tb2;
    initial begin : drive_inputs
       $timeformat(-9, 0, " ns");         
 
-      rst = 1'b1;
-      in = 1'b0;      
-      en = 1'b0;
+      rst <= 1'b1;
+      in <= 1'b0;      
+      en <= 1'b0;
       
       for (int i=0; i < 5; i++)
         @(posedge clk);
 
-      rst = 1'b0;
+      rst <= 1'b0;
 
       for (int i=0; i < NUM_TESTS; i++) begin    
-         in = $random;
-         en = $random;
+         in <= $random;
+         en <= $random;
          @(posedge clk);
 
          // Only used for one of the assertion examples. Probably not
@@ -124,21 +129,12 @@ module register_tb2;
       $display("Tests completed.");
    end 
 
-   // The last testbench had one significant weakness, which is that it only
-   // checked to see if output was asserted one cycle after the input. To
-   // test every situation, we also need to check to see if the output is not
-   // asserted one cycle after the input is not asserted. In other words, what
-   // we ideally want is to check if the output is equal to the input from one
-   // cycle in the past, which we can do with out == $past(in,1).
-   // We then just need to add the enable signal and we get a much better
-   // assertion.   
+   // For the enable, we can use the same strategy as the FF example.
+   // Verify output when enable is asserted.
    assert property(@(posedge clk) disable iff (rst) en |=> out == $past(in,1));
 
-   // Here we check to make sure that the output doesn't change when the enable
-   // isn't asserted. We can either do this by using the $past function to check
-   // the output on the previous cycle, or by using the $stable function, which
-   // is semantically equivalent.
-   //
+   // Verify output when enable isn't asserted. Only one of these is needed
+   // since they are equivalent.
    assert property(@(posedge clk) disable iff (rst) !en |=> out == $past(out,1));
    assert property(@(posedge clk) disable iff (rst) !en |=> $stable(out));
 
