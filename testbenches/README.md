@@ -53,6 +53,7 @@ for comparison.
     - Expands on implication and illustrates a significant improvement to the earlier register testbench that lacked assertions.    
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
+    - Introduces queues.
     - Expands on $past and $stable. Demonstrates how to disable assertion properties.
 1. [Simple Pipeline](assertions/simple_pipeline.sv)
     - Corresponding [module](assertions/simple_pipeline.sv) and [testbench](assertions/simple_pipeline_tb.sv).
