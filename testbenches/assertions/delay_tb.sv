@@ -1,11 +1,17 @@
 // Greg Stitt
 // University of Florida
+// This file illustrates several ways of writing testbenches for a delay
+// entity. The first approach should be avoided and is included to show how
+// much simpler a testbench can be that effectively uses assertions and
+// implication.
 
 `timescale 1 ns / 100 ps
 
-// Module: delay_tb
+// Module: delay_tb1
 // Description: Testbench for the delay entity. This is a more complicated
-// testbench that preserves the correct outputs in an array.
+// testbench that preserves the correct outputs in an array. It is not intended
+// as a good way to write a testbench. Instead, it is intended to illustrate
+// a common less effective approach that should be avoided.
 
 module delay_tb1;
 
@@ -16,20 +22,20 @@ module delay_tb1;
    localparam logic HAS_ASYNC_RESET = 1'b1;   
    localparam logic RESET_ACTIVATION_LEVEL = 1'b1;   
    localparam logic [WIDTH-1:0] RESET_VALUE = '0; 
-   logic 	     clk = 1'b0;
-   logic 	     rst;
-   logic 	     en;
+   logic             clk = 1'b0;
+   logic             rst;
+   logic             en;
    logic [WIDTH-1:0] in; 
    logic [WIDTH-1:0] out;
 
    delay #(.CYCLES(CYCLES), .WIDTH(WIDTH), .HAS_ASYNC_RESET(HAS_ASYNC_RESET),
-	   .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
-	   .RESET_VALUE(RESET_VALUE))
+           .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
+           .RESET_VALUE(RESET_VALUE))
    DUT (.*);
    
    initial begin : generate_clock
       while (1)
-	#5 clk = ~clk;      
+        #5 clk = ~clk;      
    end
 
    // Round up the buffer to the next power of 2, which is necessary because
@@ -48,27 +54,20 @@ module delay_tb1;
       $timeformat(-9, 0, " ns");
 
       // Initialize the circuit.
-      rst = 1'b1;
-      en = 1'b0;
-      in = '0;      
+      rst <= 1'b1;
+      en <= 1'b0;
+      in <= '0;      
       for (int i=0; i < 5; i++)
-	@(posedge clk);
+        @(posedge clk);
 
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       // Genereate NUM_TESTS random tests.
       for (int i=0; i < NUM_TESTS; i++) begin
-	 in = $random;
-	 en = $random;
-
-	 // If the delay is enabled, write the new input to it and update
-	 // the write address.
-	 if (en) begin
-	    @(posedge clk);	    
-	    wr_addr ++;	    
-	 end
-	 else	   
-	   @(posedge clk);
+         in <= $random;
+         en <= $random;         
+         @(posedge clk);
       end  
 
       // Stop the always blocks.
@@ -83,34 +82,40 @@ module delay_tb1;
          
    initial begin : check_output
       while (1) begin
-	 @(posedge clk);
-	 
-	 // Check outputs on the falling edge to give time for values to change.
-	 @(negedge clk);
-	 if (out != correct_out)
-	   $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);   
+         @(posedge clk);
+         
+         // Check outputs on the falling edge to give time for values to change.
+         @(negedge clk);
+         if (out != correct_out)
+           $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);   
       end
    end
 
    generate
       if (CYCLES == 0) begin
-	 assign correct_out = in;	 
+         assign correct_out = in;        
       end
       else begin      
-	 // Imitate a memory with a one-cycle read delay to store the 
-	 // correct outputs.
-	 always @(posedge clk, posedge rst) begin
-	    if (rst)
-	      correct_out <= RESET_VALUE;           
-	    else if (en) begin 
-	       buffer[wr_addr] = in;
-	       correct_out <= buffer[rd_addr];
-	    end
-	 end
+         // Imitate a memory with a one-cycle read delay to store the 
+         // correct outputs.
+         always @(posedge clk, posedge rst) begin
+            if (rst)
+              correct_out <= RESET_VALUE;           
+            else if (en) begin 
+               buffer[wr_addr] = in;
+               correct_out <= buffer[rd_addr];
+               wr_addr <= wr_addr + 1'b1;              
+            end
+         end
       end
    endgenerate
-endmodule // delay_tb
+endmodule // delay_tb1
 
+
+// Module: delay_tb2
+// Description: This testbench replaces the complex functionality of the
+// previous testbench with assertions and implication. This testbench hardcodes
+// the enable to 1, which we will extend in the following testbench.
 
 module delay_tb2;
 
@@ -121,39 +126,40 @@ module delay_tb2;
    localparam logic HAS_ASYNC_RESET = 1'b1;   
    localparam logic RESET_ACTIVATION_LEVEL = 1'b1;   
    localparam logic [WIDTH-1:0] RESET_VALUE = '0; 
-   logic 	     clk = 1'b0;
-   logic 	     rst;
-   logic 	     en;
+   logic             clk = 1'b0;
+   logic             rst;
+   logic             en;
    logic [WIDTH-1:0] in; 
    logic [WIDTH-1:0] out;
 
    delay #(.CYCLES(CYCLES), .WIDTH(WIDTH), .HAS_ASYNC_RESET(HAS_ASYNC_RESET),
-	   .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
-	   .RESET_VALUE(RESET_VALUE))
+           .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
+           .RESET_VALUE(RESET_VALUE))
 
    // For this testbench, hardcode enable to 1 to illustrate assertion property
    DUT (.en(1'b1), .*);
    
    initial begin : generate_clock
       while (1)
-	#5 clk = ~clk;      
+        #5 clk = ~clk;      
    end
            
    initial begin
       $timeformat(-9, 0, " ns");
 
       // Initialize the circuit.
-      rst = 1'b1;
-      in = '0;      
+      rst <= 1'b1;
+      in <= '0;      
       for (int i=0; i < 5; i++)
-	@(posedge clk);
-
-      rst = 1'b0;
+        @(posedge clk);
+      
+      @(negedge clk);
+      rst <= 1'b0;
 
       // Genereate NUM_TESTS random tests.
       for (int i=0; i < NUM_TESTS; i++) begin
-	 in = $random;
-	 @(posedge clk);
+         in <= $random;
+         @(posedge clk);
       end  
 
       // Stop the always blocks.
@@ -198,6 +204,10 @@ module delay_tb2;
 endmodule // delay_tb2
 
 
+// Module: delay_tb3
+// Description: This testbench improves upon the previous one by including the
+// enable signal.
+
 module delay_tb3;
 
    localparam NUM_TESTS = 1000;
@@ -207,41 +217,42 @@ module delay_tb3;
    localparam logic HAS_ASYNC_RESET = 1'b1;   
    localparam logic RESET_ACTIVATION_LEVEL = 1'b1;   
    localparam logic [WIDTH-1:0] RESET_VALUE = '0; 
-   logic 	     clk = 1'b0;
-   logic 	     rst;
-   logic 	     en;
+   logic             clk = 1'b0;
+   logic             rst;
+   logic             en;
    logic [WIDTH-1:0] in; 
    logic [WIDTH-1:0] out;
 
    delay #(.CYCLES(CYCLES), .WIDTH(WIDTH), .HAS_ASYNC_RESET(HAS_ASYNC_RESET),
-	   .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
-	   .RESET_VALUE(RESET_VALUE))
+           .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
+           .RESET_VALUE(RESET_VALUE))
    
    // For this testbench, hardcode enable to 1 to illustrate assertion property
    DUT (.*);
    
    initial begin : generate_clock
       while (1)
-	#5 clk = ~clk;      
+        #5 clk = ~clk;      
    end
            
    initial begin
       $timeformat(-9, 0, " ns");
 
       // Initialize the circuit.
-      rst = 1'b1;
-      en = 1'b0;      
-      in = '0;      
+      rst <= 1'b1;
+      en <= 1'b0;      
+      in <= '0;      
       for (int i=0; i < 5; i++)
-	@(posedge clk);
+        @(posedge clk);
 
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       // Genereate NUM_TESTS random tests.
       for (int i=0; i < NUM_TESTS; i++) begin
-	 in = $random;
-	 en = $random;	 
-	 @(posedge clk);
+         in <= $random;
+         en <= $random;   
+         @(posedge clk);
       end  
 
       // Stop the always blocks.
