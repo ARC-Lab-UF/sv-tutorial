@@ -5,6 +5,8 @@
 // much simpler a testbench can be that effectively uses assertions and
 // implication.
 
+// TODO: Clean up the delay module itself.
+
 `timescale 1 ns / 100 ps
 
 // Module: delay_tb1
@@ -113,11 +115,94 @@ endmodule // delay_tb1
 
 
 // Module: delay_tb2
-// Description: This testbench replaces the complex functionality of the
-// previous testbench with assertions and implication. This testbench hardcodes
-// the enable to 1, which we will extend in the following testbench.
+// Description: In this testbench, we demonstrate the use of a queue to provide
+// a much simpler reference model than the previous testbench.
 
 module delay_tb2;
+
+   localparam NUM_TESTS = 1000;
+      
+   localparam CYCLES = 30;  
+   localparam WIDTH = 8;  
+   localparam logic HAS_ASYNC_RESET = 1'b1;   
+   localparam logic RESET_ACTIVATION_LEVEL = 1'b1;   
+   localparam logic [WIDTH-1:0] RESET_VALUE = '0; 
+   logic             clk = 1'b0;
+   logic             rst;
+   logic             en;
+   logic [WIDTH-1:0] in; 
+   logic [WIDTH-1:0] out;
+
+   delay #(.CYCLES(CYCLES), .WIDTH(WIDTH), .HAS_ASYNC_RESET(HAS_ASYNC_RESET),
+           .RESET_ACTIVATION_LEVEL(RESET_ACTIVATION_LEVEL), 
+           .RESET_VALUE(RESET_VALUE))
+   
+   DUT (.*);
+   
+   initial begin : generate_clock
+      while (1)
+        #5 clk = ~clk;      
+   end
+           
+   initial begin
+      $timeformat(-9, 0, " ns");
+
+      // Initialize the circuit.
+      rst <= 1'b1;
+      en <= 1'b0;      
+      in <= '0;      
+      for (int i=0; i < 5; i++)
+        @(posedge clk);
+
+      @(negedge clk);
+      rst <= 1'b0;
+
+      // Genereate NUM_TESTS random tests.
+      for (int i=0; i < NUM_TESTS; i++) begin
+         in <= $random;
+         en <= $random;         
+         @(posedge clk);
+      end  
+
+      disable generate_clock;
+      $display("Tests completed.");      
+   end
+
+   // A queue is similar to an unpacked array, but is declared with a $ for
+   // the range.
+   logic [WIDTH-1:0] reference_queue[$];
+   
+   always_ff @(posedge clk or posedge rst)
+     if (rst) begin
+        reference_queue = {};
+        for (int i=0; i < CYCLES; i++) reference_queue = {reference_queue, RESET_VALUE};
+     end
+     else if (en) begin
+        // Update the queue by popping the front and pushing the new input.
+        reference_queue = {reference_queue[1:$], in};
+     end
+
+   // The output should simply always be the front of the reference queue.
+   // IMPORTANT: In previous examples, we saw race conditions being caused by
+   // one process writing with blocking assignments, and another process reading
+   // those values. There is no race condition here because an assert property
+   // always samples the "preponed" values of the referenced signals. In other
+   // words, you can think of the sampled values as the ones before the
+   // simulator updates anything on a clock edge. Alternatively, you can think
+   // of the values as the ones just before the posedge of the clock.
+   // Interestingly, this means that any reference to the clock here will always
+   // be 0, because the clock is always 0 right before a rising clock edge.
+   assert property(@(posedge clk) out == reference_queue[0]);
+         
+endmodule // delay_tb2
+
+
+// Module: delay_tb3
+// Description: This testbench replaces the complex functionality of the
+// original testbench with assertions and implication. This testbench hardcodes
+// the enable to 1, which we will extend in the following testbench.
+
+module delay_tb3;
 
    localparam NUM_TESTS = 1000;
       
@@ -170,8 +255,7 @@ module delay_tb2;
    // Incorrect attempt 1:
    // Although this correctly checks to see if the output matches the input
    // from CYCLES previous cycles, it ignores the value of reset, which could
-   // cause failures while rest is asserted.
-   //
+   // cause failures while reset is asserted.
    //assert property(@(posedge clk) out == $past(in, CYCLES));
 
    // Incorrect attempt 2:
@@ -201,14 +285,14 @@ module delay_tb2;
    // Check for correct outputs during reset and until inputs reach the output.
    assert property(@(posedge clk) disable iff (count == CYCLES) out == RESET_VALUE);
    
-endmodule // delay_tb2
+endmodule // delay_tb3
 
 
-// Module: delay_tb3
+// Module: delay_tb4
 // Description: This testbench improves upon the previous one by including the
 // enable signal.
 
-module delay_tb3;
+module delay_tb4;
 
    localparam NUM_TESTS = 1000;
       
@@ -279,5 +363,4 @@ module delay_tb3;
    // Check to make sure the output doesn't change when not enabled
    assert property(@(posedge clk) disable iff (rst) !en |=> $stable(out));
          
-endmodule // delay_tb3
-
+endmodule // delay_tb4
