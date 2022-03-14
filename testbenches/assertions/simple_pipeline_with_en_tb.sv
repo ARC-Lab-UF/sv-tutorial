@@ -11,7 +11,7 @@ module simple_pipeline_with_en_tb;
    localparam int NUM_TESTS = 10000;
    localparam int WIDTH = 8;
       
-   logic 	  clk, rst, en, valid_in, valid_out;
+   logic          clk, rst, en, valid_in, valid_out;
    logic [WIDTH-1:0] in[8];
    logic [WIDTH-1:0] out;
     
@@ -31,15 +31,16 @@ module simple_pipeline_with_en_tb;
       valid_in <= 1'b0;
       for (int i=0; i < 8; i++) in[i] <= '0;
       for (int i=0; i < 5; i++) @(posedge clk);
+      @(negedge clk);
       rst <= 1'b0;
       @(posedge clk);
 
       // Run the tests.      
       for (int i=0; i < NUM_TESTS; i++) begin
-	 en <= $random;	 
-	 for (int i=0; i < 8; i++) in[i] <= $random;
-	 valid_in <= $random;	 
-	 @(posedge clk);
+         en <= $random;  
+         for (int i=0; i < 8; i++) in[i] <= $random;
+         valid_in <= $random;    
+         @(posedge clk);
       end
 
       $display("Tests completed.");      
@@ -52,7 +53,7 @@ module simple_pipeline_with_en_tb;
    // output is an array, you often need a function to verify all output values.
    function automatic logic [WIDTH-1:0] model(logic [WIDTH-1:0] in[8]);
       logic [WIDTH-1:0] sum = 0;
-      for (int i=0; i < 4; i++) sum += in[i*2] * in[i*2+1];	 
+      for (int i=0; i < 4; i++) sum += in[i*2] * in[i*2+1];      
       return sum;     
    endfunction
    
@@ -72,6 +73,9 @@ module simple_pipeline_with_en_tb;
    // fills up.
    assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> valid_out == '0);
 
+   // Verify valid out after the pipeline is full.
+   assert property (@(posedge clk) disable iff (rst) count == DUT.LATENCY |-> valid_out == $past(valid_in, DUT.LATENCY, en));
+   
    // Make sure all pipeline stages are reset.
    assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> out == '0);
       
