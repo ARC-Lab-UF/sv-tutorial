@@ -1,8 +1,9 @@
 // Greg Stitt
 // University of Florida
 //
-// This testbench illustrates subtle timing differences when functions are
-// used within assertion properties.
+// This testbench illustrates how to create a testbench for a simple pipeline
+// without an enable. It also demonstrates subtle timing differences when 
+// functions are used within assertion properties.
 //
 // TODO: Change the commented out assertion properties to test each version. 
 
@@ -13,7 +14,7 @@ module simple_pipeline_tb;
    localparam int NUM_TESTS = 1000;
    localparam int WIDTH = 8;
       
-   logic 	  clk, rst, valid_in, valid_out;
+   logic          clk, rst, valid_in, valid_out;
    logic [WIDTH-1:0] in[8];
    logic [WIDTH-1:0] out;
     
@@ -32,14 +33,15 @@ module simple_pipeline_tb;
       valid_in <= 1'b0;
       for (int i=0; i < 8; i++) in[i] <= '0;
       for (int i=0; i < 5; i++) @(posedge clk);
+      @(negedge clk);
       rst <= 1'b0;
       @(posedge clk);
 
       // Run the tests.      
       for (int i=0; i < NUM_TESTS; i++) begin
-	 for (int i=0; i < 8; i++) in[i] = $random;
-	 valid_in <= $random;
-	 @(posedge clk);
+         for (int i=0; i < 8; i++) in[i] = $random;
+         valid_in <= $random;
+         @(posedge clk);
       end
 
       $display("Tests completed.");      
@@ -54,7 +56,7 @@ module simple_pipeline_tb;
      logic [WIDTH-1:0] sum = 0;
       
       for (int i=0; i < 4; i++) begin
-	 sum += in[i*2] * in[i*2+1];	 
+         sum += in[i*2] * in[i*2+1];     
       end
       
       return sum == out;      
@@ -67,7 +69,7 @@ module simple_pipeline_tb;
       logic [WIDTH-1:0] sum = 0;
       
       for (int i=0; i < 4; i++) begin
-	 sum += in[i*2] * in[i*2+1];	 
+         sum += in[i*2] * in[i*2+1];     
       end
       
       return sum == out;      
@@ -97,8 +99,11 @@ module simple_pipeline_tb;
    
    // Make sure the valid output is not asserted after reset until the pipeline
    // fills up.
-   assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> valid_out == '0);
+   assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> valid_out == 1'b0);
 
+   // Make sure valid out is asserted after the pipeline is full.
+   assert property (@(posedge clk) disable iff (rst) count == DUT.LATENCY |-> valid_out == 1'b1);
+   
    // Make sure all pipeline stages are reset.
    assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> out == '0);
       
