@@ -74,7 +74,7 @@ module register_tb1;
    assert property(@(posedge clk) rst |=> out == '0);
    
    // To check for the asynchronous reset, we can use an immediate assertion.
-   always @(rst) #1 assert(out == 1'b0);
+   always @(rst) #1 assert(out == '0);
 endmodule
 
 
@@ -146,5 +146,5 @@ module register_tb2;
    // more complex examples.    
    assert property(@(posedge clk) disable iff (!output_check_en) out == $past(in,1, en));
    
-   always @(rst) #1 assert(out == 1'b0);  
+   always @(rst) #1 assert(out == '0);  
 endmodule
