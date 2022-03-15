@@ -3,14 +3,10 @@
 // This file contains several testbenches for the fifo module that illustrate
 // different assertion strategies that can simplify a testbench.
 
-// TODO: 
-// Replace actual FIFO module with good implementation. The current one is
-// confusing.
-// Update tb2 to report the number of passed and failed tests.
-
 // Module: fifo_tb1
 // Description: This testbench illustrates assertions for signals inside the
-// DUT. 
+// DUT. This is an incomplete testbench and is only used to demonstrate
+// hierarchical access.
 module fifo_tb1;
 
    localparam WIDTH = 8;
@@ -41,7 +37,7 @@ module fifo_tb1;
       @(negedge clk);
       rst <= 1'b0;
 
-      for (int i=0; i < 1000; i++) begin
+      for (int i=0; i < 10000; i++) begin
          wr_data <= $random;
          wr_en <= $random;
          rd_en <= $random;
@@ -78,8 +74,8 @@ endmodule
 
 // Module: fifo_tb2
 // Description: This testbench adds an assertion property that verifies that
-// the read data is correct. There is a subtle error in this testbench that we
-// will fix in the next testbench.
+// the read data is correct. There is are several problems here that we will
+// fix in the next testbench.
 
 module fifo_tb2;
 
@@ -112,11 +108,11 @@ module fifo_tb2;
       @(negedge clk);
       rst <= 1'b0;
 
-      for (int i=0; i < 1000; i++) begin
+      for (int i=0; i < 10000; i++) begin
          wr_data <= $random;
          wr_en <= $random;
          rd_en <= $random;
-         @(posedge clk);         
+         @(posedge clk);        
       end
 
       disable generate_clock;
@@ -135,13 +131,23 @@ module fifo_tb2;
       // Create a property where if there is a valid write, we save the wr_data
       // into the local data variable. The valid write then implies that at
       // some indefinite point in the future (i.e. ##[1:$]) there will be a
-      // valid read from the FIFO that has matching data.
+      // valid read from the FIFO that has matching data. Note that we aren't
+      // using the DUT.valid_wr signal because since that signal is inside the
+      // DUT, it might not be correct.
       //
-      // The bug here is that a single instance of a valid read could
+      // One bug here is that a single instance of a valid read could
       // successfully terminate multiple assertions for writes that had the
       // same write data. This means that some of the valid reads will be left
-      // unchecked. 
-      @(posedge clk) (DUT.valid_wr, data=wr_data) |-> ##[1:$] DUT.valid_rd && rd_data == data;
+      // unchecked. TODO: Verify this with an example.
+      //
+      // Another bug is that when using ##[1:$], if there is never a situation
+      // where the subsequent condition is true, then no error will be reported
+      // because no assertion will ever be terminated. So, this basically will
+      // only ever report successul tests unless we restrict the time range.
+      // For example, if we change the range to ##[1:2] we will start to see
+      // errors if they exist. However, that would also require reads to occur
+      // within two cycles, or errors would be reported.
+      @(posedge clk) (wr_en && !full, data=wr_data) |-> ##[1:$] rd_en && !empty ##1 rd_data == data;
    endproperty // check_output
    
    assert property (check_output) begin
@@ -154,18 +160,19 @@ module fifo_tb2;
       // value. See the following for details:
       //
       // https://www.accellera.org/images/resources/videos/SystemVerilog_Assertions_Tutorial_2016.pdf
-      $display("PASSED (%0t): rd_en=%b, rd_data=%h", $time, $sampled(DUT.valid_rd), $sampled(rd_data));      
+      $display("PASSED (%0t): rd_data=%h", $time, $sampled(rd_data));   
    end
 
-   // An else can be provided for the assertion also, although the default
-   // assertion message is usually pretty detailed.
+   // An else can be provided for the assertion failuire if the default
+   // assertion message is not sufficient.
    
 endmodule // fifo_tb2
 
 
 // Module: fifo_tb3
 // Description: This testbench fixes the issue with the prior testbench by
-// ensuring every read is matched with a write.
+// ensuring every read is matched with a write. This is a good strategy for
+// any FIFO-like behavior.
 
 module fifo_tb3;
 
@@ -234,7 +241,7 @@ module fifo_tb3;
       // Local variables to save the tag and data for a write.
       int wr_tag;
       logic [WIDTH-1:0] data;
-
+      
       // On each valid write, we save the current tag into a local variable, 
       // update the global tag counter, and save the write data.
       // The write implies that at some point in the future there will be a
@@ -242,10 +249,10 @@ module fifo_tb3;
       // care about the first matching instance, so we use the first_match
       // function.
       //
-      // Finally, when there is a valid read with the matching tag, within the
-      // same cycle (i.e. ##0) the read data should match the origina write
+      // Finally, when there is a valid read with the matching tag, on the
+      // next cycle (i.e. ##1) the read data should match the original write
       // data.
-      @(posedge clk) (DUT.valid_wr, wr_tag=tag, inc_tag(), data=wr_data) |-> first_match(##[1:$] (DUT.valid_rd && serving==wr_tag, inc_serving())) ##0 rd_data==data;
+      @(posedge clk) (wr_en && !full, wr_tag=tag, inc_tag(), data=wr_data) |-> first_match(##[1:$] (rd_en && !empty && serving==wr_tag, inc_serving())) ##1 rd_data==data;
    endproperty
             
    ap_check_output : assert property (check_output);
@@ -309,7 +316,9 @@ module fifo_tb4;
      if (rst) begin
         reference = {};
      end
-     else begin       
+     else begin
+        correct_rd_data = reference[0];       
+        
         // Pop the front element on a valid read
         if (rd_en && !empty) begin
            reference = reference[1:$];
@@ -319,11 +328,8 @@ module fifo_tb4;
         if (wr_en && !full) begin
            reference = {reference, wr_data};
         end    
-
-        // TODO: Change this after updating the FIFO module to a better example.
-        correct_rd_data = reference[0];
-     end
+      end
    
-   assert property(@(posedge clk) rd_en && !empty |-> rd_data == correct_rd_data);     
+   assert property(@(posedge clk) rd_en && !empty |=> rd_data == correct_rd_data);     
          
 endmodule
