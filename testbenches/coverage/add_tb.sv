@@ -16,13 +16,13 @@ module add_tb1;
    
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
-   logic 	     carry_out, carry_in;
+   logic             carry_out, carry_in;
     
    add #(.WIDTH(WIDTH)) DUT (.*);
    
    // The adder doesn't have a clock, but we can still use on in the testbench
    // to coordinate assertion and cover properties.
-   logic 	     clk;
+   logic             clk;
    initial begin : generate_clock
       clk = 1'b0;
       while(1) #5 clk = ~clk;
@@ -33,10 +33,10 @@ module add_tb1;
 
       // Generate random tests for all inputs.
       for (int i=0; i < NUM_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       $display("Tests completed.");
@@ -94,11 +94,11 @@ module add_tb2;
    
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
-   logic 	     carry_out, carry_in;
+   logic             carry_out, carry_in;
     
    add #(.WIDTH(WIDTH)) DUT (.*);
    
-   logic 	     clk;
+   logic             clk;
    initial begin : generate_clock
       clk = 1'b0;
       while(1) #5 clk = ~clk;
@@ -109,28 +109,28 @@ module add_tb2;
 
       // Random tests.
       for (int i=0; i < RANDOM_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // The previous testbench makes it unlikely for values of 0 to be used
       // in the simulation. Here, we explicitly test each input with 0s.
       // in0 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = 0;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = 0;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = 0;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = 0;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // Similarly, we add tests with the maximum value of both inputs.
@@ -138,18 +138,18 @@ module add_tb2;
       // maximum values at the same time, which we omit here.
       // in0 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = {WIDTH{1'b1}};
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = {WIDTH{1'b1}};
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = {WIDTH{1'b1}};
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = {WIDTH{1'b1}};
+         carry_in = $random;             
+         @(posedge clk);
       end
             
       $display("Tests completed.");
@@ -174,7 +174,7 @@ endmodule
 
 
 // Module: add_tb3
-// Description: This testbench shows an alternative cover construct, which is
+// Description: This testbench shows alternative cover constructs:
 // covergroups and coverpoints. Whereas cover properties work well for specific
 // properties, those properties don't easily give much information about the
 // range of values tested. Covergroups and points provide a convenient construct
@@ -189,11 +189,11 @@ module add_tb3;
    
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
-   logic 	     carry_out, carry_in;
+   logic             carry_out, carry_in;
     
    add #(.WIDTH(WIDTH)) DUT (.*);
 
-   logic 	     clk;
+   logic             clk;
 
    // Here we use a covergroup that will test coverage of different possible
    // values for whatever we request, where values are sampled on every rising
@@ -207,7 +207,7 @@ module add_tb3;
       cin : coverpoint carry_in;
       cout : coverpoint carry_out;
       
-      // This will similar track values of in0 and in1, but since these will
+      // This will similarly track values of in0 and in1, but since these will
       // have far more values for any reasonable WIDTH parameter, most
       // situations will divide up all the values into 64 bins, and track
       // occurences of values that fall into each bin.
@@ -251,42 +251,42 @@ module add_tb3;
       
       // Random tests.
       for (int i=0; i < RANDOM_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in0 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = 0;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = 0;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = 0;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = 0;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in0 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = {WIDTH{1'b1}};
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = {WIDTH{1'b1}};
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = {WIDTH{1'b1}};
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = {WIDTH{1'b1}};
+         carry_in = $random;             
+         @(posedge clk);
       end
         
       $display("Tests completed.");
@@ -302,8 +302,8 @@ endmodule // add_tb3
 
 
 // Module: add_tb4
-// Description: Normally, coverage is defined indepently of the testbench. For
-// example, we might define coverage as consisting of the following tests:
+// Description: Normally, coverage is defined independently of the testbench. 
+// For example, we might define coverage as consisting of the following tests:
 // -Make sure we test at least 100 examples with a carry in.
 // -Make sure we test at least 10 examples where a carry out is produced.
 // -Make sure each input is tested with a value of 0 at least 10 times.
@@ -332,11 +332,11 @@ module add_tb4;
    
    logic [WIDTH-1:0] in0, in1;
    logic [WIDTH-1:0] sum;
-   logic 	     carry_out, carry_in;
+   logic             carry_out, carry_in;
     
    add #(.WIDTH(WIDTH)) DUT (.*);
 
-   logic 	     clk;
+   logic             clk;
    covergroup cg @(posedge clk);
       // Make sure the carry_in is asserted at least 100 times.
       cin : coverpoint carry_in {bins one = {1}; option.at_least = 100;}
@@ -345,15 +345,15 @@ module add_tb4;
 
       // Make sure that in0 has a 0 and max value tested at least 10 times.
       in0_extremes : coverpoint in0 {
-	 bins zero = {0};
-	 bins max_ = {{WIDTH{1'b1}}};
-	 option.at_least = 10; 
+         bins zero = {0};
+         bins max_ = {{WIDTH{1'b1}}};
+         option.at_least = 10; 
       }
       // Make sure that in1 has a 0 and max value tested at least 10 times.
       in1_extremes : coverpoint in0 {
-	 bins zero = {0};
-	 bins max_ = {{WIDTH{1'b1}}};
-	 option.at_least = 10; 
+         bins zero = {0};
+         bins max_ = {{WIDTH{1'b1}}};
+         option.at_least = 10; 
       }
 
       // Divide up the input space into 16 bins and make sure all bins are
@@ -385,59 +385,59 @@ module add_tb4;
       
       // Random tests.
       for (int i=0; i < RANDOM_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in0 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = 0;
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = 0;
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = 0;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = 0;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in0 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = {WIDTH{1'b1}};
-	 in1 = $random;
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = {WIDTH{1'b1}};
+         in1 = $random;
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // in1 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-	 in0 = $random;
-	 in1 = {WIDTH{1'b1}};
-	 carry_in = $random;	 	 
-	 @(posedge clk);
+         in0 = $random;
+         in1 = {WIDTH{1'b1}};
+         carry_in = $random;             
+         @(posedge clk);
       end
 
       // Test both inputs at 0 to achieve 100% coverage.
       for (int i=0; i < 2; i++) begin
-	 in0 = 0;
-	 in1 = 0;
-	 carry_in = i;	 	 
-	 @(posedge clk);
+         in0 = 0;
+         in1 = 0;
+         carry_in = i;           
+         @(posedge clk);
       end
 
       // Test both inputs with their maximum values to achieve 100% coverage.
       for (int i=0; i < 2; i++) begin
-	 // Another way of setting all the bits to 1.
-	 in0 = '1;
-	 in1 = '1;	 
-	 carry_in = i;	 
-	 @(posedge clk);
+         // Another way of setting all the bits to 1.
+         in0 = '1;
+         in1 = '1;       
+         carry_in = i;   
+         @(posedge clk);
       end
             
       $display("Tests completed.");
