@@ -64,7 +64,9 @@ for comparison.
     - Extends the simple pipeline testbench to illustrate how to account for the enable in assertion properties.    
 1. [FIFO](assertions/fifo.sv)
     - Corresponding [module](assertions/fifo.sv) and [testbench](assertions/fifo_tb.sv).
-    - Introduces access of variables inside other modules, while also demonstrating using assertions to replace a reference model.
+    - Introduces hierarchical access of variables inside other modules.
+    - Demonstrates how to preserve ordering of data in assertion properties.
+    - Demonstrates queue reference model.
 
 ## Coverage
 
