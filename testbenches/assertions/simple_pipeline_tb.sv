@@ -102,7 +102,7 @@ module simple_pipeline_tb;
    assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> valid_out == 1'b0);
 
    // Make sure valid out is asserted after the pipeline is full.
-   assert property (@(posedge clk) disable iff (rst) count == DUT.LATENCY |-> valid_out == 1'b1);
+   assert property (@(posedge clk) disable iff (rst) count == DUT.LATENCY |-> valid_out == $past(valid_in, DUT.LATENCY));
    
    // Make sure all pipeline stages are reset.
    assert property (@(posedge clk) disable iff (rst) count < DUT.LATENCY |-> out == '0);
