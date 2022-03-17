@@ -1,3 +1,6 @@
+// Greg Stitt
+// University of Florida
+
 `ifndef _BIT_DIFF_ITEM_SVH_
 `define _BIT_DIFF_ITEM_SVH_
 

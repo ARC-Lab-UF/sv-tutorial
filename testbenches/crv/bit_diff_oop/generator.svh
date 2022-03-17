@@ -1,3 +1,6 @@
+// Greg Stitt
+// University of Florida
+
 `ifndef _GENERATOR_SVH_
 `define _GENERATOR_SVH_
 
@@ -31,10 +34,10 @@ class random_generator #(int WIDTH) extends base_generator #(.WIDTH(WIDTH));
       bit [WIDTH-1:0] data = '0;     
       
       forever begin
-	 item = new;	 	 
-	 if (!item.randomize()) $display("Randomize failed");	 
-	 driver_mailbox.put(item);
-	 @(driver_done_event);
+         item = new;             
+         if (!item.randomize()) $display("Randomize failed");    
+         driver_mailbox.put(item);
+         @(driver_done_event);
       end     
    endtask
 endclass 
@@ -51,11 +54,11 @@ class consecutive_generator #(int WIDTH) extends base_generator #(.WIDTH(WIDTH))
       bit [WIDTH-1:0] data = '0;     
       
       forever begin
-	 item = new;	 
-	 item.data = data;
-	 data ++;
-	 driver_mailbox.put(item);
-	 @(driver_done_event);
+         item = new;     
+         item.data = data;
+         data ++;
+         driver_mailbox.put(item);
+         @(driver_done_event);
       end     
    endtask
 endclass

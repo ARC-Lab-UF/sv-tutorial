@@ -1,30 +1,16 @@
+// Greg Stitt
+// University of Florida
+
 interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
    logic             rst, go, done;
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
-   // With this wait_for_done task, the method for waiting to completion is 
-   // defined in one place, which makes it easy to change. The implementation 
-   // details are also hidden from the rest of the testbench, which makes it
-   // more readable and concise.
-   //
-   // IMPORTANT: If there is any chance of these tasks being called by multiple
-   // threads during the same timestep, they need to be automatic.
-   // Remove the automatic keyword to see what happens. In my tests, only
-   // one thread would match these events, requiring all other threads to wait
-   // until they happen again, which means a monitor could miss seeing done
-   // if it was only asserted for one cycle.
    task automatic wait_for_done();
       @(posedge clk iff (done == 1'b0));
       @(posedge clk iff (done == 1'b1));      
    endtask
  
-   // Similarly, we can create other commonly used functionality that can be
-   // called from different points in our testbench. These tasks are very useful
-   // because they provide a layer of abstraction where common functionality
-   // has a single definition within the BFM.
-   
-   // Reset the design.
    task automatic reset(int cycles);
       rst <= 1'b1;
       go <= 1'b0;      
@@ -34,16 +20,10 @@ interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
       @(posedge clk);      
    endtask
 
-   // Start the DUT with the specified data by creating a 1-cycle pulse on go.
    task automatic start(input logic [WIDTH-1:0] data_);    
-      data = data_;
-      go = 1'b1;      
+      data <= data_;
+      go <= 1'b1;      
       @(posedge clk);
-
-      // IMPORTANT: This has to be a non-blocking assignment to give other 
-      // threads a chance to see that go was 1 on this rising edge. 
-      // Alternatively, you could wait for a small amount of time before setting
-      // it back to 0.
       go <= 1'b0;    
    endtask // start
    

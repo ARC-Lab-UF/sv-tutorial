@@ -1,3 +1,6 @@
+// Greg Stitt
+// University of Florida
+
 `include "test.svh"
 
 module bit_diff_tb;
@@ -6,11 +9,12 @@ module bit_diff_tb;
    localparam NUM_CONSECUTIVE_TESTS = 200;
    localparam NUM_REPEATS = 4;   
    localparam WIDTH = 16;   
-   logic 	     clk;
+   logic             clk;
    
    bit_diff_bfm #(.WIDTH(WIDTH)) bfm (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
-	    .done(bfm.done), .data(bfm.data), .result(bfm.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
+                                  .done(bfm.done), .data(bfm.data), 
+                                  .result(bfm.result));
 
    random_test #(.WIDTH(WIDTH)) test_random = new(bfm, "Random Test");
    consecutive_test #(.WIDTH(WIDTH)) test_consecutive = new(bfm, "Consecutive Test"); 
@@ -30,5 +34,6 @@ module bit_diff_tb;
    end
       
    assert property (@(posedge bfm.clk) disable iff (bfm.rst) bfm.go && bfm.done |=> !bfm.done);
+   assert property (@(posedge bfm.clk) disable iff (bfm.rst) $fell(bfm.done) |-> $past(bfm.go,1));
      
 endmodule

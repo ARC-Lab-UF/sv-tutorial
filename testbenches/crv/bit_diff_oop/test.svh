@@ -1,3 +1,6 @@
+// Greg Stitt
+// University of Florida
+
 `ifndef _TEST_SVH_
 `define _TEST_SVH_
 
@@ -8,9 +11,9 @@ virtual class base_test #(int WIDTH);
    virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
    string  name;
    environment #(.WIDTH(WIDTH)) env_h;
-   	      
+              
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm,
-		string name = "default_test_name");      
+                string name = "default_test_name");      
 
       // Ideally we would also create the environment here, but we don't
       // have all the parameters we need for the constructor yet.
@@ -28,10 +31,10 @@ virtual class base_test #(int WIDTH);
       $display("Time %0t [Test]: Starting test %0s.", $time, name);
       
       for (int i=0; i < num_repeats+1; i++) begin
-	 if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, name, i+1);	 
-	 bfm.reset(5);
-	 env_h.run(num_tests);
-	 @(posedge bfm.clk);	 
+         if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, name, i+1);       
+         bfm.reset(5);
+         env_h.run(num_tests);
+         @(posedge bfm.clk);     
       end
       $display("Time %0t [Test]: Test completed.", $time);      
    endtask   

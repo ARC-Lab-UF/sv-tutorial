@@ -1,3 +1,6 @@
+// Gerg Stitt
+// University of Florida
+
 `ifndef _ENVIRONMENT_SVH_
 `define _ENVIRONMENT_SVH_
 
@@ -25,8 +28,8 @@ class environment #(int WIDTH);
    event   driver_done_event;
    
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm,
-		base_generator #(.WIDTH(WIDTH)) gen_h, 
-		base_driver #(.WIDTH(WIDTH)) drv_h);      
+                base_generator #(.WIDTH(WIDTH)) gen_h, 
+                base_driver #(.WIDTH(WIDTH)) drv_h);      
       scoreboard_data_mailbox = new;
       scoreboard_result_mailbox = new;
       driver_mailbox = new;
@@ -46,11 +49,11 @@ class environment #(int WIDTH);
    
    virtual task run(int num_tests);   
       fork
-	 genarator_h.run();
-	 driver_h.run();
-	 done_monitor_h.run();
-	 start_monitor_h.run();
-	 scoreboard_h.run(num_tests);	 
+         genarator_h.run();
+         driver_h.run();
+         done_monitor_h.run();
+         start_monitor_h.run();
+         scoreboard_h.run(num_tests);    
       join_any
 
       disable fork;      
