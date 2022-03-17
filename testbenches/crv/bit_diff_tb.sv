@@ -820,7 +820,7 @@ module bit_diff_tb4;
       disable generate_clock;      
    end
          
-   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
    assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));
      
 endmodule // bit_diff_tb4
@@ -1150,7 +1150,9 @@ module bit_diff_tb5;
       disable generate_clock;      
    end
       
-   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));
+
      
 endmodule // bit_diff_tb5
 
@@ -1160,12 +1162,14 @@ endmodule // bit_diff_tb5
 // that an object is fully initialized after being constructed. This way the
 // user of the object doesn't have to do anything else before using it.
 //
-// In the previous examples, class object were constructed with no parameters.
+// In the previous examples, class objects were constructed with no parameters.
 // All of the class variables were then initialized externally. In general,
 // I recommend against this strategy. Instead, I prefer to add parameters
 // to the new method that establish all connections. Then, after calling new
 // I know the object is in a safe state and doesn't require further
-// initialization.
+// initialization. However, note that UVM often requires external 
+// initialization, which provides significant flexibility advantages, so my 
+// suggested style does not apply when using UVM.
 
 // In the following generator, we transform the previous generator to establish
 // all the connections within the new method.
@@ -1336,7 +1340,8 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
 
       
       // Remove any leftover messages that might be in the mailbox upon
-      // completion. This is needed for the repeat functionality to work.
+      // completion. This is needed for the repeat functionality to work in
+      // testbench 7.
       // If data is left in the mailbox when repeating a test, that data
       // will be detected as part of the current test.
       while(scoreboard_data_mailbox.try_get(in_item));
@@ -1385,6 +1390,12 @@ class env3 #(int NUM_TESTS, int WIDTH);
       // parameters from the constructor, we will get compiler errors, which is
       // what we want. Our goal is to always catch as many problems as possible
       // at compile time.
+      //
+      // However, as mentioned earlier, some of the advantages of UVM will
+      // require external initialization. One strategy isn't better than the
+      // other, but if you are taking advantage of some flexibility advantage
+      // that comes from external initialization, I recommend this internal
+      // approach.
       
       gen = new(driver_mailbox, driver_done_event);
       drv = new(vif, driver_mailbox, scoreboard_data_mailbox, driver_done_event);
@@ -1416,8 +1427,9 @@ module bit_diff_tb6;
    logic             clk;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-            .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), 
+                                  .result(_if.result));
 
    // Pass the interface to the constructor so that the environment isn't
    // created in an invalid state that requires further initialization.
@@ -1430,16 +1442,19 @@ module bit_diff_tb6;
    
    initial begin      
       $timeformat(-9, 0, " ns");
-      _if.rst = 1'b1;
-      _if.go = 1'b0;      
+      _if.rst <= 1'b1;
+      _if.go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      _if.rst = 1'b0;
+      @(negedge clk);     
+      _if.rst <= 1'b0;
       @(posedge clk);     
       _env.run();
       disable generate_clock;      
    end
       
-   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));
+
      
 endmodule // bit_diff_tb6
 
@@ -1448,7 +1463,7 @@ endmodule // bit_diff_tb6
 // abstraction that is often used in addition to an environment is a "test."
 // Think of a test as a single configuration of an environment. For example,
 // in one test we might configure the environment to do a different number
-// of tests, or to repeat the sequences some number of times, or to use a
+// of tests, or to repeat the sequence some number of times, or to use a
 // different distribution, etc. 
 //
 // Here we will illustrate this concept by extending the environment with 
@@ -1460,7 +1475,7 @@ endmodule // bit_diff_tb6
 // create random inputs, or to use a sequence of consecutive input values
 // (e.g., 0, 1, 2, 3, 4, etc.) with only one test running at a time. This
 // specific configuration option doesn't necessarily help with coverage, but
-// is useful for debugging when errors are deteched.
+// is useful for debugging when errors are detected.
 
 class generator4 #(int WIDTH, bit CONSECUTIVE_INPUTS);
    mailbox driver_mailbox;
@@ -1662,10 +1677,11 @@ class test #(string NAME="default_test_name",
       // Repeat the tests the specified number of times.
       for (int i=0; i < REPEATS+1; i++) begin
          if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);       
-         vif.rst = 1'b1;
-         vif.go = 1'b0;      
+         vif.rst <= 1'b1;
+         vif.go <= 1'b0;      
          for (int i=0; i < 5; i++) @(posedge vif.clk);
-         vif.rst = 1'b0;
+         @(negedge vif.clk);
+         vif.rst <= 1'b0;
          @(posedge vif.clk);
          e.run();
          @(posedge vif.clk);     
@@ -1688,8 +1704,9 @@ module bit_diff_tb7;
    logic             clk;
       
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-            .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), 
+                                  .result(_if.result));
 
    // Create one test for the normal random testing.
    test #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(_if);
@@ -1711,7 +1728,9 @@ module bit_diff_tb7;
       disable generate_clock;      
    end
       
-   assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));
+
      
 endmodule // bit_diff_tb7
 
