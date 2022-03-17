@@ -33,23 +33,23 @@ module bit_diff_tb_basic;
    localparam NUM_TESTS = 1000;   
    localparam WIDTH = 16;
    
-   logic 	     clk, rst, go, done;  
+   logic             clk, rst, go, done;  
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
    // Testbench variables
-   int 					passed, failed, reference;
+   int                                  passed, failed, reference;
 
    // Instantiate the DUT
    bit_diff #(.WIDTH(WIDTH)) DUT (.*);
 
    // Reference model for getting the correct result.
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
@@ -69,47 +69,48 @@ module bit_diff_tb_basic;
       failed = 0;      
 
       // Reset the design.
-      rst = 1'b1;
-      go = 1'b0;
-      data = '0;
+      rst <= 1'b1;
+      go <= 1'b0;
+      data <= '0;
       for (int i=0; i < 5; i++) @(posedge clk);
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
 
       // Perform NUM_TESTS number of randome tests.
       for (int i=0; i < NUM_TESTS; i++) begin
-	 data = $random;
-	 go = 1'b1;
-	 @(posedge clk);
-	 go = 1'b0;
-	 
-	 // Works for registered outputs, but not safe for glitches that may
-	 // occur from combinational logic outputs.
-	 // Test bit_diff_fsmd_2p for an example of where this fails.
-	 //@(posedge done);
+         data <= $random;
+         go <= 1'b1;
+         @(posedge clk);
+         go <= 1'b0;
+         
+         // Works for registered outputs, but not safe for glitches that may
+         // occur from combinational logic outputs.
+         // Test bit_diff_fsmd_2p for an example of where this fails.
+         //@(posedge done);
 
-	 // Instead, wait until done is cleared on an edge, and then asserted 
-	 // on an edge.
-	 @(posedge clk iff (done == 1'b0));
-	 //$display("Done is 0 (time %0t).", $time);	 
-	 @(posedge clk iff (done == 1'b1));
-	 //$display("Done is 1 (time %0t).", $time);
+         // Instead, wait until done is cleared on an edge, and then asserted 
+         // on an edge.
+         @(posedge clk iff (done == 1'b0));
+         //$display("Done is 0 (time %0t).", $time);     
+         @(posedge clk iff (done == 1'b1));
+         //$display("Done is 1 (time %0t).", $time);
 
-	 // Similar strategy, but less concise
-	 /*while(1) begin
-	    @(posedge clk);
-	    if (done) break;	    
-	 end */ 
+         // Similar strategy, but less concise
+         /*while(1) begin
+            @(posedge clk);
+            if (done) break;        
+         end */ 
 
-	 // Compare the output with the reference model.
-	 reference = model(data, WIDTH);	 
-	 if (result == reference) begin
-	    $display("Test passed (time %0t) for input = %h", $time, data);
-	    passed ++;
-	 end
-	 else begin
-	    $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, result, reference, data);
-	    failed ++;	    
-	 end	
+         // Compare the output with the reference model.
+         reference = model(data, WIDTH);         
+         if (result == reference) begin
+            $display("Test passed (time %0t) for input = %h", $time, data);
+            passed ++;
+         end
+         else begin
+            $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, result, reference, data);
+            failed ++;      
+         end    
       end
 
       $display("Tests completed: %0d passed, %0d failed", passed, failed);      
@@ -119,8 +120,10 @@ module bit_diff_tb_basic;
    // Check to make sure done cleared within a cycle.
    assert property (@(posedge clk) disable iff (rst) go && done |=> !done);
    
-   // TODO: check to make sure done stays asserted indefinitely.
-
+   // Check to make sure done is only cleared when go is asserted (i.e. done is
+   // left asserted indefinitely).
+   assert property (@(posedge clk) disable iff (rst) $fell(done) |-> $past(go,1));
+   
 endmodule // bit_diff_tb_basic
 
 
@@ -172,18 +175,18 @@ class generator1 #(int NUM_TESTS, int WIDTH);
 
       // Perform num_tests tests. 
       for (int i=0; i < NUM_TESTS; i++) begin
-	 // Use the CRV randomize functionality to generate a random inpu.
-	 if (!item.randomize()) $display("Randomize failed");
+         // Use the CRV randomize functionality to generate a random inpu.
+         if (!item.randomize()) $display("Randomize failed");
 
-	 // Print a message so we know what is going on at what time.
-	 $display("Time %0t [Generator]: Generating input h%h for test %0d.", $time, item.data, i);
+         // Print a message so we know what is going on at what time.
+         $display("Time %0t [Generator]: Generating input h%h for test %0d.", $time, item.data, i);
 
-	 // Send the random input to the driver.
-	 driver_mailbox.put(item);
+         // Send the random input to the driver.
+         driver_mailbox.put(item);
 
-	 // Wait on the custom event for the driver to finish driving the 
-	 // generated test before starting a new test.
-	 @(driver_done_event);	 
+         // Wait on the custom event for the driver to finish driving the 
+         // generated test before starting a new test.
+         @(driver_done_event);   
       end
 
       // Report completion and trigger the generator done event for anything
@@ -199,7 +202,7 @@ endclass // generator
 // to complete, then signal the generator to provide another test.
 
 class driver1 #(WIDTH);   
-   logic 	     clk, rst, go, done;
+   logic             clk, rst, go, done;
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
@@ -214,30 +217,30 @@ class driver1 #(WIDTH);
    task run();
       $display("Time %0t [Driver]: Driver starting.", $time);
 
-      forever begin	 
-	 bit_diff_item1 #(WIDTH) item; 
+      forever begin      
+         bit_diff_item1 #(WIDTH) item; 
 
-	 // Wait for the generator to send an input test transaction to drive.
-	 driver_mailbox.get(item);
+         // Wait for the generator to send an input test transaction to drive.
+         driver_mailbox.get(item);
 
-	 // Print a message when we get the transaction.
-	 $display("Time %0t [Driver]: Driving h%h test.", $time, item.data);
+         // Print a message when we get the transaction.
+         $display("Time %0t [Driver]: Driving h%h test.", $time, item.data);
 
-	 // Drive the test by putting the data on the correpsonding input and
-	 // then asserting go
-	 data <= item.data;
-	 go <= 1'b1;	
-	 @(posedge clk);
-	 go <= 1'b0;
-	 	 
-	 // Wait for done to be cleared and then asserted on a rising edge.
-	 //@(posedge done);	 
-	 @(posedge clk iff (done == 1'b0));	 
-	 @(posedge clk iff (done == 1'b1));
+         // Drive the test by putting the data on the correpsonding input and
+         // then asserting go
+         data <= item.data;
+         go <= 1'b1;    
+         @(posedge clk);
+         go <= 1'b0;
+                 
+         // Wait for done to be cleared and then asserted on a rising edge.
+         //@(posedge done);      
+         @(posedge clk iff (done == 1'b0));      
+         @(posedge clk iff (done == 1'b1));
 
-	 // Trigger the driver done event so the generator knows to produce 
-	 // another test.	 
-	 ->driver_done_event;	 	 	 
+         // Trigger the driver done event so the generator knows to produce 
+         // another test.        
+         ->driver_done_event;                    
       end              
    endtask       
 endclass
@@ -252,11 +255,11 @@ module bit_diff_tb1;
    localparam NUM_TESTS = 1000;   
    localparam WIDTH = 16;  
 
-   logic 	     clk, rst, go, done;   
+   logic             clk, rst, go, done;   
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
-   int 					passed, failed, reference;
+   int                                  passed, failed, reference;
 
    // We have to first dynamically allocate the mailbox for it to exist.
    // The mailbox variable is just a handle, which is initially untinitialized.
@@ -308,8 +311,8 @@ module bit_diff_tb1;
 
       // Fork off two parallel tasts for the generator and the driver.
       fork
-	 gen.run();
-	 drv.run();	
+         gen.run();
+         drv.run();     
       join_any
 
       // join_any blocks until any the tasks in the fork complete. We could also
@@ -317,11 +320,11 @@ module bit_diff_tb1;
    end
 
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
@@ -334,18 +337,18 @@ module bit_diff_tb1;
    // replaced the first 3 lines with "always @(posedge done) begin".
    always begin
       // Wait for completion.
-      @(posedge clk iff (done == 1'b0));	 
+      @(posedge clk iff (done == 1'b0));         
       @(posedge clk iff (done == 1'b1));
 
       // Compare with the reference model.
-      reference = model(data, WIDTH);	 
-      if (result == reference) begin	 
-	 $display("Test passed (time %0t) for input = h%h", $time, data);
-	 passed ++;
+      reference = model(data, WIDTH);    
+      if (result == reference) begin     
+         $display("Test passed (time %0t) for input = h%h", $time, data);
+         passed ++;
       end
       else begin
-	 $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, result, reference, data);
-	 failed ++;	    
+         $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, result, reference, data);
+         failed ++;         
       end      
    end
 
@@ -376,7 +379,7 @@ endmodule
 // like this.
 
 interface bit_diff_if #(parameter int WIDTH) (input logic clk);
-   logic 	     rst, go, done;
+   logic             rst, go, done;
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 endinterface
@@ -390,29 +393,29 @@ endinterface
 class driver2 #(WIDTH);
    // We don't want the actual interface here, just a pointer to it, which
    // we accomplish with the virtual keyword.   
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;   
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;   
    
-   mailbox 	     driver_mailbox;
-   event 	     driver_done_event;
+   mailbox           driver_mailbox;
+   event             driver_done_event;
 
    task run();
       $display("Time %0t [Driver]: Driver starting.", $time);
 
       forever begin
-	 bit_diff_item1 #(WIDTH) item; 
+         bit_diff_item1 #(WIDTH) item; 
 
-	 // Wait for the generator to send an input test to drive.
-	 driver_mailbox.get(item);		 
-	 $display("Time %0t [Driver]: Driving h%h test.", $time, item.data);
+         // Wait for the generator to send an input test to drive.
+         driver_mailbox.get(item);               
+         $display("Time %0t [Driver]: Driving h%h test.", $time, item.data);
 
-	 // We can now access all the variable through the interface.
-	 vif.data <= item.data;
-	 vif.go <= 1'b1;
-	 @(posedge vif.clk);	
-	 vif.go <= 1'b0;	 	 
-	 @(posedge vif.clk iff (vif.done == 1'b0));	 
-	 @(posedge vif.clk iff (vif.done == 1'b1));
-	 -> driver_done_event;	 	 	 
+         // We can now access all the variable through the interface.
+         vif.data <= item.data;
+         vif.go <= 1'b1;
+         @(posedge vif.clk);    
+         vif.go <= 1'b0;                 
+         @(posedge vif.clk iff (vif.done == 1'b0));      
+         @(posedge vif.clk iff (vif.done == 1'b1));
+         -> driver_done_event;                   
       end              
    endtask       
 endclass
@@ -429,8 +432,8 @@ module bit_diff_tb2;
 
    // We only need the clk signal now since everything else will be
    // part of the interface.
-   logic 	     clk;   
-   int 		     passed, failed, reference;
+   logic             clk;   
+   int               passed, failed, reference;
    
    // We have to first dynamically allocate the mailbox for it to exist.
    // The mailbox variable is just a handle, which is initially untinitialized.
@@ -456,7 +459,7 @@ module bit_diff_tb2;
    // here. The tutorials will illustrate synthesizable interfaces in another
    // section.
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .data(_if.data), .result(_if.result));
+            .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -479,17 +482,17 @@ module bit_diff_tb2;
       _if.rst = 1'b0;
       @(posedge clk);
       fork
-	 gen.run();
-	 drv.run();
+         gen.run();
+         drv.run();
       join_any
    end
 
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
@@ -502,18 +505,18 @@ module bit_diff_tb2;
    // replaced the first 3 lines with "always @(posedge done) begin".
    always begin
       // Wait for completion.
-      @(posedge clk iff (_if.done == 1'b0));	 
+      @(posedge clk iff (_if.done == 1'b0));     
       @(posedge clk iff (_if.done == 1'b1));
 
       // Compare with the reference model.
-      reference = model(_if.data, WIDTH);	 
-      if (_if.result == reference) begin	 
-	 $display("Test passed (time %0t) for input = h%h", $time, _if.data);
-	 passed ++;
+      reference = model(_if.data, WIDTH);        
+      if (_if.result == reference) begin         
+         $display("Test passed (time %0t) for input = h%h", $time, _if.data);
+         passed ++;
       end
       else begin
-	 $display("Test failed (time %0t): result = %0d instead of %0d for input = h%h.", $time, _if.result, reference, _if.data);
-	 failed ++;	    
+         $display("Test failed (time %0t): result = %0d instead of %0d for input = h%h.", $time, _if.result, reference, _if.data);
+         failed ++;         
       end            
    end
 
@@ -549,30 +552,30 @@ endclass
 class monitor1 #(parameter int WIDTH);
    // Like the driver and generator, we encapsulate all the DUT signals in an
    // interface.
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
 
    // Mailbox handle for sending results to the scoreboard for verification.
-   mailbox 	     scoreboard_mailbox;
+   mailbox           scoreboard_mailbox;
    
    task run();
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 // Create the transaction object.
-	 bit_diff_item2 #(.WIDTH(WIDTH)) item = new;
+         // Create the transaction object.
+         bit_diff_item2 #(.WIDTH(WIDTH)) item = new;
 
-	 // Wait for completion.
-	 @(posedge vif.clk iff (vif.done == 1'b0));	 
-	 @(posedge vif.clk iff (vif.done == 1'b1));
+         // Wait for completion.
+         @(posedge vif.clk iff (vif.done == 1'b0));      
+         @(posedge vif.clk iff (vif.done == 1'b1));
 
-	 // Save the input data and result from the interface.
-	 item.data = vif.data;
-	 item.result = vif.result;
-	 $display("Time %0t [Monitor]: Monitor detected result=%0d for data=h%h.", $time, vif.result, vif.data);
+         // Save the input data and result from the interface.
+         item.data = vif.data;
+         item.result = vif.result;
+         $display("Time %0t [Monitor]: Monitor detected result=%0d for data=h%h.", $time, vif.result, vif.data);
 
-	 // Send the input data and result to the scoreboard and go back to
-	 // monitoring.
-	 scoreboard_mailbox.put(item);
+         // Send the input data and result to the scoreboard and go back to
+         // monitoring.
+         scoreboard_mailbox.put(item);
       end
    endtask       
 endclass
@@ -586,16 +589,16 @@ endclass
 class scoreboard1 #(parameter int WIDTH);
    // Mailbox handle to receive data from the monitor.
    mailbox scoreboard_mailbox;  
-   int 	   passed, failed, reference;
+   int     passed, failed, reference;
 
    // We move the reference model into the scoreboard here, since it isn't
    // needed anywhere else.
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
@@ -606,21 +609,21 @@ class scoreboard1 #(parameter int WIDTH);
       failed = 0;
             
       forever begin
-	 bit_diff_item2 #(.WIDTH(WIDTH)) item;
-	 
-	 // Wait until the monitor sends a result to verify.
-	 scoreboard_mailbox.get(item);
+         bit_diff_item2 #(.WIDTH(WIDTH)) item;
+         
+         // Wait until the monitor sends a result to verify.
+         scoreboard_mailbox.get(item);
 
-	 // Verify the result.
-	 reference = model(item.data, WIDTH);	 
-	 if (item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for input = h%h", $time, item.data);
-	    passed ++;
-	 end
-	 else begin
-	    $display("Time %0t [Scoreboard] Test failed: result = %0d instead of %0d for input = h%h.", $time, item.result, reference, item.data);
-	    failed ++;	    
-	 end
+         // Verify the result.
+         reference = model(item.data, WIDTH);    
+         if (item.result == reference) begin
+            $display("Time %0t [Scoreboard] Test passed for input = h%h", $time, item.data);
+            passed ++;
+         end
+         else begin
+            $display("Time %0t [Scoreboard] Test failed: result = %0d instead of %0d for input = h%h.", $time, item.result, reference, item.data);
+            failed ++;      
+         end
       end
    endtask
 
@@ -641,12 +644,12 @@ module bit_diff_tb3;
    localparam NUM_TESTS = 1000;
    localparam WIDTH = 16;
    
-   logic 	     clk;
+   logic             clk;
   
-   mailbox 	     driver_mailbox = new;
-   mailbox 	     scoreboard_mailbox = new;
-   event 	     driver_done_event;
-   event 	     generator_done_event;
+   mailbox           driver_mailbox = new;
+   mailbox           scoreboard_mailbox = new;
+   event             driver_done_event;
+   event             generator_done_event;
    generator1 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) gen = new;
    driver2  #(.WIDTH(WIDTH)) drv = new;
    monitor1 #(.WIDTH(WIDTH)) monitor = new;
@@ -654,7 +657,7 @@ module bit_diff_tb3;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-		 .done(_if.done), .data(_if.data), .result(_if.result));
+                 .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -686,10 +689,10 @@ module bit_diff_tb3;
 
       // Fork off threads for the other main components.
       fork
-	 gen.run();
-	 drv.run();
-	 monitor.run();
-	 scoreboard.run();	 
+         gen.run();
+         drv.run();
+         monitor.run();
+         scoreboard.run();       
       join_any
    end
       
@@ -724,8 +727,8 @@ class env #(int NUM_TESTS, int WIDTH);
    mailbox scoreboard_mailbox;
    mailbox driver_mailbox;
    
-   event 	     driver_done_event;
-   event 	     generator_done_event;
+   event             driver_done_event;
+   event             generator_done_event;
 
    // We give the environment a new method to create new instances of everything
    // encapsulated by the environment.
@@ -741,7 +744,7 @@ class env #(int NUM_TESTS, int WIDTH);
    // The environment's run task connects everything together and forks off
    // the individual threads. The connects could have also been made in the
    // new() method, but we need the fork code here.    
-   virtual 	     task run();
+   virtual           task run();
       drv.vif = vif;
       monitor.vif = vif;
           
@@ -755,10 +758,10 @@ class env #(int NUM_TESTS, int WIDTH);
       scoreboard.scoreboard_mailbox = scoreboard_mailbox;
       
       fork
-	 gen.run();
-	 drv.run();
-	 monitor.run();
-	 scoreboard.run();	 
+         gen.run();
+         drv.run();
+         monitor.run();
+         scoreboard.run();       
       join_any
 
       // When any of the tasks complete, report the status of the tests. While
@@ -780,7 +783,7 @@ module bit_diff_tb4;
    localparam NUM_TESTS = 1000;
    localparam WIDTH = 16;
    
-   logic 	     clk;
+   logic             clk;
 
    // Instead of separately creating the generator, driver, monitor, and 
    // scoreboard, we just create the environment.
@@ -788,7 +791,7 @@ module bit_diff_tb4;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .data(_if.data), .result(_if.result));
+            .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -861,19 +864,19 @@ class generator2 #(int WIDTH);
       bit_diff_item3 #(.WIDTH(WIDTH)) item;
 
       forever begin
-	 item = new;	 
-	 if (!item.randomize()) $display("Randomize failed");
+         item = new;     
+         if (!item.randomize()) $display("Randomize failed");
 
-	 // This display is commented out because this loop can potentially
-	 // execute every cycle, which could make the log overwhelming.
-	 //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
+         // This display is commented out because this loop can potentially
+         // execute every cycle, which could make the log overwhelming.
+         //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
 
-	 driver_mailbox.put(item);
+         driver_mailbox.put(item);
 
-	 // The generator still waits for the driver to finish driving the
-	 // current test, but we'll see that happens every cycle now, instead
-	 // of the driver waiting for completion of the DUT.
-	 @(driver_done_event);
+         // The generator still waits for the driver to finish driving the
+         // current test, but we'll see that happens every cycle now, instead
+         // of the driver waiting for completion of the DUT.
+         @(driver_done_event);
       end
    endtask
 endclass // generator2
@@ -891,14 +894,14 @@ endclass // generator2
 // would have to check the DUT inputs and outputs.
 
 class driver3 #(int WIDTH);
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
-   mailbox 	     driver_mailbox;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
+   mailbox           driver_mailbox;
 
    // Since only the driver knows when an input can cause the DUT to start a
    // new execution, we create a new scoreboard mailbox that the driver will
    // use to send data inputs that will produce an output from the DUT.
-   mailbox 	     scoreboard_data_mailbox;
-   event 	     driver_done_event;
+   mailbox           scoreboard_data_mailbox;
+   event             driver_done_event;
 
    task run();
       // To know whether or not generated inputs will create a DUT output, 
@@ -908,56 +911,56 @@ class driver3 #(int WIDTH);
       $display("Time %0t [Driver]: Driver starting.", $time);
             
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item;
-	 
-	 // If the circuit is reset at any point, reset the driver state.
-	 while (vif.rst) begin
-	    @(posedge vif.clk);	  
-	    is_first_test = 1'b1;
-	    is_active = 1'b0;	    	    
-	 end
-	 
-	 // Wait for the generator to send an input to drive. Unlike before,
-	 // the generator now delivers inputs every cycle, and includes the
-	 // go signal in order to test assertions of go while the DUT is already
-	 // active.
-	 driver_mailbox.get(item);
-	 //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
-	 
-	 // For this driver, we drive both the data and go inputs directly 
-	 // from the generator.
-	 vif.data = item.data;
-	 vif.go = item.go;
+         bit_diff_item3 #(.WIDTH(WIDTH)) item;
+         
+         // If the circuit is reset at any point, reset the driver state.
+         while (vif.rst) begin
+            @(posedge vif.clk);   
+            is_first_test = 1'b1;
+            is_active = 1'b0;               
+         end
+         
+         // Wait for the generator to send an input to drive. Unlike before,
+         // the generator now delivers inputs every cycle, and includes the
+         // go signal in order to test assertions of go while the DUT is already
+         // active.
+         driver_mailbox.get(item);
+         //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
+         
+         // For this driver, we drive both the data and go inputs directly 
+         // from the generator.
+         vif.data = item.data;
+         vif.go = item.go;
 
-	 // Wait until the next clock edge where the inputs will be seen.
-	 // This is needed here because signals haven't changed yet on the
-	 // current clock cycle. So, if done is about to change, we won't see
-	 // it. That would cause the following code to mistake the DUT as
-	 // being active, which could prevent sending the test to the
-	 // scoreboard.
-	 @(posedge vif.clk);
-	 	 
-	 // If done is asserted, or if this is the first_test, 
-	 // then the DUT should be inactive and ready for another test.  
-	 if (vif.done || is_first_test)
-	   is_active = 1'b0;
-	 	 	 	 
-	 // If the DUT isn't already active, and we get a go signal, we are
-	 // starting a test, so inform the scoreboard. The scoreboard will
-	 // then wait to get the result from the monitor. This strategy allows
-	 // the testbench to test assertions of go that don't correspond to
-	 // the start of a test because the DUT is already active. The DUT
-	 // should ignore these assertions.
-	 if (!is_active && vif.go) begin	    
-	    $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
-	    scoreboard_data_mailbox.put(item);
-	    is_active = 1'b1;	    
-	    is_first_test = 1'b0;
-	 end
+         // Wait until the next clock edge where the inputs will be seen.
+         // This is needed here because signals haven't changed yet on the
+         // current clock cycle. So, if done is about to change, we won't see
+         // it. That would cause the following code to mistake the DUT as
+         // being active, which could prevent sending the test to the
+         // scoreboard.
+         @(posedge vif.clk);
+                 
+         // If done is asserted, or if this is the first_test, 
+         // then the DUT should be inactive and ready for another test.  
+         if (vif.done || is_first_test)
+           is_active = 1'b0;
+                                 
+         // If the DUT isn't already active, and we get a go signal, we are
+         // starting a test, so inform the scoreboard. The scoreboard will
+         // then wait to get the result from the monitor. This strategy allows
+         // the testbench to test assertions of go that don't correspond to
+         // the start of a test because the DUT is already active. The DUT
+         // should ignore these assertions.
+         if (!is_active && vif.go) begin            
+            $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+            scoreboard_data_mailbox.put(item);
+            is_active = 1'b1;       
+            is_first_test = 1'b0;
+         end
 
-	 // Tell the generator the driver has driven the last test, which
-	 // happens every cycle except during reset.
-	 -> driver_done_event;	 
+         // Tell the generator the driver has driven the last test, which
+         // happens every cycle except during reset.
+         -> driver_done_event;   
       end              
    endtask       
 endclass
@@ -968,24 +971,24 @@ endclass
 // solely send the output to the scoreboard.
 
 class monitor2 #(int WIDTH);
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
 
    // We rename the scoreboard mailbox since driver now uses a separate
    // mailbox for sending data inputs.
-   mailbox 	     scoreboard_result_mailbox;
+   mailbox           scoreboard_result_mailbox;
 
    task run();
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
-	 @(posedge vif.clk iff (vif.done == 1'b0));	 
-	 @(posedge vif.clk iff (vif.done == 1'b1));	 
-	 // In this version, we only care about the result, because the driver
-	 // already informed the scoreboard of the next n value to check.
-	 item.result = vif.result;
-	 $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, vif.result);
-	 scoreboard_result_mailbox.put(item);
+         bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+         @(posedge vif.clk iff (vif.done == 1'b0));      
+         @(posedge vif.clk iff (vif.done == 1'b1));      
+         // In this version, we only care about the result, because the driver
+         // already informed the scoreboard of the next n value to check.
+         item.result = vif.result;
+         $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, vif.result);
+         scoreboard_result_mailbox.put(item);
       end
    endtask       
 endclass
@@ -999,14 +1002,14 @@ class scoreboard2 #(int NUM_TESTS, int WIDTH);
    // from the driver, and a second for the result output from the monitor.
    mailbox scoreboard_result_mailbox;
    mailbox scoreboard_data_mailbox;
-   int 	   passed, failed, reference;
+   int     passed, failed, reference;
 
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
@@ -1017,28 +1020,28 @@ class scoreboard2 #(int NUM_TESTS, int WIDTH);
       failed = 0;
 
       for (int i=0; i < NUM_TESTS; i++) begin
-	 
-	 bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
-	 bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
-	
-	 // First wait until the driver informs us of a new test.
-	 scoreboard_data_mailbox.get(in_item);
-	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
+         
+         bit_diff_item3 #(.WIDTH(WIDTH)) in_item;       
+         bit_diff_item3 #(.WIDTH(WIDTH)) out_item;       
+        
+         // First wait until the driver informs us of a new test.
+         scoreboard_data_mailbox.get(in_item);
+         $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
 
-	 // Then, wait until the monitor tells us that test is complete.
-	 scoreboard_result_mailbox.get(out_item);
-	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
+         // Then, wait until the monitor tells us that test is complete.
+         scoreboard_result_mailbox.get(out_item);
+         $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
 
-	 // Get the correct result based on the input at the start of the test.
-	 reference = model(in_item.data, WIDTH);	 
-	 if (out_item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
-	    passed ++;
-	 end
-	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
-	    failed ++;	    
-	 end
+         // Get the correct result based on the input at the start of the test.
+         reference = model(in_item.data, WIDTH);         
+         if (out_item.result == reference) begin
+            $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
+            passed ++;
+         end
+         else begin
+            $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
+            failed ++;      
+         end
       end
    endtask
 
@@ -1076,7 +1079,7 @@ class env2 #(int NUM_TESTS, int WIDTH);
       driver_mailbox = new;
    endfunction // new
 
-   virtual 	     task run();
+   virtual           task run();
       drv.vif = vif;
       monitor.vif = vif;
       
@@ -1095,10 +1098,10 @@ class env2 #(int NUM_TESTS, int WIDTH);
       // In this new environment, the fork exits when the scoreboard finishes
       // all tests.         
       fork
-	 gen.run();
-	 drv.run();
-	 monitor.run();
-	 scoreboard.run();	 
+         gen.run();
+         drv.run();
+         monitor.run();
+         scoreboard.run();       
       join_any
 
       scoreboard.report_status();      
@@ -1116,12 +1119,12 @@ module bit_diff_tb5;
    localparam NUM_TESTS = 1000;
    localparam WIDTH = 16;
    
-   logic 	     clk;
+   logic             clk;
    env2 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .data(_if.data), .result(_if.result));
+            .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1173,12 +1176,12 @@ class generator3 #(int WIDTH);
       bit_diff_item3 #(.WIDTH(WIDTH)) item;
 
       forever begin
-	 item = new;	 
-	 if (!item.randomize()) $display("Randomize failed");
-	 //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
+         item = new;     
+         if (!item.randomize()) $display("Randomize failed");
+         //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go);
 
-	 driver_mailbox.put(item);
-	 @(driver_done_event);
+         driver_mailbox.put(item);
+         @(driver_done_event);
       end
    endtask
 endclass // generator3
@@ -1187,14 +1190,14 @@ endclass // generator3
 // A new driver class with the similar style of constructor.
 
 class driver4 #(int WIDTH);
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
-   mailbox 	     driver_mailbox;
-   mailbox 	     scoreboard_data_mailbox;
-   event 	     driver_done_event;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
+   mailbox           driver_mailbox;
+   mailbox           scoreboard_data_mailbox;
+   event             driver_done_event;
 
    // New constructor to establish all connections.
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _driver_mailbox, 
-		mailbox _scoreboard_data_mailbox, event _driver_done_event);
+                mailbox _scoreboard_data_mailbox, event _driver_done_event);
       vif = _vif;      
       driver_mailbox = _driver_mailbox;
       scoreboard_data_mailbox = _scoreboard_data_mailbox;
@@ -1209,38 +1212,38 @@ class driver4 #(int WIDTH);
       $display("Time %0t [Driver]: Driver starting.", $time);
             
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item;
-	 
-	 // If the circuit is reset at any point, reset the driver state.
-	 while (vif.rst) begin
-	    @(posedge vif.clk);	  
-	    is_first_test = 1'b1;
-	    is_active = 1'b0;	    	    
-	 end
-	 
-	 driver_mailbox.get(item);
-	 //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
-	 
-	 vif.data = item.data;
-	 vif.go = item.go;
-	 @(posedge vif.clk);
-	 	 
-	 // If done is asserted, or if this is the first_test, 
-	 // then the DUT should be inactive and ready for another test.  
-	 if (vif.done || is_first_test)
-	   is_active = 1'b0;
-	 	 	 	 
-	 // If the DUT isn't already active, and we get a go signal, we are
-	 // starting a test, so inform the scoreboard. The scoreboard will
-	 // then wait to get the result from the monitor. 	 
-	 if (!is_active && vif.go) begin	    
-	    $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
-	    scoreboard_data_mailbox.put(item);
-	    is_active = 1'b1;	    
-	    is_first_test = 1'b0;
-	 end
+         bit_diff_item3 #(.WIDTH(WIDTH)) item;
+         
+         // If the circuit is reset at any point, reset the driver state.
+         while (vif.rst) begin
+            @(posedge vif.clk);   
+            is_first_test = 1'b1;
+            is_active = 1'b0;               
+         end
+         
+         driver_mailbox.get(item);
+         //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
+         
+         vif.data = item.data;
+         vif.go = item.go;
+         @(posedge vif.clk);
+                 
+         // If done is asserted, or if this is the first_test, 
+         // then the DUT should be inactive and ready for another test.  
+         if (vif.done || is_first_test)
+           is_active = 1'b0;
+                                 
+         // If the DUT isn't already active, and we get a go signal, we are
+         // starting a test, so inform the scoreboard. The scoreboard will
+         // then wait to get the result from the monitor.        
+         if (!is_active && vif.go) begin            
+            $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+            scoreboard_data_mailbox.put(item);
+            is_active = 1'b1;       
+            is_first_test = 1'b0;
+         end
 
-	 -> driver_done_event;	 
+         -> driver_done_event;   
       end              
    endtask       
 endclass
@@ -1249,8 +1252,8 @@ endclass
 // The new monitor adds the same type of constructor.
 
 class monitor3 #(int WIDTH);
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
-   mailbox 	     scoreboard_result_mailbox;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
+   mailbox           scoreboard_result_mailbox;
 
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _scoreboard_result_mailbox);
       vif = _vif;
@@ -1261,12 +1264,12 @@ class monitor3 #(int WIDTH);
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
-	 @(posedge vif.clk iff (vif.done == 1'b0));	 
-	 @(posedge vif.clk iff (vif.done == 1'b1));	 
-	 item.result = vif.result;
-	 $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, vif.result);
-	 scoreboard_result_mailbox.put(item);
+         bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+         @(posedge vif.clk iff (vif.done == 1'b0));      
+         @(posedge vif.clk iff (vif.done == 1'b1));      
+         item.result = vif.result;
+         $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, vif.result);
+         scoreboard_result_mailbox.put(item);
       end
    endtask       
 endclass
@@ -1277,7 +1280,7 @@ endclass
 class scoreboard3 #(int NUM_TESTS, int WIDTH);
    mailbox scoreboard_result_mailbox;
    mailbox scoreboard_data_mailbox;
-   int 	   passed, failed, reference;
+   int     passed, failed, reference;
 
    function new(mailbox _scoreboard_data_mailbox, mailbox _scoreboard_result_mailbox);
       scoreboard_data_mailbox = _scoreboard_data_mailbox;
@@ -1288,40 +1291,40 @@ class scoreboard3 #(int NUM_TESTS, int WIDTH);
    endfunction // new
    
    function int model(int data, int width);
-      automatic int 		     diff = 0;
+      automatic int                  diff = 0;
       
       for (int i=0; i < width; i++) begin
-	 diff = data[0] ? diff+1  : diff-1;
-	 data = data >> 1;	 
+         diff = data[0] ? diff+1  : diff-1;
+         data = data >> 1;       
       end
       
       return diff;      
    endfunction
 
    task run();
-      bit_diff_item3 #(.WIDTH(WIDTH)) in_item;	
-      bit_diff_item3 #(.WIDTH(WIDTH)) out_item;	 
+      bit_diff_item3 #(.WIDTH(WIDTH)) in_item;  
+      bit_diff_item3 #(.WIDTH(WIDTH)) out_item;  
       
       for (int i=0; i < NUM_TESTS; i++) begin
-	 	
-	 // First wait until the driver informs us of a new test.
-	 scoreboard_data_mailbox.get(in_item);
-	 $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
+                
+         // First wait until the driver informs us of a new test.
+         scoreboard_data_mailbox.get(in_item);
+         $display("Time %0t [Scoreboard]: Received start of test for data=h%h.", $time, in_item.data);
 
-	 // Then, wait until the monitor tells us that test is complete.
-	 scoreboard_result_mailbox.get(out_item);
-	 $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
+         // Then, wait until the monitor tells us that test is complete.
+         scoreboard_result_mailbox.get(out_item);
+         $display("Time %0t [Scoreboard]: Received result=%0d for data=h%h.", $time, out_item.result, in_item.data);
 
-	 // Get the correct result based on the input at the start of the test.
-	 reference = model(in_item.data, WIDTH);	 
-	 if (out_item.result == reference) begin
-	    $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
-	    passed ++;
-	 end
-	 else begin
-	    $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
-	    failed ++;	    
-	 end
+         // Get the correct result based on the input at the start of the test.
+         reference = model(in_item.data, WIDTH);         
+         if (out_item.result == reference) begin
+            $display("Time %0t [Scoreboard] Test passed for data=h%h", $time, in_item.data);
+            passed ++;
+         end
+         else begin
+            $display("Time %0t [Scoredboard] Test failed: result = %0d instead of %0d for data = h%h.", $time, out_item.result, reference, in_item.data);
+            failed ++;      
+         end
       end // for (int i=0; i < NUM_TESTS; i++)
 
       
@@ -1382,12 +1385,12 @@ class env3 #(int NUM_TESTS, int WIDTH);
       scoreboard = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
    endfunction // new
 
-   virtual 	     task run();      
+   virtual           task run();      
       fork
-	 gen.run();
-	 drv.run();
-	 monitor.run();
-	 scoreboard.run();	 
+         gen.run();
+         drv.run();
+         monitor.run();
+         scoreboard.run();       
       join_any
 
       scoreboard.report_status();      
@@ -1403,11 +1406,11 @@ module bit_diff_tb6;
 
    localparam NUM_TESTS = 1000;
    localparam WIDTH = 16;   
-   logic 	     clk;
+   logic             clk;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .data(_if.data), .result(_if.result));
+            .done(_if.done), .data(_if.data), .result(_if.result));
 
    // Pass the interface to the constructor so that the environment isn't
    // created in an invalid state that requires further initialization.
@@ -1469,17 +1472,17 @@ class generator4 #(int WIDTH, bit CONSECUTIVE_INPUTS);
       bit [WIDTH-1:0] data = '0;     
       
       forever begin
-	 item = new;	 
-	 if (!CONSECUTIVE_INPUTS) begin
-	    if (!item.randomize()) $display("Randomize failed");
-	    //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go); 
-	 end
-	 else begin
-	    item.data = data;
-	    data ++;	    
-	 end
-	 driver_mailbox.put(item);
-	 @(driver_done_event);
+         item = new;     
+         if (!CONSECUTIVE_INPUTS) begin
+            if (!item.randomize()) $display("Randomize failed");
+            //$display("Time %0t [Generator]: Generating input h%h, go=%0b.", $time, item.data, item.go); 
+         end
+         else begin
+            item.data = data;
+            data ++;        
+         end
+         driver_mailbox.put(item);
+         @(driver_done_event);
       end     
    endtask
 endclass // generator4
@@ -1491,14 +1494,14 @@ endclass // generator4
 // started with originally.
 
 class driver5 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
-   virtual 	     bit_diff_if #(.WIDTH(WIDTH)) vif;
-   mailbox 	     driver_mailbox;
-   mailbox 	     scoreboard_data_mailbox;
-   event 	     driver_done_event;
+   virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
+   mailbox           driver_mailbox;
+   mailbox           scoreboard_data_mailbox;
+   event             driver_done_event;
 
    // New constructor to establish all connections.
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif, mailbox _driver_mailbox, 
-		mailbox _scoreboard_data_mailbox, event _driver_done_event);
+                mailbox _scoreboard_data_mailbox, event _driver_done_event);
       vif = _vif;      
       driver_mailbox = _driver_mailbox;
       scoreboard_data_mailbox = _scoreboard_data_mailbox;
@@ -1512,58 +1515,58 @@ class driver5 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
       // If doing one test at a time, go back to the original strategy of
       // waiting for DUT completion between tests.
       if (ONE_TEST_AT_A_TIME) begin
-	 forever begin
-	    driver_mailbox.get(item);
-	    vif.data = item.data;
-	    scoreboard_data_mailbox.put(item);
-	    vif.go = 1'b1;
-	    @(posedge vif.clk);
-	    vif.go = 1'b0;
+         forever begin
+            driver_mailbox.get(item);
+            vif.data = item.data;
+            scoreboard_data_mailbox.put(item);
+            vif.go = 1'b1;
+            @(posedge vif.clk);
+            vif.go = 1'b0;
 
-	    // Wait for DUT completion.
-	    @(posedge vif.clk iff (vif.done == 1'b0));	 
-	    @(posedge vif.clk iff (vif.done == 1'b1));
-	    -> driver_done_event;	    
-	 end
+            // Wait for DUT completion.
+            @(posedge vif.clk iff (vif.done == 1'b0));   
+            @(posedge vif.clk iff (vif.done == 1'b1));
+            -> driver_done_event;           
+         end
       end 
       else begin
-	 // To know whether or not generated inputs will create a DUT output, 
-	 // we need to know whether or not the DUT is currently active.
-	 logic is_first_test = 1'b1;      
-	 logic is_active = 1'b0;
+         // To know whether or not generated inputs will create a DUT output, 
+         // we need to know whether or not the DUT is currently active.
+         logic is_first_test = 1'b1;      
+         logic is_active = 1'b0;
          
-	 forever begin	    	 
-	    // If the circuit is reset at any point, reset the driver state.
-	    while (vif.rst) begin
-	       @(posedge vif.clk);	  
-	       is_first_test = 1'b1;
-	       is_active = 1'b0;	    	    
-	    end
-	    
-	    driver_mailbox.get(item);
-	    //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
-	    
-	    vif.data = item.data;
-	    vif.go = item.go;
-	    @(posedge vif.clk);
-	    
-	    // If done is asserted, or if this is the first_test, 
-	    // then the DUT should be inactive and ready for another test.  
-	    if (vif.done || is_first_test)
-	      is_active = 1'b0;
-	    
-	    // If the DUT isn't already active, and we get a go signal, we are
-	    // starting a test, so inform the scoreboard. The scoreboard will
-	    // then wait to get the result from the monitor. 	 
-	    if (!is_active && vif.go) begin	    
-	       $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
-	       scoreboard_data_mailbox.put(item);
-	       is_active = 1'b1;	    
-	       is_first_test = 1'b0;
-	    end
-	    
-	    -> driver_done_event;
-	 end
+         forever begin           
+            // If the circuit is reset at any point, reset the driver state.
+            while (vif.rst) begin
+               @(posedge vif.clk);        
+               is_first_test = 1'b1;
+               is_active = 1'b0;                    
+            end
+            
+            driver_mailbox.get(item);
+            //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
+            
+            vif.data = item.data;
+            vif.go = item.go;
+            @(posedge vif.clk);
+            
+            // If done is asserted, or if this is the first_test, 
+            // then the DUT should be inactive and ready for another test.  
+            if (vif.done || is_first_test)
+              is_active = 1'b0;
+            
+            // If the DUT isn't already active, and we get a go signal, we are
+            // starting a test, so inform the scoreboard. The scoreboard will
+            // then wait to get the result from the monitor.     
+            if (!is_active && vif.go) begin         
+               $display("Time %0t [Driver]: Sending start of test for data=h%h.", $time, item.data);
+               scoreboard_data_mailbox.put(item);
+               is_active = 1'b1;            
+               is_first_test = 1'b0;
+            end
+            
+            -> driver_done_event;
+         end
       end              
    endtask       
 endclass
@@ -1573,8 +1576,8 @@ endclass
 // taking the configuration options itself.
 
 class env4 #(int NUM_TESTS, int WIDTH, 
-	     bit CONSECUTIVE_INPUTS=1'b0,
-	     bit ONE_TEST_AT_A_TIME=1'b0 );
+             bit CONSECUTIVE_INPUTS=1'b0,
+             bit ONE_TEST_AT_A_TIME=1'b0 );
 
    generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen;
    driver5  #(.WIDTH(WIDTH), .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) drv;
@@ -1606,10 +1609,10 @@ class env4 #(int NUM_TESTS, int WIDTH,
    
    virtual task run();      
       fork
-	 gen.run();
-	 drv.run();
-	 monitor.run();
-	 scoreboard.run();	 
+         gen.run();
+         drv.run();
+         monitor.run();
+         scoreboard.run();       
       join_any
 
       disable fork;      
@@ -1623,17 +1626,17 @@ endclass // env4
 // environments run task as many times as specified.
 
 class test #(string NAME="default_test_name", 
-	     int NUM_TESTS, 
-	     int WIDTH, 
-	     bit CONSECUTIVE_INPUTS=1'b0,
-	     bit ONE_TEST_AT_A_TIME=1'b0, 
-	     int REPEATS=0);
+             int NUM_TESTS, 
+             int WIDTH, 
+             bit CONSECUTIVE_INPUTS=1'b0,
+             bit ONE_TEST_AT_A_TIME=1'b0, 
+             int REPEATS=0);
 
-   virtual 	 bit_diff_if #(.WIDTH(WIDTH)) vif;
+   virtual       bit_diff_if #(.WIDTH(WIDTH)) vif;
    env4 #(.NUM_TESTS(NUM_TESTS),
-	  .WIDTH(WIDTH),
-	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
-	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
+          .WIDTH(WIDTH),
+          .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
+          .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) e;
 
    // Test has its own constructor that initializes the interface.
    function new(virtual bit_diff_if #(.WIDTH(WIDTH)) _vif);
@@ -1651,14 +1654,14 @@ class test #(string NAME="default_test_name",
 
       // Repeat the tests the specified number of times.
       for (int i=0; i < REPEATS+1; i++) begin
-	 if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);	 
-	 vif.rst = 1'b1;
-	 vif.go = 1'b0;      
-	 for (int i=0; i < 5; i++) @(posedge vif.clk);
-	 vif.rst = 1'b0;
-	 @(posedge vif.clk);
-	 e.run();
-	 @(posedge vif.clk);     
+         if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);       
+         vif.rst = 1'b1;
+         vif.go = 1'b0;      
+         for (int i=0; i < 5; i++) @(posedge vif.clk);
+         vif.rst = 1'b0;
+         @(posedge vif.clk);
+         e.run();
+         @(posedge vif.clk);     
       end
       $display("Time %0t [Test]: Test completed.", $time);
    endtask   
@@ -1675,11 +1678,11 @@ module bit_diff_tb7;
    localparam NUM_CONSECUTIVE_TESTS = 200;
    localparam NUM_REPEATS = 2;   
    localparam WIDTH = 16;   
-   logic 	     clk;
+   logic             clk;
       
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-	    .done(_if.done), .data(_if.data), .result(_if.result));
+            .done(_if.done), .data(_if.data), .result(_if.result));
 
    // Create one test for the normal random testing.
    test #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(_if);
@@ -1726,7 +1729,7 @@ endmodule // bit_diff_tb7
 // abstraction is often referred to as a bus functional model (BFM).
 
 interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
-   logic 	     rst, go, done;
+   logic             rst, go, done;
    logic [WIDTH-1:0] data;
    logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
@@ -1783,21 +1786,21 @@ interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
       is_active = 1'b0;
             
       forever begin
-	 @(posedge clk);
-	 if (rst) is_active = 1'b0;
-	 else begin	    
-	    if (done) is_active = 1'b0;	    
-	    if (!is_active && go) begin 	       
-	       is_active = 1'b1;
-	       // The event is needed because there will be times in the
-	       // simulation where go and done are asserted at the same time.
-	       // If the code simply used @(posedge is_active) to detect the
-	       // start of a test, it would miss these instances because 
-	       // there wouldn't be a rising edge on is_active. It would simply
-	       // remain active between two consecutive tests.
-	       -> active_event;	       
-	    end
-	 end
+         @(posedge clk);
+         if (rst) is_active = 1'b0;
+         else begin         
+            if (done) is_active = 1'b0;     
+            if (!is_active && go) begin                
+               is_active = 1'b1;
+               // The event is needed because there will be times in the
+               // simulation where go and done are asserted at the same time.
+               // If the code simply used @(posedge is_active) to detect the
+               // start of a test, it would miss these instances because 
+               // there wouldn't be a rising edge on is_active. It would simply
+               // remain active between two consecutive tests.
+               -> active_event;        
+            end
+         end
       end      
    endtask // monitor
 endinterface
@@ -1807,13 +1810,13 @@ endinterface
 // beginning of tests, which eliminates the need for the scoreboard mailbox.
 
 class driver6 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
-   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
-   mailbox 	     driver_mailbox;
-   event 	     driver_done_event;
+   virtual           bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox           driver_mailbox;
+   event             driver_done_event;
 
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, 
-		mailbox _driver_mailbox, 
-		event 	_driver_done_event);
+                mailbox _driver_mailbox, 
+                event   _driver_done_event);
       this.bfm = bfm;      
       driver_mailbox = _driver_mailbox;
       driver_done_event = _driver_done_event;      
@@ -1824,33 +1827,33 @@ class driver6 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
       $display("Time %0t [Driver]: Driver starting.", $time);
 
       if (ONE_TEST_AT_A_TIME) begin
-	 forever begin
-	    driver_mailbox.get(item);
+         forever begin
+            driver_mailbox.get(item);
 
-	    // With the new BFM, we can just call the start method instead of
-	    // driving the signals directly.
-	    bfm.start(item.data);
+            // With the new BFM, we can just call the start method instead of
+            // driving the signals directly.
+            bfm.start(item.data);
 
-	    // Similarly, now we call the BFM to Wait for DUT completion, which
-	    // makes the driver independent of the implementation details.
-	    bfm.wait_for_done();	    
-	    $display("Time %0t [Driver]: Detected done.", $time);	    
-	    -> driver_done_event;	    
-	 end
+            // Similarly, now we call the BFM to Wait for DUT completion, which
+            // makes the driver independent of the implementation details.
+            bfm.wait_for_done();            
+            $display("Time %0t [Driver]: Detected done.", $time);           
+            -> driver_done_event;           
+         end
       end 
       else begin         
-	 forever begin	    	 	    
-	    driver_mailbox.get(item);
-	    //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
+         forever begin                      
+            driver_mailbox.get(item);
+            //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);
 
-	    // Here we don't use the BFM start method simply because we don't
-	    // necessarily want to start the DUT. We just want to drive the
-	    // inputs
-	    bfm.data = item.data;
-	    bfm.go = item.go;
-	    @(posedge bfm.clk);
-	    -> driver_done_event;
-	 end
+            // Here we don't use the BFM start method simply because we don't
+            // necessarily want to start the DUT. We just want to drive the
+            // inputs
+            bfm.data = item.data;
+            bfm.go = item.go;
+            @(posedge bfm.clk);
+            -> driver_done_event;
+         end
       end              
    endtask       
 endclass
@@ -1861,11 +1864,11 @@ endclass
 // for done events.
 
 class done_monitor #(int WIDTH);
-   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
-   mailbox 	     scoreboard_result_mailbox;
+   virtual           bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox           scoreboard_result_mailbox;
 
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, 
-		mailbox _scoreboard_result_mailbox);
+                mailbox _scoreboard_result_mailbox);
       this.bfm = bfm;
       scoreboard_result_mailbox = _scoreboard_result_mailbox;            
    endfunction // new
@@ -1874,14 +1877,14 @@ class done_monitor #(int WIDTH);
       $display("Time %0t [Monitor]: Monitor starting.", $time);
       
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+         bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
 
-	 // Here we use the BFM method to make the monitor independent from the
-	 // wait implementation.
-	 bfm.wait_for_done();
-	 item.result = bfm.result;
-	 $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, bfm.result);
-	 scoreboard_result_mailbox.put(item);
+         // Here we use the BFM method to make the monitor independent from the
+         // wait implementation.
+         bfm.wait_for_done();
+         item.result = bfm.result;
+         $display("Time %0t [Monitor]: Monitor detected result=%0d.", $time, bfm.result);
+         scoreboard_result_mailbox.put(item);
       end
    endtask       
 endclass
@@ -1892,32 +1895,32 @@ endclass
 // driver.
 
 class start_monitor #(int WIDTH);
-   virtual 	     bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
-   mailbox 	     scoreboard_data_mailbox;
+   virtual           bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   mailbox           scoreboard_data_mailbox;
 
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm, 
-		mailbox _scoreboard_data_mailbox);
+                mailbox _scoreboard_data_mailbox);
       this.bfm = bfm;      
       scoreboard_data_mailbox = _scoreboard_data_mailbox;
    endfunction // new
 
    task run();
       fork
-	 // Start the BFM monitor to track the active status.
-	 bfm.monitor();
-	 detect_start();	 
+         // Start the BFM monitor to track the active status.
+         bfm.monitor();
+         detect_start();         
       join_any
    endtask
    
    task detect_start();    
       forever begin
-	 bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
+         bit_diff_item3 #(.WIDTH(WIDTH)) item = new;
 
-	 // Wait until the DUT becomes active.
-	 @(bfm.active_event);	 
-	 item.data = bfm.data;	 
-	 $display("Time %0t [start_monitor]: Sending start of test for data=h%h.", $time, item.data);
-	 scoreboard_data_mailbox.put(item);	 
+         // Wait until the DUT becomes active.
+         @(bfm.active_event);    
+         item.data = bfm.data;   
+         $display("Time %0t [start_monitor]: Sending start of test for data=h%h.", $time, item.data);
+         scoreboard_data_mailbox.put(item);      
       end              
    endtask       
 endclass
@@ -1926,8 +1929,8 @@ endclass
 // This new environment simply updates the driver and monitors.
 
 class env5 #(int NUM_TESTS, int WIDTH, 
-	     bit CONSECUTIVE_INPUTS=1'b0,
-	     bit ONE_TEST_AT_A_TIME=1'b0 );
+             bit CONSECUTIVE_INPUTS=1'b0,
+             bit ONE_TEST_AT_A_TIME=1'b0 );
 
    // I tend to use an _h suffix for handles to avoid variables having the same
    // name as the class. Since I use done_monitor_h and start_monitor_h, I
@@ -1970,11 +1973,11 @@ class env5 #(int NUM_TESTS, int WIDTH,
    
    virtual task run();      
       fork
-	 gen_h.run();
-	 drv_h.run();
-	 done_monitor_h.run();
-	 start_monitor_h.run();
-	 scoreboard_h.run();	 
+         gen_h.run();
+         drv_h.run();
+         done_monitor_h.run();
+         start_monitor_h.run();
+         scoreboard_h.run();     
       join_any
 
       disable fork;      
@@ -1986,17 +1989,17 @@ endclass // env5
 // call to a BFM method.
 
 class test2 #(string NAME="default_test_name", 
-	      int NUM_TESTS, 
-	      int WIDTH, 
-	      bit CONSECUTIVE_INPUTS=1'b0,
-	      bit ONE_TEST_AT_A_TIME=1'b0, 
-	      int REPEATS=0);
+              int NUM_TESTS, 
+              int WIDTH, 
+              bit CONSECUTIVE_INPUTS=1'b0,
+              bit ONE_TEST_AT_A_TIME=1'b0, 
+              int REPEATS=0);
 
-   virtual 	  bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
+   virtual        bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
    env5 #(.NUM_TESTS(NUM_TESTS),
-	  .WIDTH(WIDTH),
-	  .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
-	  .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) env_h;
+          .WIDTH(WIDTH),
+          .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS),
+          .ONE_TEST_AT_A_TIME(ONE_TEST_AT_A_TIME)) env_h;
 
    function new(virtual bit_diff_bfm #(.WIDTH(WIDTH)) bfm);
       this.bfm = bfm;
@@ -2013,12 +2016,12 @@ class test2 #(string NAME="default_test_name",
       
       // Repeat the tests the specified number of times.
       for (int i=0; i < REPEATS+1; i++) begin
-	 if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);
-	 
-	 // We update the test to use the BFM reset method.
-	 bfm.reset(5);
-	 env_h.run();
-	 @(posedge bfm.clk);	 
+         if (i > 0) $display("Time %0t [Test]: Repeating test %0s (pass %0d).", $time, NAME, i+1);
+         
+         // We update the test to use the BFM reset method.
+         bfm.reset(5);
+         env_h.run();
+         @(posedge bfm.clk);     
       end
       $display("Time %0t [Test]: Test completed.", $time);      
    endtask   
@@ -2034,11 +2037,11 @@ module bit_diff_tb8;
    localparam NUM_CONSECUTIVE_TESTS = 200;
    localparam NUM_REPEATS = 4;   
    localparam WIDTH = 16;   
-   logic 	     clk;
+   logic             clk;
    
    bit_diff_bfm #(.WIDTH(WIDTH)) bfm (.clk(clk));   
    bit_diff DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
-	    .done(bfm.done), .data(bfm.data), .result(bfm.result));
+            .done(bfm.done), .data(bfm.data), .result(bfm.result));
 
    test2 #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(bfm);
    test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(bfm);
