@@ -454,7 +454,7 @@ module bit_diff_tb2;
    driver2 #(.WIDTH(WIDTH)) drv = new;
 
    // Create the interface.
-   bit_diff_if #(.WIDTH(WIDTH))_if (.clk(clk));
+   bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));
 
    // Instantiate the DUT. We unfortunately can't use .* anymore because
    // of the interface. However, we could modify the DUT module to use
@@ -479,10 +479,11 @@ module bit_diff_tb2;
       gen.generator_done_event = generator_done_event;
       drv.vif = _if;
             
-      _if.rst = 1'b1;
-      _if.go = 1'b0;      
+      _if.rst <= 1'b1;
+      _if.go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      _if.rst = 1'b0;
+      @(negedge clk);
+      _if.rst <= 1'b0;
       @(posedge clk);
       fork
          gen.run();
@@ -501,11 +502,7 @@ module bit_diff_tb2;
       return diff;      
    endfunction
 
-   // Here we have started to separate the monitor and scoreboard from the
-   // main testbench by moving it into a separate test block.
-   // The forever is similar to an initial block, but repeated executes forever.
-   // If we knew that the done signal couldn't have glitches, we could have
-   // replaced the first 3 lines with "always @(posedge done) begin".
+   // Same as previous testbench, except now it uses the interface.
    always begin
       // Wait for completion.
       @(posedge clk iff (_if.done == 1'b0));     
@@ -530,7 +527,7 @@ module bit_diff_tb2;
    end
    
    assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
-     
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));     
 endmodule // bit_diff_tb2
 
 
