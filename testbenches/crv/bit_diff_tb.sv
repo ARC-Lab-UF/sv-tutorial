@@ -1782,23 +1782,25 @@ interface bit_diff_bfm #(parameter int WIDTH) (input logic clk);
    
    // Reset the design.
    task automatic reset(int cycles);
-      rst = 1'b1;
-      go = 1'b0;      
+      rst <= 1'b1;
+      go <= 1'b0;      
       for (int i=0; i < cycles; i++) @(posedge clk);
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
       @(posedge clk);      
    endtask
 
    // Start the DUT with the specified data by creating a 1-cycle pulse on go.
    task automatic start(input logic [WIDTH-1:0] data_);    
-      data = data_;
-      go = 1'b1;      
+      data <= data_;
+      go <= 1'b1;      
       @(posedge clk);
 
       // IMPORTANT: This has to be a non-blocking assignment to give other 
-      // threads a chance to see that go was 1 on this rising edge. 
-      // Alternatively, you could wait for a small amount of time before setting
-      // it back to 0.
+      // threads a chance to see that go was 1 on this rising edge. A blocking
+      // assignment can cause a race condition. Alternatively, you could wait 
+      // for a small amount of time before setting go back to 0, but that 
+      // should be avoided.
       go <= 1'b0;    
    endtask // start
    
@@ -1885,9 +1887,9 @@ class driver6 #(int WIDTH, bit ONE_TEST_AT_A_TIME=1'b0);
 endclass
 
 
-// The done_monitor class is the previous, but since there are now multiple
-// monitoring responsibilities, this class is solely responsible for monitoring
-// for done events.
+// The done_monitor class is similar to the previous version, but since there 
+// are now multiple monitoring responsibilities, this class is solely 
+// responsible for monitoring for done events.
 
 class done_monitor #(int WIDTH);
    virtual           bit_diff_bfm #(.WIDTH(WIDTH)) bfm;
@@ -1944,7 +1946,7 @@ class start_monitor #(int WIDTH);
 
          // Wait until the DUT becomes active.
          @(bfm.active_event);    
-         item.data = bfm.data;   
+         item.data = bfm.data;
          $display("Time %0t [start_monitor]: Sending start of test for data=h%h.", $time, item.data);
          scoreboard_data_mailbox.put(item);      
       end              
@@ -1964,7 +1966,7 @@ class env5 #(int NUM_TESTS, int WIDTH,
    //
    // I have no idea why the conventional style of SystemVerilog is to not
    // capitalize class names like in other OOP languages. For example,
-   //    Done_monitor #(.WIDTH(WIDTH)) done_monitor
+   //    Done_Monitor #(.WIDTH(WIDTH)) done_monitor
    // would solve this problem. I have also seen other people simply add a
    // number suffix, or sometimes a _ suffix or prefix.
    generator4 #(.WIDTH(WIDTH), .CONSECUTIVE_INPUTS(CONSECUTIVE_INPUTS)) gen_h;
@@ -1991,8 +1993,6 @@ class env5 #(int NUM_TESTS, int WIDTH,
       scoreboard_h = new(scoreboard_data_mailbox, scoreboard_result_mailbox);
    endfunction // new
      
-   // Here we add a new report status method that can be called from outside
-   // the environment (e.g., from the test class or main testbench).
    function void report_status();
       scoreboard_h.report_status();
    endfunction
@@ -2066,8 +2066,9 @@ module bit_diff_tb8;
    logic             clk;
    
    bit_diff_bfm #(.WIDTH(WIDTH)) bfm (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
-            .done(bfm.done), .data(bfm.data), .result(bfm.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(bfm.rst), .go(bfm.go), 
+                                  .done(bfm.done), .data(bfm.data), 
+                                  .result(bfm.result));
 
    test2 #(.NAME("Random Test"), .NUM_TESTS(NUM_RANDOM_TESTS), .WIDTH(WIDTH), .REPEATS(NUM_REPEATS)) test0 = new(bfm);
    test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(bfm);
@@ -2087,6 +2088,7 @@ module bit_diff_tb8;
    end
       
    assert property (@(posedge bfm.clk) disable iff (bfm.rst) bfm.go && bfm.done |=> !bfm.done);
+   assert property (@(posedge bfm.clk) disable iff (bfm.rst) $fell(bfm.done) |-> $past(bfm.go,1));
      
 endmodule // bit_diff_tb8
 
