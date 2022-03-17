@@ -461,8 +461,8 @@ module bit_diff_tb2;
    // the interface, in which case we only need to connect the interface
    // here. The tutorials will illustrate synthesizable interfaces in another
    // section.
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-            .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -546,7 +546,7 @@ endclass
 
 // The monitor simply monitors the outputs of the DUT and looks for any
 // situation we want to verify. Since we only have one output for this example,
-// the monitor simply wait until completion and then passes the result output
+// the monitor simply waits until completion and then passes the result output
 // to the scoreboard.
 
 class monitor1 #(parameter int WIDTH);
@@ -581,10 +581,10 @@ class monitor1 #(parameter int WIDTH);
 endclass
 
 
-// The scoreboard waits for a transaction from the  monitor, which specifies 
+// The scoreboard waits for a transaction from the monitor, which specifies 
 // the input being tested and the corresponding result. The scoreboard then
 // compares the result with the reference model, updates statistics, and
-// prints loggin information.
+// prints logging information.
 
 class scoreboard1 #(parameter int WIDTH);
    // Mailbox handle to receive data from the monitor.
@@ -637,7 +637,7 @@ endclass
 // Module: bit_diff_tb3
 // Description: Modified version of the previous testbench to decouple the
 // monitor and scoreboard. Notice that the main testbench module keeps getting
-// simpler because the different reponsibilities are moved elsewhere/
+// simpler because the different reponsibilities are moved elsewhere
 
 module bit_diff_tb3;
    
@@ -656,8 +656,8 @@ module bit_diff_tb3;
    scoreboard1 #(.WIDTH(WIDTH)) scoreboard  = new;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-                 .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -681,10 +681,11 @@ module bit_diff_tb3;
       scoreboard.scoreboard_mailbox = scoreboard_mailbox;      
 
       // Initialize the circuit.
-      _if.rst = 1'b1;
-      _if.go = 1'b0;      
+      _if.rst <= 1'b1;
+      _if.go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      _if.rst = 1'b0;
+      @(negedge clk);
+      _if.rst <= 1'b0;
       @(posedge clk);
 
       // Fork off threads for the other main components.
@@ -703,6 +704,7 @@ module bit_diff_tb3;
    end
 
    assert property (@(posedge clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));     
      
 endmodule // bit_diff_tb3
 
