@@ -117,7 +117,8 @@ module bit_diff_tb_basic;
       disable generate_clock;      
    end   
 
-   // Check to make sure done cleared within a cycle.
+   // Check to make sure done cleared within a cycle. Go is anded with done
+   // because go should have no effect when the circuit is already active.
    assert property (@(posedge clk) disable iff (rst) go && done |=> !done);
    
    // Check to make sure done is only cleared when go is asserted (i.e. done is
@@ -139,8 +140,8 @@ endmodule // bit_diff_tb_basic
 // transaction object was just the set of input signals. As we get more abstract
 // the transaction object starts to become much simpler.
 //
-// For the bit difference example, the simplest transacation we could have is
-// simply the value of the data we want to test. The generator will generate
+// For the bit difference example, the simplest transaction we could have is
+// the value of the data we want to test. The generator will generate
 // sequences to test (without any consideration of the timing or interface
 // protocol), and then the driver will convert each transaction into the
 // corresponding set of inputs of the DUT pins.
@@ -166,7 +167,7 @@ class generator1 #(int NUM_TESTS, int WIDTH);
    // that will represent the completion of the driver and generator.
    event   driver_done_event;
    event   generator_done_event;
-
+   
    // Our generator uses a run method/task that produces the specified number
    // of random inputs.
    task run();
@@ -197,7 +198,7 @@ class generator1 #(int NUM_TESTS, int WIDTH);
 endclass // generator
 
 
-// Our initial driver will be very simple also. It will wait until it gets
+// Our initial driver will also be very simple. It will wait until it gets
 // an input to drive, assert the appropriate signals and wait for the test
 // to complete, then signal the generator to provide another test.
 
@@ -240,7 +241,7 @@ class driver1 #(WIDTH);
 
          // Trigger the driver done event so the generator knows to produce 
          // another test.        
-         ->driver_done_event;                    
+         -> driver_done_event;                    
       end              
    endtask       
 endclass
@@ -262,22 +263,22 @@ module bit_diff_tb1;
    int                                  passed, failed, reference;
 
    // We have to first dynamically allocate the mailbox for it to exist.
-   // The mailbox variable is just a handle, which is initially untinitialized.
+   // The mailbox variable is just a handle, which is initially uninitialized.
    mailbox driver_mailbox = new;
 
    // Create the events. These are static objects and don't need to be
    // dynamically allocated with new.
    event   driver_done_event;
    event   generator_done_event;
-
+   
    // Create an instance of the generator and driver. Like the mailbox, any
    // class instance must be dynamically allocated with new. The variable is
    // just a handle.
    generator1 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) gen = new;
    driver1 #(.WIDTH(WIDTH)) drv = new;
-   
-   bit_diff DUT (.*);
 
+   bit_diff #(.WIDTH(WIDTH)) DUT (.*);
+   
    // Connect the variables in the driver to the variables in this testbench.
    // This apparently can't be done with continuous assignment.
    // NOTE: There is a much better way of doing this that we will see in the 
@@ -303,10 +304,11 @@ module bit_diff_tb1;
       gen.generator_done_event = generator_done_event;
 
       // Initialize the circuit. This could potentially be done in the driver.
-      rst = 1'b1;
-      go = 1'b0;      
+      rst <= 1'b1;
+      go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      rst = 1'b0;
+      @(negedge clk);
+      rst <= 1'b0;
       @(posedge clk);
 
       // Fork off two parallel tasts for the generator and the driver.
@@ -316,7 +318,8 @@ module bit_diff_tb1;
       join_any
 
       // join_any blocks until any the tasks in the fork complete. We could also
-      // just do a join, but in this case the driver and generator end together.
+      // potentially do a join, but that wouldn't work in this case since the 
+      // driver runs forever.
    end
 
    function int model(int data, int width);
@@ -331,8 +334,7 @@ module bit_diff_tb1;
    endfunction
 
    // Here we have started to separate the monitor and scoreboard from the
-   // main testbench by moving it into a separate test block.
-   // The forever is similar to an initial block, but repeated executes forever.
+   // main testbench by moving it into a separate test block. 
    // If we knew that the done signal couldn't have glitches, we could have
    // replaced the first 3 lines with "always @(posedge done) begin".
    always begin
@@ -364,6 +366,7 @@ module bit_diff_tb1;
    end
    
    assert property (@(posedge clk) disable iff (rst) go && done |=> !done);
+   assert property (@(posedge clk) disable iff (rst) $fell(done) |-> $past(go,1));
       
 endmodule
 
@@ -373,7 +376,7 @@ endmodule
 // example, it wasn't a huge overhead, but a complex design could have 100s of
 // signals. Clearly we wouldn't want to manually connect those.
 //
-// Instead, we can encapsulate all the port signal as part of an interface
+// Instead, we can encapsulate all the port signals as part of an interface
 // as shown below. We can now pass around this one interface instead of all
 // the individual signals. Nearly every real testbench will use an interface
 // like this.
