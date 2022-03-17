@@ -744,7 +744,7 @@ class env #(int NUM_TESTS, int WIDTH);
    endfunction // new
 
    // The environment's run task connects everything together and forks off
-   // the individual threads. The connects could have also been made in the
+   // the individual threads. The connections could have also been made in the
    // new() method, but we need the fork code here.    
    virtual           task run();
       drv.vif = vif;
@@ -792,8 +792,9 @@ module bit_diff_tb4;
    env #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-            .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), 
+                                  .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -807,10 +808,11 @@ module bit_diff_tb4;
       _env.vif = _if;
 
       // Initialize the circuit.
-      _if.rst = 1'b1;
-      _if.go = 1'b0;      
+      _if.rst <= 1'b1;
+      _if.go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      _if.rst = 1'b0;
+      @(negedge clk);
+      _if.rst <= 1'b0;
       @(posedge clk);
 
       // Run the environment.
@@ -819,6 +821,7 @@ module bit_diff_tb4;
    end
          
    assert property (@(posedge _if.clk) disable iff (_if.rst) _if.go && _if.done |=> !_if.done);
+   assert property (@(posedge clk) disable iff (_if.rst) $fell(_if.done) |-> $past(_if.go,1));
      
 endmodule // bit_diff_tb4
 
