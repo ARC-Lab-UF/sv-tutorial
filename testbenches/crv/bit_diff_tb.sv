@@ -827,7 +827,7 @@ endmodule // bit_diff_tb4
 
 
 // Up to this point, the actual coverage is pretty weak. The generator simply
-// generates a test and then waits until that test is done. This done not test
+// generates a test and then waits until that test is done. This does not test
 // modifying the data input while a test is ongoing. It also doesn't test 
 // toggling go while a test is ongoing.
 //
@@ -845,16 +845,16 @@ class bit_diff_item3 #(WIDTH);
    bit signed [$clog2(WIDTH*2+1)-1:0] result;
 
    // A uniform distribution of go values probably isn't what we want, so
-   // we'll make sure go is 1'b0 90% of the time.
+   // we'll make sure go is 0 90% of the time.
    constraint c_go_dist { go dist{0 :/ 90, 1:/ 10 }; }
 endclass
 
 
 // In the new generator, we make several changes. First, we use the new
-// transaction object to random produce go values. Second, we remove the for
+// transaction object to randomly produce go values. Second, we remove the for
 // loop. In this new version, the testbench won't wait for the generator to
-// finish. It will wait for the scoreboard to finish. Not only is this more
-// a intuitive way of waiting for completion, but it is also necessary.
+// finish. It will wait for the scoreboard to finish. Not only is this a more
+// intuitive way of waiting for completion, but it is also necessary.
 // Previously, the generator produced one data input per execution of the DUT.
 // Now, the generator produces input values as frequently as it can. Many of
 // those values will occur when the DUT is already active. So, if we simply
@@ -973,7 +973,7 @@ endclass
 
 // The monitor becomes a little simpler now because the driver informs the
 // scoreboard of the corresponding input for the next output. So, the monitor
-// solely send the output to the scoreboard.
+// solely sends the output to the scoreboard.
 
 class monitor2 #(int WIDTH);
    virtual           bit_diff_if #(.WIDTH(WIDTH)) vif;
@@ -1128,8 +1128,9 @@ module bit_diff_tb5;
    env2 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
    
    bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));   
-   bit_diff DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
-            .done(_if.done), .data(_if.data), .result(_if.result));
+   bit_diff #(.WIDTH(WIDTH)) DUT (.clk(clk), .rst(_if.rst), .go(_if.go), 
+                                  .done(_if.done), .data(_if.data), 
+                                  .result(_if.result));
    
    initial begin : generate_clock
       clk = 1'b0;
@@ -1138,11 +1139,12 @@ module bit_diff_tb5;
    
    initial begin      
       $timeformat(-9, 0, " ns");
-      _env.vif = _if;      
-      _if.rst = 1'b1;
-      _if.go = 1'b0;      
+      _env.vif <= _if;      
+      _if.rst <= 1'b1;
+      _if.go <= 1'b0;      
       for (int i=0; i < 5; i++) @(posedge clk);
-      _if.rst = 1'b0;
+      @(negedge clk);     
+      _if.rst <= 1'b0;
       @(posedge clk);     
       _env.run();
       disable generate_clock;      
