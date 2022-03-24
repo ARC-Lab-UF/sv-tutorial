@@ -54,10 +54,10 @@ module bit_diff_tb;
       rst <= 1'b0;
       
       for (int i=0; i < NUM_TESTS; i++) begin
-         data = $random;
-         go = 1'b1;
+         data <= $random;
+         go <= 1'b1;
          @(posedge clk);
-         go = 1'b0;
+         go <= 1'b0;
          
          // Works for registered outputs, but not safe for glitches that may
          // occur from combinational logic outputs.
