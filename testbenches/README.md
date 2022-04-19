@@ -81,6 +81,7 @@ high coverage and no failed assertions, we gain much more confidence in the corr
 1. [Add](coverage/add_tb.sv)
     - Corresponding [module](coverage/add.sv) and [testbench](coverage/add_tb.sv).
     - Extends cover properties and introduces cover groups and cover points.
+1. [FSM (TBD)]()
 
 ## Constrained-Random Verification (CRV)
 
@@ -90,8 +91,12 @@ high coverage and no failed assertions, we gain much more confidence in the corr
 
 2. [Bit Diff FSMD (VERY IMPORTANT)](crv/bit_diff_tb.sv)
     - Corresponding [module](crv/bit_diff.sv) and [testbench](crv/bit_diff_tb.sv).
-    - Introduces generators/sequences, drivers, monitors, scoreboards, interfaces, BFMs, mailboxes.
+    - Introduces generators/sequences, drivers, monitors, scoreboards, environments, tests, interfaces, BFMs, mailboxes, join.
     - Teaches basic concepts needed to understand UVM principles.
+
+2. [Bit Diff FSMD Object-Oriented TB](crv/bit_diff_oop)
+    - Cleaned up version of previous exammple
+    - Demonstrates base classes and inheritance using different generators, drivers, monitors, and tests.
 
 ## UVM
     
