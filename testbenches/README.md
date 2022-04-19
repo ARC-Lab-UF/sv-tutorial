@@ -95,7 +95,7 @@ high coverage and no failed assertions, we gain much more confidence in the corr
     - Teaches basic concepts needed to understand UVM principles.
 
 2. [Bit Diff FSMD Object-Oriented TB](crv/bit_diff_oop)
-    - Cleaned up version of previous exammple
+    - Cleaned up version of previous example
     - Demonstrates base classes and inheritance using different generators, drivers, monitors, and tests.
 
 ## UVM
