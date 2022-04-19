@@ -82,9 +82,16 @@ high coverage and no failed assertions, we gain much more confidence in the corr
     - Corresponding [module](coverage/add.sv) and [testbench](coverage/add_tb.sv).
     - Extends cover properties and introduces cover groups and cover points.
 
-## Classes
+## Constrained-Random Verification (CRV)
 
-1. TBD
+1. [Add](crv/add_tb.sv)
+    - Corresponding [module](crv/add.sv) and [testbench](crv/add_tb.sv).
+    - Introduces classes, rand, randc, randomize(), custom distributions.
+
+2. [Bit Diff FSMD (VERY IMPORTANT)](crv/bit_diff_tb.sv)
+    - Corresponding [module](crv/bit_diff.sv) and [testbench](crv/bit_diff_tb.sv).
+    - Introduces generators/sequences, drivers, monitors, scoreboards, interfaces, BFMs, mailboxes.
+    - Teaches basic concepts needed to understand UVM principles.
 
 ## UVM
     
