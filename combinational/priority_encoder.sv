@@ -6,7 +6,7 @@
 // inputs. The module assumes that the MSB of the input is highest priority.
 
 // NOTE: These examples might not synthesize efficiently in all tools.
-// See https://opencores.org/projects/priority_encoder for alternative.
+// See https://opencores.org/projects/priority_encoder for an alternative.
 
 // Module: priority_encoder1
 // Description: Illustrates a for loop and local parameters.
