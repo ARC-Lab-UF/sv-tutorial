@@ -18,9 +18,9 @@
 
 module mux2x1
   (
-   input logic 	in0,
-   input logic 	in1,
-   input logic 	sel,
+   input logic  in0,
+   input logic  in1,
+   input logic  sel,
    output logic out
    );
 
@@ -40,7 +40,15 @@ module mux4x1
    output logic      out
    );
 
-   // Instantitae the three muxes from the schematic and connect them together
+   // Create internal signals for the connections between modules. Technically
+   // this isn't needed because any signal that appears in an instantiation
+   // will be automatically delcared with a width of 1 bit. However, I
+   // strongly recommend against relying on that functionality and instead
+   // just declare all signals. See the gotchas section to see why this can
+   // be so problematic.
+   logic             mux1_out, mux2_out;
+   
+   // Instantiate the three muxes from the schematic and connect them together
    // as shown in schematic.
    //
    // Grammar description:
