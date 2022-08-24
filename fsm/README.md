@@ -26,7 +26,7 @@ in the examples below.
 1. [Mealy](mealy.sv)
     - Illustrates various 2-process architectures for a Mealy state machine.
     - Illustrates a hybrid Moore/Mealy implementation.
-    - See the Mealy and Mealy Hybrid diagram in [fsm.pdf](fsm.pdf) for an illustration of the FSMs represented in code.
+    - See the Mealy and Hybrid Mealy diagram in [fsm.pdf](fsm.pdf) for an illustration of the FSMs represented in code.
     - NOTE: Provided testbench does not fully check for correctness.
 
     
