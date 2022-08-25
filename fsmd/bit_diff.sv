@@ -537,9 +537,9 @@ module bit_diff_fsmd_2p_2
               next_state = RESTART;
 
               // For us to be able to assert done in the next cycle, we need
-              // to send it to the result register this cycle. Also, we need
-              // to use the next version of diff since the register won't be
-              // updated yet.
+              // to send the new diff to the result register this cycle. Also, 
+              // we need to use the next version of diff since the register 
+              // won't be updated yet.
               next_result = next_diff;
            end
         end
@@ -648,7 +648,7 @@ module bit_diff_fsmd_2p_3
       end      
    end
 
-   // Since we actually want register for all the code above, it is not
+   // Since we actually want registers for all the code above, it is not
    // necessary to add next signals for any of them, including the state_r.
    // Instead, we'll just pull out the done_r signal and make it combinational
    // logic in this process.
@@ -674,6 +674,10 @@ module bit_diff_fsmd_2p_3
 endmodule
 
 
+// Module: fsmd_2p_4
+// Description: This extends the previous module by also separating
+// state_r and next_state, in addition to having done as combinational logic.
+
 module bit_diff_fsmd_2p_4
   #(
     parameter WIDTH
@@ -697,8 +701,6 @@ module bit_diff_fsmd_2p_4
 
    assign result = result_r;
 
-   // Note that this code is almost identical to a 1-process FSMD. We have
-   // simply removed the done logic.
    always @(posedge clk or posedge rst) begin
       if (rst == 1'b1) begin              
          result_r <= '0;   
@@ -713,7 +715,7 @@ module bit_diff_fsmd_2p_4
          // the state register.
          state_r <= next_state;
 
-         // All other signals are still registered with a next version, since
+         // All other signals are still registered without a next version, since
          // we don't have a need for the next version.
          case (state_r)
            START : begin
@@ -817,7 +819,7 @@ module bit_diff_fsmd_3p
    // The second process is another always_ff (usually assuming no blocking
    // assignments) that handles all the other registered logic. In other words,
    // we have simply taken the one always_ff block from the previous module and
-   // separated it into two: one of the state register, and one for everything
+   // separated it into two: one for the state register, and one for everything
    // else.
    always @(posedge clk or posedge rst) begin
       if (rst == 1'b1) begin              
