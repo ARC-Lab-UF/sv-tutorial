@@ -908,8 +908,8 @@ module bit_diff_fsmd_4p
 
    assign result = result_r;
 
-   // In the 1-process model, one process is always just an always_ff for
-   // the state register.
+   // Like the 3-process model, in the 4-process model, one process is always 
+   // just an always_ff for the state register.
    always @(posedge clk or posedge rst)
       if (rst == 1'b1) state_r <= START;       
       else state_r <= next_state;
