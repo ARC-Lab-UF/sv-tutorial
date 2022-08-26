@@ -1,6 +1,6 @@
 # Introduction
 
-This directory provides a tutorial on how to create controllers and datapaths to implement a specific algorith. The examples demonstrate two different specification styles: 
+This directory provides a tutorial on how to create controllers and datapaths to implement a specific algorithm. The examples demonstrate two different specification styles: 
 FSMDs and FSM+Ds. An FSMD describes both the controller and datapath functionality at the same time in a single module. An FSM+D first creates an explicit datapath and a 
 corresponding controller, and then combines them together. 
 
