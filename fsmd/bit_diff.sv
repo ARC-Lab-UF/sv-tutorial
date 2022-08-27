@@ -1172,30 +1172,31 @@ module datapath1
    /*********************************************************************/
    // Counter logic
 
-   logic [WIDTH-1:0]                     count_mux, count_add, count_r;
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
    
    // Selects between 0 and the count adder.
-   mux2x1 #(.WIDTH(WIDTH)) COUNT_MUX (.in0(count_add), 
-                                      .in1(WIDTH'(0)), 
-                                      .sel(count_sel),
-                                      .out(count_mux));
+   mux2x1 #(.WIDTH(COUNT_WIDTH)) COUNT_MUX (.in0(count_add),
+                                            .in1('0), 
+                                            .sel(count_sel),
+                                            .out(count_mux));
 
    // Register for the count.
-   register #(.WIDTH(WIDTH)) COUNT_REG (.en(count_en), 
-                                        .in(count_mux), 
-                                        .out(count_r), 
-                                        .*);
+   register #(.WIDTH(COUNT_WIDTH)) COUNT_REG (.en(count_en), 
+                                              .in(count_mux), 
+                                              .out(count_r), 
+                                              .*);
 
    // Increments the count.
-   add #(.WIDTH(WIDTH)) COUNT_ADD (.in0(WIDTH'(1)),
-                                   .in1(count_r),
-                                   .sum(count_add));
+   add #(.WIDTH(COUNT_WIDTH)) COUNT_ADD (.in0(COUNT_WIDTH'(1)),
+                                         .in1(count_r),
+                                         .sum(count_add));
    
    // Comparator to check when the count is complete. Equivalent to
    // count_r == WIDTH-1 from the FSMD.
-   eq #(.WIDTH(WIDTH)) EQ (.in0(count_r),
-                           .in1(WIDTH'(WIDTH-1)),
-                           .out(count_done));   
+   eq #(.WIDTH(COUNT_WIDTH)) EQ (.in0(count_r),
+                                 .in1(COUNT_WIDTH'(WIDTH-1)),
+                                 .out(count_done));   
    
 endmodule
 //`default_nettype wire   
@@ -1232,7 +1233,9 @@ module datapath2
    
    logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
    logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, diff_mux, result_r;
-   logic [WIDTH-1:0]                     count_mux, count_add, count_r;
+
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
 
    // Data mux and shift
    assign data_mux = data_sel ? data : data_shift;
@@ -1244,9 +1247,9 @@ module datapath2
    assign diff_mux = diff_sel ? DIFF_WIDTH'(0) : diff_add;  
 
    // Count mux, add, and done
-   assign count_mux = count_sel ? WIDTH'(0) : count_add;
+   assign count_mux = count_sel ? COUNT_WIDTH'(0) : count_add;
    assign count_add = count_r + 1'b1;
-   assign count_done = count_r == WIDTH'(WIDTH-1);
+   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
 
    // Not necessary, but complies with my _r naming convention for registers
    // created in an always block.
@@ -1476,7 +1479,8 @@ module datapath3
    
    logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
    logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, result_r;
-   logic [WIDTH-1:0]                     count_add, count_r;
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_add, count_r;
    
    assign data_mux = data_sel ? data : data_shift;
    assign data_shift = data_r >> 1;
@@ -1485,7 +1489,7 @@ module datapath3
    assign diff_add = diff_r + add_in1_mux;
 
    assign count_add = count_r + 1'b1;
-   assign count_done = count_r == WIDTH'(WIDTH-1);
+   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
 
    assign result = result_r;
 
