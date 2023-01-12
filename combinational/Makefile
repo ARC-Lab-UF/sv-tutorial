@@ -1,5 +1,5 @@
 # Author(s): 
-# 	Wes Piard (wespiard@ufl.edu)
+# 	Wes Piard
 #
 # Purpose: Invokes simulations using Modelsim or VCS with options for debugging to
 #	automatically invoke the simulators' GUIs.
