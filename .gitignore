@@ -1,5 +1,8 @@
 *~
 
+# Modelsim files
+transcript
+
 # Quartus Project Files
 qdb/
 output_files/
