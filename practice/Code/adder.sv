@@ -88,3 +88,15 @@ module adder_cout_sv_only
     );
  assign {carryout,sum} = in1 + in2;
 endmodule
+
+module adder_cinout_sv_only
+    #(parameter  int WIDTH = 8)
+    (
+        input logic [WIDTH-1:0] in1;
+        input logic [WIDTH-1:0] in2;
+        input logic carry_in;
+        output logic [WIDTH-1:0] sum;
+        output logic carry_out;
+    );
+ assign {carry_out,sum} = in1 + in2 + carry_in;
+endmodule
