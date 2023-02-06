@@ -1,0 +1,1 @@
+## this folder contains readme for simulation. Simulation is done on Xilinx Vivado
