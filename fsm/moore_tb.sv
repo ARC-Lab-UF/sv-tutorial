@@ -5,7 +5,7 @@
 
 // Module: moore_tb
 // Description: Testbench for the moore module, which implements a Moore FSM.
-// Note that if more is changed to use the 1-process version, this testbench
+// Note that if moore is changed to use the 1-process version, this testbench
 // will start to report errors because of the 1-cycle delay for the outputs.
 // It is left as an exercise to adapt the testbench to work for both models.
 
@@ -19,7 +19,7 @@ module moore_tb;
 
    initial begin : generate_clock
       while(1)
-	#10 clk = ~clk;      
+        #10 clk = ~clk;      
    end
 
    logic [$bits(out)-1:0] correct_out;
@@ -31,19 +31,19 @@ module moore_tb;
       en = 1'b0;
       correct_out = "0001";      
       for (int i=0; i < 5; i++)
-	@(posedge clk);
+        @(posedge clk);
 
       rst = 1'b0;
       
       for (int i=0; i < NUM_CYCLES; i++) begin
-	 en = $random;
-	 @(negedge clk);	 
-	 if (out != correct_out)
-	   $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);
-	 @(posedge clk);
-	 // The correct output simply rotates every time the enable is asserted.
-	 if (en)
-	   correct_out = {correct_out[2:0], correct_out[3]};	 	 
+         en = $random;
+         @(negedge clk);         
+         if (out != correct_out)
+           $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);
+         @(posedge clk);
+         // The correct output simply rotates every time the enable is asserted.
+         if (en)
+           correct_out = {correct_out[2:0], correct_out[3]};             
       end
             
       disable generate_clock;

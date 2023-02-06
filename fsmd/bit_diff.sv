@@ -537,9 +537,9 @@ module bit_diff_fsmd_2p_2
               next_state = RESTART;
 
               // For us to be able to assert done in the next cycle, we need
-              // to send it to the result register this cycle. Also, we need
-              // to use the next version of diff since the register won't be
-              // updated yet.
+              // to send the new diff to the result register this cycle. Also, 
+              // we need to use the next version of diff since the register 
+              // won't be updated yet.
               next_result = next_diff;
            end
         end
@@ -648,7 +648,7 @@ module bit_diff_fsmd_2p_3
       end      
    end
 
-   // Since we actually want register for all the code above, it is not
+   // Since we actually want registers for all the code above, it is not
    // necessary to add next signals for any of them, including the state_r.
    // Instead, we'll just pull out the done_r signal and make it combinational
    // logic in this process.
@@ -674,6 +674,10 @@ module bit_diff_fsmd_2p_3
 endmodule
 
 
+// Module: fsmd_2p_4
+// Description: This extends the previous module by also separating
+// state_r and next_state, in addition to having done as combinational logic.
+
 module bit_diff_fsmd_2p_4
   #(
     parameter WIDTH
@@ -697,8 +701,6 @@ module bit_diff_fsmd_2p_4
 
    assign result = result_r;
 
-   // Note that this code is almost identical to a 1-process FSMD. We have
-   // simply removed the done logic.
    always @(posedge clk or posedge rst) begin
       if (rst == 1'b1) begin              
          result_r <= '0;   
@@ -713,7 +715,7 @@ module bit_diff_fsmd_2p_4
          // the state register.
          state_r <= next_state;
 
-         // All other signals are still registered with a next version, since
+         // All other signals are still registered without a next version, since
          // we don't have a need for the next version.
          case (state_r)
            START : begin
@@ -817,7 +819,7 @@ module bit_diff_fsmd_3p
    // The second process is another always_ff (usually assuming no blocking
    // assignments) that handles all the other registered logic. In other words,
    // we have simply taken the one always_ff block from the previous module and
-   // separated it into two: one of the state register, and one for everything
+   // separated it into two: one for the state register, and one for everything
    // else.
    always @(posedge clk or posedge rst) begin
       if (rst == 1'b1) begin              
@@ -906,8 +908,8 @@ module bit_diff_fsmd_4p
 
    assign result = result_r;
 
-   // In the 1-process model, one process is always just an always_ff for
-   // the state register.
+   // Like the 3-process model, in the 4-process model, one process is always 
+   // just an always_ff for the state register.
    always @(posedge clk or posedge rst)
       if (rst == 1'b1) state_r <= START;       
       else state_r <= next_state;
@@ -1170,30 +1172,31 @@ module datapath1
    /*********************************************************************/
    // Counter logic
 
-   logic [WIDTH-1:0]                     count_mux, count_add, count_r;
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
    
    // Selects between 0 and the count adder.
-   mux2x1 #(.WIDTH(WIDTH)) COUNT_MUX (.in0(count_add), 
-                                      .in1(WIDTH'(0)), 
-                                      .sel(count_sel),
-                                      .out(count_mux));
+   mux2x1 #(.WIDTH(COUNT_WIDTH)) COUNT_MUX (.in0(count_add),
+                                            .in1('0), 
+                                            .sel(count_sel),
+                                            .out(count_mux));
 
    // Register for the count.
-   register #(.WIDTH(WIDTH)) COUNT_REG (.en(count_en), 
-                                        .in(count_mux), 
-                                        .out(count_r), 
-                                        .*);
+   register #(.WIDTH(COUNT_WIDTH)) COUNT_REG (.en(count_en), 
+                                              .in(count_mux), 
+                                              .out(count_r), 
+                                              .*);
 
    // Increments the count.
-   add #(.WIDTH(WIDTH)) COUNT_ADD (.in0(WIDTH'(1)),
-                                   .in1(count_r),
-                                   .sum(count_add));
+   add #(.WIDTH(COUNT_WIDTH)) COUNT_ADD (.in0(COUNT_WIDTH'(1)),
+                                         .in1(count_r),
+                                         .sum(count_add));
    
    // Comparator to check when the count is complete. Equivalent to
    // count_r == WIDTH-1 from the FSMD.
-   eq #(.WIDTH(WIDTH)) EQ (.in0(count_r),
-                           .in1(WIDTH'(WIDTH-1)),
-                           .out(count_done));   
+   eq #(.WIDTH(COUNT_WIDTH)) EQ (.in0(count_r),
+                                 .in1(COUNT_WIDTH'(WIDTH-1)),
+                                 .out(count_done));   
    
 endmodule
 //`default_nettype wire   
@@ -1230,7 +1233,9 @@ module datapath2
    
    logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
    logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, diff_mux, result_r;
-   logic [WIDTH-1:0]                     count_mux, count_add, count_r;
+
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
 
    // Data mux and shift
    assign data_mux = data_sel ? data : data_shift;
@@ -1242,9 +1247,9 @@ module datapath2
    assign diff_mux = diff_sel ? DIFF_WIDTH'(0) : diff_add;  
 
    // Count mux, add, and done
-   assign count_mux = count_sel ? WIDTH'(0) : count_add;
+   assign count_mux = count_sel ? COUNT_WIDTH'(0) : count_add;
    assign count_add = count_r + 1'b1;
-   assign count_done = count_r == WIDTH'(WIDTH-1);
+   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
 
    // Not necessary, but complies with my _r naming convention for registers
    // created in an always block.
@@ -1474,7 +1479,8 @@ module datapath3
    
    logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
    logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, result_r;
-   logic [WIDTH-1:0]                     count_add, count_r;
+   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
+   logic [COUNT_WIDTH-1:0]               count_add, count_r;
    
    assign data_mux = data_sel ? data : data_shift;
    assign data_shift = data_r >> 1;
@@ -1483,7 +1489,7 @@ module datapath3
    assign diff_add = diff_r + add_in1_mux;
 
    assign count_add = count_r + 1'b1;
-   assign count_done = count_r == WIDTH'(WIDTH-1);
+   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
 
    assign result = result_r;
 

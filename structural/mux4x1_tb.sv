@@ -19,15 +19,17 @@ module mux4x1_tb;
       
       // Iterate over all inputs and select values.
       for (int i=0; i < 2**$bits(inputs); i++) begin
-	 inputs = i;
-	 
-	 for (int j=0; j < 2**$bits(sel); j++) begin
-	    sel = j;
-	    #10;
-	    if (out != inputs[sel])
-	      	$display("ERROR (time %0t): out = %b instead of %b.", $realtime, out, inputs[sel]);      	    
-	 end
-      end 
+         inputs = i;
+         
+         for (int j=0; j < 2**$bits(sel); j++) begin
+            sel = j;
+            #10;
+            if (out != inputs[sel])
+                $display("ERROR (time %0t): out = %b instead of %b.", $realtime, out, inputs[sel]);                 
+         end
+      end
+
+      $display("Tests completed.");
    end 
 endmodule
    

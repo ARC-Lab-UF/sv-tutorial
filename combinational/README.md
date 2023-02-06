@@ -9,7 +9,7 @@ As with all circuits, first design the combinational circuit, then write the cod
 # Suggested Study Order
 
 1. [2:1 mux](https://github.com/ARC-Lab-UF/sv-tutorial/tree/main/combinational/mux2x1.sv)
-    - Introduces basic constructs and guidelines for cobminational logic. 
+    - Introduces basic constructs and guidelines for combinational logic. 
     - Includes a top-level module mux2x1 that allows you to change the module that is synthesized.
     - Includes a testbench that tests all included modules at the same time.
 1. [4-input Priority Encoder](https://github.com/ARC-Lab-UF/sv-tutorial/blob/main/combinational/priority_encoder_4in.sv)

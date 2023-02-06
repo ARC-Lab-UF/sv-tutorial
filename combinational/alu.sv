@@ -40,76 +40,76 @@ module alu_bad
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input logic [1:0] 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input logic [1:0]        sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
 
    always_comb begin
 
       case (sel)
-	// Addition
-	2'b00 : begin
-	   // Assign the output
-	   out = in0 + in1;
+        // Addition
+        2'b00 : begin
+           // Assign the output
+           out = in0 + in1;
 
-	   // Update the status flags
-	   if (out == 0) begin
-	      pos = 1'b0;
-	      neg = 1'b0;
-	      zero = 1'b1;
-	   end
-	   else if (out[WIDTH-1] == 1'b0) begin
-	      pos = 1'b1;
-	      neg = 1'b0;
-	      zero = 1'b0;
-	   end
-	   else begin
-	      pos = 1'b0;
-	      neg = 1'b1;
-	      zero = 1'b0;
-	   end
-	end
+           // Update the status flags
+           if (out == 0) begin
+              pos = 1'b0;
+              neg = 1'b0;
+              zero = 1'b1;
+           end
+           else if (out[WIDTH-1] == 1'b0) begin
+              pos = 1'b1;
+              neg = 1'b0;
+              zero = 1'b0;
+           end
+           else begin
+              pos = 1'b0;
+              neg = 1'b1;
+              zero = 1'b0;
+           end
+        end
 
-	// Subtraction
-	2'b01 : begin
-	   out = in0 - in1;
-	   if (out == 0) begin
-	      pos = 1'b0;
-	      neg = 1'b0;
-	      zero = 1'b1;
-	   end
-	   else if (out[WIDTH-1] == 1'b0) begin
-	      pos = 1'b1;
-	      neg = 1'b0;
-	      zero = 1'b0;
-	   end
-	   else begin
-	      pos = 1'b0;
-	      neg = 1'b1;
-	      zero = 1'b0;
-	   end
-	end
+        // Subtraction
+        2'b01 : begin
+           out = in0 - in1;
+           if (out == 0) begin
+              pos = 1'b0;
+              neg = 1'b0;
+              zero = 1'b1;
+           end
+           else if (out[WIDTH-1] == 1'b0) begin
+              pos = 1'b1;
+              neg = 1'b0;
+              zero = 1'b0;
+           end
+           else begin
+              pos = 1'b0;
+              neg = 1'b1;
+              zero = 1'b0;
+           end
+        end
 
-	// And
-	// We don't assign the status flags here, which is a common mistake
-	// because we defined the ALU as having don't care outputs for status
-	// flags on and and or. The confusion is mistaking don't care outputs
-	// as not having to assign the outputs. This code doesn't specify
-	// don't cares. It specifies that the status flags shouldn't change
-	// because we aren't assigning them. The only way to preserve their
-	// values is by introducing latches, which we don't want with
-	// combinational logic.
-	2'b10 : begin
-	   out = in0 & in1;
-	end
+        // And
+        // We don't assign the status flags here, which is a common mistake
+        // because we defined the ALU as having don't care outputs for status
+        // flags on and and or. The confusion is mistaking don't care outputs
+        // as not having to assign the outputs. This code doesn't specify
+        // don't cares. It specifies that the status flags shouldn't change
+        // because we aren't assigning them. The only way to preserve their
+        // values is by introducing latches, which we don't want with
+        // combinational logic.
+        2'b10 : begin
+           out = in0 & in1;
+        end
 
-	// Or
-	2'b11 : begin
-	   out = in0 | in1;
-	end	   
+        // Or
+        2'b11 : begin
+           out = in0 | in1;
+        end        
       endcase      
    end   
 endmodule // alu_bad
@@ -126,42 +126,42 @@ module alu1
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input logic [1:0] 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input logic [1:0]        sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
 
    always_comb begin
       case (sel)
-	// Addition
-	2'b00 : out = in0 + in1;
-	// Subtraction
-	2'b01 : out = in0 - in1;
-	// And
-	2'b10 : out = in0 & in1;
-	// Or
-	2'b11 : out = in0 | in1;   
+        // Addition
+        2'b00 : out = in0 + in1;
+        // Subtraction
+        2'b01 : out = in0 - in1;
+        // And
+        2'b10 : out = in0 & in1;
+        // Or
+        2'b11 : out = in0 | in1;   
       endcase
 
       // By moving the flag definitions outside the case statements, we
       // guarantee that all flags are defined on all paths, which eliminates
       // the latches.
       if (out == 0) begin
-	 pos = 1'b0;
-	 neg = 1'b0;
-	 zero = 1'b1;
+         pos = 1'b0;
+         neg = 1'b0;
+         zero = 1'b1;
       end
       else if (out[WIDTH-1] == 1'b0) begin
-	 pos = 1'b1;
-	 neg = 1'b0;
-	 zero = 1'b0;
+         pos = 1'b1;
+         neg = 1'b0;
+         zero = 1'b0;
       end
       else begin
-	 pos = 1'b0;
-	 neg = 1'b1;
-	 zero = 1'b0;
+         pos = 1'b0;
+         neg = 1'b1;
+         zero = 1'b0;
       end
    end   
 endmodule
@@ -177,10 +177,10 @@ module alu2
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input logic [1:0] 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input logic [1:0]        sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
 
@@ -192,14 +192,14 @@ module alu2
       zero = 1'b0;
       
       case (sel)
-	// Addition
-	2'b00 : out = in0 + in1;
-	// Subtraction
-	2'b01 : out = in0 - in1;
-	// And
-	2'b10 : out = in0 & in1;
-	// Or
-	2'b11 : out = in0 | in1;   
+        // Addition
+        2'b00 : out = in0 + in1;
+        // Subtraction
+        2'b01 : out = in0 - in1;
+        // And
+        2'b10 : out = in0 & in1;
+        // Or
+        2'b11 : out = in0 | in1;   
       endcase
       
       // The default values provided above simplify this code.
@@ -221,10 +221,10 @@ module alu3
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input logic [1:0] 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input logic [1:0]        sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
 
@@ -257,16 +257,16 @@ module alu3
       zero = 1'bx;
       
       case (sel)
-	ADD_SEL : begin 
-	   out = in0 + in1;
-	   update_flags();	   
-	end
-	SUB_SEL : begin 
-	   out = in0 - in1;
-	   update_flags();	   
-	end
-	AND_SEL : out = in0 & in1;
-	OR_SEL : out = in0 | in1;   
+        ADD_SEL : begin 
+           out = in0 + in1;
+           update_flags();         
+        end
+        SUB_SEL : begin 
+           out = in0 - in1;
+           update_flags();         
+        end
+        AND_SEL : out = in0 & in1;
+        OR_SEL : out = in0 | in1;   
       endcase
    end   
 endmodule
@@ -286,10 +286,10 @@ module alu4
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input alu_sel_t 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input alu_sel_t          sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
    
@@ -308,16 +308,16 @@ module alu4
       zero = 1'b0;
       
       case (sel)
-	ADD_SEL : begin 
-	   out = in0 + in1;
-	   update_flags();	   
-	end
-	SUB_SEL : begin 
-	   out = in0 - in1;
-	   update_flags();	   
-	end
-	AND_SEL : out = in0 & in1;
-	OR_SEL : out = in0 | in1;   
+        ADD_SEL : begin 
+           out = in0 + in1;
+           update_flags();         
+        end
+        SUB_SEL : begin 
+           out = in0 - in1;
+           update_flags();         
+        end
+        AND_SEL : out = in0 & in1;
+        OR_SEL : out = in0 | in1;   
       endcase
    end   
 endmodule
@@ -340,10 +340,10 @@ module alu5
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input alu_sel_t 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input alu_sel_t          sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
    
@@ -362,18 +362,54 @@ module alu5
       zero = 1'b0;
       
       case (sel)
-	alu_pkg::ADD_SEL : begin 
-	   out = in0 + in1;
-	   update_flags();	   
-	end
-	alu_pkg::SUB_SEL : begin 
-	   out = in0 - in1;
-	   update_flags();	   
-	end
-	alu_pkg::AND_SEL : out = in0 & in1;
-	alu_pkg::OR_SEL : out = in0 | in1;   
+        alu_pkg::ADD_SEL : begin 
+           out = in0 + in1;
+           update_flags();         
+        end
+        alu_pkg::SUB_SEL : begin 
+           out = in0 - in1;
+           update_flags();         
+        end
+        alu_pkg::AND_SEL : out = in0 & in1;
+        alu_pkg::OR_SEL : out = in0 | in1;   
       endcase
    end   
+endmodule
+
+
+// Module: alu6
+// Description: a simplfication that uses concurrent assignments for the flags.
+
+import alu_pkg::*;
+
+module alu6
+  #(
+    parameter WIDTH
+    )
+   (
+    input logic [WIDTH-1:0]  in0,
+    input logic [WIDTH-1:0]  in1,
+    input alu_sel_t          sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
+    output logic [WIDTH-1:0] out
+    );
+      
+   always_comb begin   
+      case (sel)
+        alu_pkg::ADD_SEL : out = in0 + in1;
+        alu_pkg::SUB_SEL : out = in0 - in1;
+        alu_pkg::AND_SEL : out = in0 & in1;
+        alu_pkg::OR_SEL : out = in0 | in1;   
+      endcase
+   end
+
+   // Use concurrent assignments for the flags. Logic types of unsigned by
+   // default so we need to cast them to signed here.
+   assign neg = signed'(out) < 0;
+   assign pos = signed'(out) > 0;
+   assign zero = out == 0;
 endmodule
 
 
@@ -387,10 +423,10 @@ module alu
    (
     input logic [WIDTH-1:0]  in0,
     input logic [WIDTH-1:0]  in1,
-    input logic [1:0] 	     sel,
-    output logic 	     neg,
-    output logic 	     pos,
-    output logic 	     zero, 
+    input logic [1:0]        sel,
+    output logic             neg,
+    output logic             pos,
+    output logic             zero, 
     output logic [WIDTH-1:0] out
     );
 
@@ -401,6 +437,7 @@ module alu
    //alu3 #(.WIDTH(WIDTH)) alu (.*);
 
    //alu4 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
-   alu5 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
+   //alu5 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
+   alu6 #(.WIDTH(WIDTH)) alu (.sel(alu_sel_t'(sel)), .*);
    
 endmodule
