@@ -7,3 +7,12 @@ transcript
 qdb/
 output_files/
 tmp-clearbox/
+
+# VCS/Verdi Files
+csrc/
+simv.daidir/
+verdiLog/
+novas*
+simv
+ucli.key
+verdi_config_file

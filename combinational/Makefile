@@ -47,7 +47,8 @@ ifeq ($(DEBUG),0)
 	vcs -full64 -R -top $(TOP) -sverilog -timescale="1ns/10ps" $(FILES)
 else
 	vcs -full64 -kdb -debug_access+r -top $(TOP) -sverilog -timescale="1ns/10ps" $(FILES)
-	./simv -gui
+	./simv -ucli -i gen_db.tcl
+	verdi -ssf novas.fsdb
 endif
 endif
 
