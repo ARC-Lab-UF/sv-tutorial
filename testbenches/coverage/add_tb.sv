@@ -350,7 +350,7 @@ module add_tb4;
          option.at_least = 10; 
       }
       // Make sure that in1 has a 0 and max value tested at least 10 times.
-      in1_extremes : coverpoint in0 {
+      in1_extremes : coverpoint in1 {
          bins zero = {0};
          bins max_ = {{WIDTH{1'b1}}};
          option.at_least = 10; 
