@@ -37,7 +37,7 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 ## Assertions
 
 In the basic testbench examples above, we manually check for errors with if statements combined with error messages. Although useful for simple tests, assertions are a much 
-more powerful construct that can be used to very that any condition is true at any point in time. Most importantly, assertions can be combined with properties and sequences
+more powerful construct that can be used to verify that any condition is true at any point in time. Most importantly, assertions can be combined with properties and sequences
 to verify complex behaviors concisely. In many cases, assertion propeties can completely eliminate the need for a separate reference model that provides correct functionality 
 for comparison.
 
