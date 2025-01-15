@@ -152,6 +152,79 @@ module priority_encoder_4in_case4 (
 endmodule  // priority_encoder_4in_case4
 
 
+// Module: priority_encoder_4in_case4
+// Description: A small extension that uses unique to guarantee no repeated cases.
+
+module priority_encoder_4in_case_unique (
+    input  logic [3:0] inputs,
+    output logic       valid,
+    output logic [1:0] result
+);
+
+    always_comb begin
+        valid = 1'b1;
+
+        // "Unique" is a keyword added to the 2009 SV standard that is quite useful.
+        // It adds two constraints that are checked by both simulation and synthesis.
+        // The first is that the case expression only matches one case item. In other
+        // words, you couldn't do something like:
+        //
+        // 4'b1000: result = 2'11;
+        // 4'b1000: result = 2'10;
+        //
+        // While it would be incredibly weird to do that on purpose, you can easily
+        // come up with two case items using wildcards that have overlap. Without the
+        // unique keyword, that overlap would compile fine. With unique, you should get
+        // errors or warnings (although some tools still annoying ignore it).
+        //
+        // The second constraint is that all paths are defined, meaning if it encounters
+        // a case item not covered by the case expression, it will report an error.
+        // This constraint is usually a good idea to avoid latches, since if there is a
+        // path through a process that doesn't define an output, it causes a latch.
+        // Unique doesn't guarantees all paths through the case are defined. It doesn't
+        // guarantee there are no latches, but it is a good practice that helpes avoid
+        // them.
+        unique casez (inputs)
+            4'b1???: result = 2'b11;
+            4'b01??: result = 2'b10;
+            4'b001?: result = 2'b01;
+            4'b0001: result = 2'b00;
+            4'b0000: begin
+                result = 2'b00;
+                valid  = 1'b0;
+            end
+        endcase
+    end
+endmodule  // priority_encoder_4in_case4
+
+
+module priority_encoder_4in_case_unique0 (
+    input  logic [3:0] inputs,
+    output logic       valid,
+    output logic [1:0] result
+);
+    // On some occasions, you might want to ensure uniqueness of case items, 
+    // but don't need definitions of all case items. In these situations, you
+    // can use "unique0" instead of "unique."
+    //
+    // For example, in the following process, the first two statements 
+    // act as defaults that obviate case item 4'b0000. The unique constraint
+    // would fail, but unique0 handles what we intended.
+
+    always_comb begin
+        result = 2'b00;
+        valid  = 1'b1;
+
+        unique casez (inputs)
+            4'b1???: result = 2'b11;
+            4'b01??: result = 2'b10;
+            4'b001?: result = 2'b01;
+            4'b0001: result = 2'b00;
+        endcase
+    end
+endmodule  // priority_encoder_4in_case4
+
+
 // Module: priority_encoder_4in
 // Description: A top-level module that can be used to change the module used
 // for synthesis and simulation.
