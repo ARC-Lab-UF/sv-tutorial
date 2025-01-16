@@ -1,6 +1,10 @@
 // Greg Stitt
 // University of Florida
 
+// Synthesis notes:
+// All modules confirmed to synthesize in:
+// Vivado 2024.2
+
 // Module: priority_encoder_4in_if
 // Description: implements a 4-input (2-output) priority encoder using an if
 // statement, with a valid output that is asserted when any of the inputs are
@@ -11,7 +15,6 @@ module priority_encoder_4in_if (
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         // By default, assert valid. For all input combinations but 1, valid is
         // asserted, so this saves some code.
@@ -39,11 +42,10 @@ module priority_encoder_4in_case1 (
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         valid = 1'b1;
 
-        // A case statement doesn't have a natural notion of priority, so we
+        // A basic case statement doesn't have a natural notion of priority, so we
         // need to define outputs for all input combinations.
         case (inputs)
             4'b0000: begin
@@ -67,7 +69,7 @@ module priority_encoder_4in_case1 (
             4'b1111: result = 2'b11;
         endcase
     end
-endmodule  // priority_encoder_4in_case
+endmodule  // priority_encoder_4in_case1
 
 
 // Module: priority_encoder_4in_case2
@@ -78,7 +80,6 @@ module priority_encoder_4in_case2 (
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         valid = 1'b1;
 
@@ -97,15 +98,14 @@ module priority_encoder_4in_case2 (
 endmodule  // priority_encoder_4in_case2
 
 
-// Module: priority_encoder_4in_case3
+// Module: priority_encoder_4in_case_inside
 // Description: A greatly simplified implementation with a case statement.
 
-module priority_encoder_4in_case3 (
+module priority_encoder_4in_case_inside (
     input  logic [3:0] inputs,
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         valid = 1'b1;
 
@@ -121,18 +121,17 @@ module priority_encoder_4in_case3 (
             [4'b1000 : 4'b1111]: result = 2'b11;
         endcase
     end
-endmodule  // priority_encoder_4in_case3
+endmodule  // priority_encoder_4in_case_inside
 
 
-// Module: priority_encoder_4in_case4
+// Module: priority_encoder_4in_casez
 // Description: A simplified case statement implementation using wildcards.
 
-module priority_encoder_4in_case4 (
+module priority_encoder_4in_casez (
     input  logic [3:0] inputs,
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         valid = 1'b1;
 
@@ -149,10 +148,10 @@ module priority_encoder_4in_case4 (
             end
         endcase
     end
-endmodule  // priority_encoder_4in_case4
+endmodule  // priority_encoder_4in_casez
 
 
-// Module: priority_encoder_4in_case4
+// Module: priority_encoder_4in_case_unique
 // Description: A small extension that uses unique to guarantee no repeated cases.
 
 module priority_encoder_4in_case_unique (
@@ -160,7 +159,6 @@ module priority_encoder_4in_case_unique (
     output logic       valid,
     output logic [1:0] result
 );
-
     always_comb begin
         valid = 1'b1;
 
@@ -195,34 +193,58 @@ module priority_encoder_4in_case_unique (
             end
         endcase
     end
-endmodule  // priority_encoder_4in_case4
+endmodule  // priority_encoder_4in_case_unique
 
+
+// Module: priority_encoder_4in_case_unique0
+// Description: A small extension that uses unique0 to guarantee no repeated cases, while
+// allowing for undefined case items.
 
 module priority_encoder_4in_case_unique0 (
     input  logic [3:0] inputs,
     output logic       valid,
     output logic [1:0] result
 );
-    // On some occasions, you might want to ensure uniqueness of case items, 
+    // On some rare ccasions, you might want to ensure uniqueness of case items, 
     // but don't need definitions of all case items. In these situations, you
     // can use "unique0" instead of "unique."
     //
     // For example, in the following process, the first two statements 
     // act as defaults that obviate case item 4'b0000. The unique constraint
     // would fail, but unique0 handles what we intended.
+    //
+    // This is a largely synthetic example. There is no good reason to use unique0 here 
+    // since it is less concise. It is simply intended for explanation.
+    //  
+    // In general, I would avoid case statements that don't define all case items.
+    // 
+    // NOTE: Vivado still reports linter warnings about incomplete paths, even when
+    // using unique0, so tool support is likely lacking elsewhere too.
 
     always_comb begin
         result = 2'b00;
-        valid  = 1'b1;
+        valid  = 1'b0;
 
-        unique casez (inputs)
-            4'b1???: result = 2'b11;
-            4'b01??: result = 2'b10;
-            4'b001?: result = 2'b01;
-            4'b0001: result = 2'b00;
+        unique0 casez (inputs)
+            4'b1???: begin
+                result = 2'b11;
+                valid  = 1'b1;
+            end
+            4'b01??: begin
+                result = 2'b10;
+                valid  = 1'b1;
+            end
+            4'b001?: begin
+                result = 2'b01;
+                valid  = 1'b1;
+            end
+            4'b0001: begin
+                result = 2'b00;
+                valid  = 1'b1;
+            end
         endcase
     end
-endmodule  // priority_encoder_4in_case4
+endmodule  // priority_encoder_4in_case_unique0
 
 
 // Module: priority_encoder_4in
@@ -239,6 +261,9 @@ module priority_encoder_4in (
     priority_encoder_4in_if pe (.*);
     //priority_encoder_4in_case1 pe (.*);
     //priority_encoder_4in_case2 pe (.*);
-    //priority_encoder_4in_case3 pe (.*);
-    //priority_encoder_4in_case4 pe (.*);
+    //priority_encoder_4in_case_inside pe (.*);
+    //priority_encoder_4in_casez pe (.*);
+    //priority_encoder_4in_case_unique pe (.*);
+    //priority_encoder_4in_case_unique0 pe (.*);
 endmodule
+
