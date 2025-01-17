@@ -4,6 +4,7 @@
 // Synthesis notes:
 // All modules confirmed to synthesize in:
 // Vivado 2024.2
+// Quartus Prime Pro 23.1.0 (older versions did not support unique0 construct)
 
 // Module: priority_encoder_4in_if
 // Description: implements a 4-input (2-output) priority encoder using an if
@@ -220,6 +221,8 @@ module priority_encoder_4in_case_unique0 (
     // 
     // NOTE: Vivado still reports linter warnings about incomplete paths, even when
     // using unique0, so tool support is likely lacking elsewhere too.
+    //
+    // Quartus Prime Pro 
 
     always_comb begin
         result = 2'b00;
