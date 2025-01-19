@@ -33,7 +33,7 @@ endmodule  // full_adder
 // generate statement and for loop.
 
 module ripple_carry_adder #(
-    parameter WIDTH = 8
+    parameter int WIDTH = 8
 ) (
     input  logic [WIDTH-1:0] x,
     input  logic [WIDTH-1:0] y,
@@ -75,7 +75,7 @@ endmodule
 
 
 module ripple_carry_adder2 #(
-    parameter WIDTH = 8
+    parameter int WIDTH = 8
 ) (
     input  logic [WIDTH-1:0] x,
     input  logic [WIDTH-1:0] y,
@@ -83,7 +83,6 @@ module ripple_carry_adder2 #(
     output logic [WIDTH-1:0] sum,
     output logic             cout
 );
-
     logic [WIDTH:0] carry;
     assign carry[0] = cin;
 
