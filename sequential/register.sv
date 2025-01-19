@@ -268,7 +268,7 @@ endmodule
 
 
 module register #(
-    parameter int WIDTH
+    parameter int WIDTH = 32
 ) (
     input  logic             clk,
     input  logic             rst,
@@ -280,14 +280,22 @@ module register #(
     localparam logic USE_ENABLE = 1'b0;
     localparam logic USE_ASYNC_RST = 1'b1;
     register_async_rst #(.WIDTH(WIDTH)) top (.*);
+    //register_async_rst2 #(.WIDTH(WIDTH)) top (.*);
 
-    /*localparam logic          USE_ENABLE = 1'b0;
+    /* localparam logic          USE_ENABLE = 1'b0;
    localparam logic          USE_ASYNC_RST = 1'b0;   
-   register_sync_rst #(.WIDTH(WIDTH)) top (.*);*/
+   register_sync_rst #(.WIDTH(WIDTH)) top (.*);
+   //register_sync_rst2 #(.WIDTH(WIDTH)) top (.*);*/
 
-    /*localparam logic          USE_ENABLE = 1'b1;
-   localparam logic          USE_ASYNC_RST = 1'b1;           
-   register_en_async_rst #(.WIDTH(WIDTH)) top (.*);*/
+    /*localparam logic USE_ENABLE = 1'b1;
+    localparam logic USE_ASYNC_RST = 1'b1;
+    //register_en_async_rst #(.WIDTH(WIDTH)) top (.*);
+    //register_en_async_rst2 #(.WIDTH(WIDTH)) top (.*);*/
+
+    /*localparam logic USE_ENABLE = 1'b1;
+    localparam logic USE_ASYNC_RST = 1'b0;
+    register_en_sync_rst #(.WIDTH(WIDTH)) top (.*);
+    //register_en_sync_rst2 #(.WIDTH(WIDTH)) top (.*);*/
 
     /*localparam logic          USE_ENABLE = 1'b1;
    localparam logic          USE_ASYNC_RST = 1'b1;              
