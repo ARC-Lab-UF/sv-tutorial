@@ -9,44 +9,52 @@
 // will start to report errors because of the 1-cycle delay for the outputs.
 // It is left as an exercise to adapt the testbench to work for both models.
 
-module moore_tb;
+module moore_tb #(
+    parameter int NUM_CYCLES = 1000,
 
-   localparam NUM_CYCLES = 1000;   
-   logic clk=0, rst, en;
-   logic [3:0] out;
+    // Set to 1 for 1-process tests, and 0 for 2-process tests.
+    parameter bit DELAY_CORRECT_OUTPUT = 1'b0
+);
 
-   moore DUT (.*);
+    logic clk = 0, rst, en;
+    logic [3:0] out;
 
-   initial begin : generate_clock
-      while(1)
-        #10 clk = ~clk;      
-   end
+    moore DUT (.*);
 
-   logic [$bits(out)-1:0] correct_out;
-      
-   initial begin
-      $timeformat(-9, 0, " ns");
+    initial begin : generate_clock
+        forever #10 clk = ~clk;
+    end
 
-      rst = 1'b1;
-      en = 1'b0;
-      correct_out = "0001";      
-      for (int i=0; i < 5; i++)
-        @(posedge clk);
+    logic [$bits(out)-1:0] correct_out;
 
-      rst = 1'b0;
-      
-      for (int i=0; i < NUM_CYCLES; i++) begin
-         en = $random;
-         @(negedge clk);         
-         if (out != correct_out)
-           $display("ERROR (time %0t): out = %h instead of %h.", $realtime, out, correct_out);
-         @(posedge clk);
-         // The correct output simply rotates every time the enable is asserted.
-         if (en)
-           correct_out = {correct_out[2:0], correct_out[3]};             
-      end
+    initial begin
+        $timeformat(-9, 0, " ns");
+
+        rst <= 1'b1;
+        en <= 1'b0;
+        correct_out <= "0001";
+        repeat (5) @(posedge clk);
+
+        rst <= 1'b0;
+
+        for (int i = 0; i < NUM_CYCLES; i++) begin
+            en <= $random;
+            @(posedge clk);
+            // The correct output simply rotates every time the enable is asserted.
+            if (en) correct_out <= {correct_out[2:0], correct_out[3]};
             
-      disable generate_clock;
-      $display("Tests completed.");                    
-   end
+            //if (out != correct_out) $error("[%0t]: out = %h instead of %h.", $realtime, out, correct_out);
+        end
+
+        disable generate_clock;
+        $display("Tests completed.");
+    end
+
+    if (DELAY_CORRECT_OUTPUT) begin
+        assert property (@(posedge clk) disable iff (rst) out == $past(correct_out, 1))
+        else $error("[%0t] out = %h instead of %h.", $realtime, $sampled(out), $past(correct_out, 1));
+    end else begin
+        assert property (@(posedge clk) out == correct_out)
+        else $error("[%0t] out = %h instead of %h.", $realtime, $sampled(out), $past(correct_out, 1));
+    end
 endmodule
