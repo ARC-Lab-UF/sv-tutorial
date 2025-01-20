@@ -1881,12 +1881,12 @@ module bit_diff #(
     //bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsmd_2p_2 #(.WIDTH(WIDTH)) TOP (.*);
-    bit_diff_fsmd_2p_3 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_2p_3 #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsmd_2p_4 #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsmd_3p #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsmd_4p #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
     //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
-    //bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
+    bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
 
 endmodule
