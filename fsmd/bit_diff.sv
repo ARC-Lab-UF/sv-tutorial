@@ -980,33 +980,33 @@ module bit_diff_fsmd_4p #(
     always_comb begin
 
         next_result = result_r;
-        next_diff = diff_r;
-        next_data = data_r;
-        next_count = count_r;
+        next_diff   = diff_r;
+        next_data   = data_r;
+        next_count  = count_r;
 
-        done = 1'b0;
+        done        = 1'b0;
 
         case (state_r)
             START: begin
-                done = 1'b0;
+                done        = 1'b0;
                 next_result = '0;
-                next_diff = '0;
-                next_data = data;
-                next_count = '0;
+                next_diff   = '0;
+                next_data   = data;
+                next_count  = '0;
             end
 
             COMPUTE: begin
-                next_diff  = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
+                next_diff  = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
                 next_data  = data_r >> 1;
                 next_count = count_r + 1'b1;
                 if (count_r == WIDTH - 1) next_result = next_diff;
             end
 
             RESTART: begin
-                done = 1'b1;
-                next_diff = '0;
+                done       = 1'b1;
+                next_diff  = '0;
                 next_count = '0;
-                next_data = data;
+                next_data  = data;
             end
         endcase
     end
@@ -1375,16 +1375,16 @@ module fsm1 (
 
     always_comb begin
 
-        done = 1'b0;
+        done       = 1'b0;
 
-        result_en = 1'b0;
-        diff_en = 1'b0;
-        count_en = 1'b0;
-        data_en = 1'b0;
+        result_en  = 1'b0;
+        diff_en    = 1'b0;
+        count_en   = 1'b0;
+        data_en    = 1'b0;
 
-        diff_sel = 1'b0;
-        count_sel = 1'b0;
-        data_sel = 1'b0;
+        diff_sel   = 1'b0;
+        count_sel  = 1'b0;
+        data_sel   = 1'b0;
 
         next_state = state_r;
 
@@ -1410,7 +1410,7 @@ module fsm1 (
 
                 // Selects are 1'b0 by default and don't have to be respecified here.
 
-                // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;
+                // Replaces diff_r <= data_r[0] ? diff_r + 1 : diff_r - 1;
                 diff_en  = 1'b1;
 
                 // Replaces data_r <= data_r >> 1;
@@ -1430,19 +1430,19 @@ module fsm1 (
 
             RESTART: begin
                 // Assert done in this state.
-                done = 1'b1;
+                done      = 1'b1;
 
                 // Replaces diff_r <= '0;
-                diff_en = 1'b1;
-                diff_sel = 1'b1;
+                diff_en   = 1'b1;
+                diff_sel  = 1'b1;
 
                 // Replaces count_r <= '0;
-                count_en = 1'b1;
+                count_en  = 1'b1;
                 count_sel = 1'b1;
 
                 // Replaces data_r <= data
-                data_en = 1'b1;
-                data_sel = 1'b1;
+                data_en   = 1'b1;
+                data_sel  = 1'b1;
 
                 if (go) next_state = COMPUTE;
             end
@@ -1613,18 +1613,18 @@ module fsm2 (
 
     always_comb begin
 
-        done = 1'b0;
+        done       = 1'b0;
 
-        result_en = 1'b0;
-        diff_en = 1'b0;
-        count_en = 1'b0;
-        data_en = 1'b0;
+        result_en  = 1'b0;
+        diff_en    = 1'b0;
+        count_en   = 1'b0;
+        data_en    = 1'b0;
 
-        data_sel = 1'b0;
+        data_sel   = 1'b0;
 
         // Use resets now instead of selects.
-        diff_rst = 1'b0;
-        count_rst = 1'b0;
+        diff_rst   = 1'b0;
+        count_rst  = 1'b0;
 
         next_state = state_r;
 
@@ -1646,7 +1646,7 @@ module fsm2 (
 
             COMPUTE: begin
 
-                // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;  
+                // Replaces diff_r <= data_r[0] ? diff_r + 1 : diff_r - 1;  
                 diff_en  = 1'b1;
 
                 // Replaces data_r <= data_r >> 1;
@@ -1663,17 +1663,17 @@ module fsm2 (
             end
 
             RESTART: begin
-                done = 1'b1;
+                done      = 1'b1;
 
                 // Replaces diff_r <= '0;
-                diff_rst = 1'b1;
+                diff_rst  = 1'b1;
 
                 // Replaces count_r <= '0;
                 count_rst = 1'b1;
 
                 // Replaces data_r <= data
-                data_en = 1'b1;
-                data_sel = 1'b1;
+                data_en   = 1'b1;
+                data_sel  = 1'b1;
 
                 if (go) next_state = COMPUTE;
             end
@@ -1773,27 +1773,27 @@ module fsm3 (
 
     always_comb begin
 
-        done = 1'b0;
+        done           = 1'b0;
 
-        result_en = 1'b0;
-        diff_en = 1'b0;
-        count_en = 1'b0;
-        data_en = 1'b0;
+        result_en      = 1'b0;
+        diff_en        = 1'b0;
+        count_en       = 1'b0;
+        data_en        = 1'b0;
 
-        data_sel = 1'b0;
+        data_sel       = 1'b0;
 
-        next_diff_rst = 1'b0;
+        next_diff_rst  = 1'b0;
         next_count_rst = 1'b0;
 
-        next_state = state_r;
+        next_state     = state_r;
 
         case (state_r)
             START: begin
 
-                next_diff_rst = 1'b1;
+                next_diff_rst  = 1'b1;
                 next_count_rst = 1'b1;
-                data_en = 1'b1;
-                data_sel = 1'b1;
+                data_en        = 1'b1;
+                data_sel       = 1'b1;
 
                 if (go) next_state = INIT;
             end
@@ -1816,11 +1816,11 @@ module fsm3 (
             end
 
             RESTART: begin
-                done = 1'b1;
-                next_diff_rst = 1'b1;
+                done           = 1'b1;
+                next_diff_rst  = 1'b1;
                 next_count_rst = 1'b1;
-                data_en = 1'b1;
-                data_sel = 1'b1;
+                data_en        = 1'b1;
+                data_sel       = 1'b1;
 
                 if (go) next_state = INIT;
             end
