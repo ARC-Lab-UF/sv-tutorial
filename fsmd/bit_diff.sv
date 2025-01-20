@@ -55,152 +55,152 @@
 // See the FSMD illustration in bit_diff.pdf for a graphical representation
 // of this module.
 
-module bit_diff_fsmd_1p
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
-   
+module bit_diff_fsmd_1p #(
+    parameter int WIDTH
+) (
+    input logic             clk,
+    input logic             rst,
+    input logic             go,
+    input logic [WIDTH-1:0] data,
+
     // The range of results can be from WIDTH to -WIDTH, which is
     // 2*WIDTH + 1 possible values, where the +1 includes 0.
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   // We only have one process, so we'll only have a state_r variable.
-   state_t state_r;
+    output logic                                done
+);
 
-   // Create variables for the internal registers.
-   logic [$bits(data)-1:0]                      data_r;
-   logic [$bits(result)-1:0]                    result_r;
-   logic [$clog2(WIDTH)-1:0]                    count_r;
-   logic signed [$bits(result)-1:0]             diff_r;
-   logic                                        done_r;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    // We only have one process, so we'll only have a state_r variable.
+    state_t state_r;
 
-   // These concurrent assignments aren't necessary, but they preserve the 
-   // naming convention of having all registers use a _r suffix without 
-   // requiring the outputs to have the suffix. I prefer to not name the
-   // outputs based on the internal representation for several reasons. First,
-   // there may be parameters for a module that change whether or not the
-   // output is registered, which could make the suffix misleading. Second,
-   // the user of the module usually doesn't need to know if an output is
-   // registered. They might need to know the timing, but that can be specified
-   // in documentation, which is more meaningful than just knowing the 
-   // existence of a register. Finally, retiming might move all the registers
-   // anyway, in which case there might not be a register on the output.
-   //
-   // For simple modules, this convention is overkill, but becomes useful when
-   // using large modules because every variable that appears on the LHS of
-   // an assignment within an always_ff should have a _r suffix. If you
-   // accidentally assign a signal that isn't intended to be a register, then
-   // the naming convention helps catch that mistake.
-   assign result = result_r;
-   assign done = done_r;
+    // Create variables for the internal registers.
+    logic [$bits(data)-1:0]                      data_r;
+    logic [$bits(result)-1:0]                    result_r;
+    logic [$clog2(WIDTH)-1:0]                    count_r;
+    logic signed [$bits(result)-1:0]             diff_r;
+    logic                                        done_r;
 
-   // In the 1-process FSMD, everything is captured in a single always block.
-   // It doesn't have to be an always_ff block in case there is combinational
-   // logic mixed into the assignments, but use the always_ff when possible.
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin     
-         
-         result_r <= '0;
-         done_r <= 1'b0;                 
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin
+    // These concurrent assignments aren't necessary, but they preserve the 
+    // naming convention of having all registers use a _r suffix without 
+    // requiring the outputs to have the suffix. I prefer to not name the
+    // outputs based on the internal representation for several reasons. First,
+    // there may be parameters for a module that change whether or not the
+    // output is registered, which could make the suffix misleading. Second,
+    // the user of the module usually doesn't need to know if an output is
+    // registered. They might need to know the timing, but that can be specified
+    // in documentation, which is more meaningful than just knowing the 
+    // existence of a register. Finally, retiming might move all the registers
+    // anyway, in which case there might not be a register on the output.
+    //
+    // For simple modules, this convention is overkill, but becomes useful when
+    // using large modules because every variable that appears on the LHS of
+    // an assignment within an always_ff should have a _r suffix. If you
+    // accidentally assign a signal that isn't intended to be a register, then
+    // the naming convention helps catch that mistake.
+    assign result = result_r;
+    assign done   = done_r;
 
-         done_r <= 1'b0;
-         
-         case (state_r)
-           START : begin
+    // In the 1-process FSMD, everything is captured in a single always block.
+    // It doesn't have to be an always_ff block in case there are blocking 
+    // asssignments mixed in (see sequential examples for explanation), but 
+    // use the always_ff when possible.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            done_r   <= 1'b0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
 
-              // Assign outputs.
-              done_r <= 1'b0;
-              result_r <= '0;
-              
-              // Initialize internal state.
-              diff_r <= '0;
-              count_r <= '0;
-              data_r <= data;
+        end else begin
+            done_r <= 1'b0;
 
-              // Wait for go to be asserted.
-              if (go == 1'b1) state_r <= COMPUTE;              
-           end
+            case (state_r)
+                START: begin
+                    // Assign outputs.
+                    done_r   <= 1'b0;
+                    result_r <= '0;
 
-           COMPUTE : begin
+                    // Initialize internal state.
+                    diff_r   <= '0;
+                    count_r  <= '0;
+                    data_r   <= data;
 
-              // Add one to the difference if asserted, else subtract one.
-              diff_r <= data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
+                    // Wait for go to be asserted.
+                    if (go) state_r <= COMPUTE;
+                end
 
-              // Shift out the current lowest bit.
-              data_r <= data_r >> 1;
+                COMPUTE: begin
+                    // Add one to the difference if asserted, else subtract one.
+                    diff_r  <= data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
 
-              // Update the count. IMPORTANT: count_r ++ would not work in this
-              // situation. count_r ++ is equivalent to count_r = count_r + 1'b1
-              // which uses a blocking assigning. The blocking assignment will
-              // cause the following if statement to be off by 1. We could
-              // potentially fix that issue by doing count_r == WIDTH, but that
-              // would cause an infinite loop because count_r doesn't have
-              // enough bits to ever represent WIDTH. We could make count_r
-              // one bit wider, but that would increase area with no real
-              // benefit. In addition, even if the ++ worked, we would be
-              // using a block operator within an always_ff block, which could
-              // cause synthesis/linter warnings.
-              count_r <= count_r + 1'b1;
+                    // Shift out the current lowest bit.
+                    data_r  <= data_r >> 1;
 
-              // We are done after checking WIDTH bits. The -1 is used because
-              // the count_r assignment is non-blocking, which means that
-              //  count_r hasn't been updated with the next value yet. 
-              // When subtracting from a variable, this would create an 
-              // extra subtractor, which we definitely want to avoid. However, 
-              // in this case, WIDTH is a parameter, which is treated as a 
-              // constant. Synthesis will do constant propagation and replace 
-              // WIDTH-1 with a constant, so this will just be a comparator.
-              //
-              // We could also use a blocking assignment in the previous
-              // statement and then get rid of the -1, but since this is an
-              // always_ff block, it could introduce warnings.
-              if (count_r == WIDTH-1) state_r <= RESTART; 
-           end
+                    // Update the count. IMPORTANT: count_r ++ would not work in this
+                    // situation. count_r ++ is equivalent to count_r = count_r + 1'b1
+                    // which uses a blocking assigning. The blocking assignment will
+                    // cause the following if statement to be off by 1. We could
+                    // potentially fix that issue by doing count_r == WIDTH, but that
+                    // would cause an infinite loop because count_r doesn't have
+                    // enough bits to ever represent WIDTH. We could make count_r
+                    // one bit wider, but that would increase area with no real
+                    // benefit. In addition, even if the ++ worked, we would be
+                    // using a blocking operator within an always_ff block, which could
+                    // cause synthesis/linter warnings.
+                    count_r <= count_r + 1'b1;
 
-           // This state could easily be combined with START, but was done
-           // this way on purpose to match the FSM+D version, where done is
-           // not registered.
-           RESTART : begin
-              // Assign outputs.
-              result_r <= diff_r;
-              done_r <= 1'b1;
+                    // We are done after checking WIDTH bits. The -1 is used because
+                    // the count_r assignment is non-blocking, which means that
+                    // count_r hasn't been updated with the next value yet. 
+                    // When subtracting from a variable, this would create an 
+                    // extra subtractor, which we definitely want to avoid. However, 
+                    // in this case, WIDTH is a parameter, which is treated as a 
+                    // constant. Synthesis will do constant propagation and replace 
+                    // WIDTH-1 with a constant, so this will just be a comparator.
+                    //
+                    // We could also use a blocking assignment in the previous
+                    // statement and then get rid of the -1, but since this is an
+                    // always_ff block, it could introduce warnings.
+                    if (count_r == WIDTH - 1) state_r <= RESTART;
+                end
 
-              // Reset internal state.
-              count_r <= '0;
-              data_r <= data;
-              
-              if (go == 1'b1) begin
-                 // We need to clear diff_r here in case the FSMD stays in
-                 // the restart state for multiple cycles, in which case
-                 // result_r would only be valid for 1 cycle.
-                 diff_r <= '0;
-                 
-                 // If we don't clear done here, then we'll get an assertion
-                 // error because it will take an extra cycle for done to be
-                 // cleared after the circuit is restarted.
-                 done_r <= 1'b0;                 
-                 state_r <= COMPUTE;
-              end
-           end 
+                // This state could easily be combined with START, but was done
+                // this way on purpose to match the FSM+D version, where done is
+                // not registered.
+                RESTART: begin
+                    // Assign outputs.
+                    result_r <= diff_r;
+                    done_r   <= 1'b1;
 
-           default : state_r <= XXX;
-         endcase          
-      end      
-   end   
+                    // Reset internal state.
+                    count_r  <= '0;
+                    data_r   <= data;
+
+                    if (go) begin
+                        // We need to clear diff_r here in case the FSMD stays in
+                        // the restart state for multiple cycles, in which case
+                        // result_r would only be valid for 1 cycle.
+                        diff_r  <= '0;
+
+                        // If we don't clear done here, then we'll get an assertion
+                        // error because it will take an extra cycle for done to be
+                        // cleared after the circuit is restarted.
+                        done_r  <= 1'b0;
+                        state_r <= COMPUTE;
+                    end
+                end
+
+                default: state_r <= XXX;
+            endcase
+        end
+    end
 endmodule
 
 
@@ -220,232 +220,238 @@ endmodule
 // which is another reason not to pre-optimize until you know the appropriate
 // tradeoff your are looking for.
 
-module bit_diff_fsmd_1p_2
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_1p_2 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
+    // This could potentially just be one bit, but we generally want FPGA
+    // synthesis to use one-hot encoding. In Quartus and Vivado, it doesn't 
+    // matter because they will ignore the width unless it is smaller than what 
+    //is needed for a binary encoding.
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        XXX = 'x
+    } state_t;
+    state_t state_r;
 
-   // This could potentially just be one bit, but we generally want FPGA
-   // synthesis to use one-hot encoding. In Quartus, it doesn't matter because
-   // it will ignore the width unless it is smaller than what is needed for
-   // a binary encoding.
-   typedef enum logic[1:0] {START, COMPUTE, XXX='x} state_t;
-   state_t state_r;
+    logic [$bits(data)-1:0]                      data_r;
+    logic [$bits(result)-1:0]                    result_r;
+    logic [$clog2(WIDTH)-1:0]                    count_r;
+    logic signed [$bits(result)-1:0]             diff_r;
+    logic                                        done_r;
 
-   logic [$bits(data)-1:0]                      data_r;
-   logic [$bits(result)-1:0]                    result_r;
-   logic [$clog2(WIDTH)-1:0]                    count_r;
-   logic signed [$bits(result)-1:0]             diff_r;
-   logic                                        done_r;
-   
-   assign result = result_r;
-   assign done = done_r;
-   
-   // For this version, we can't use an always_ff because we have to use a
-   // blocking assignment in one state.
-   always @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin     
-         
-         result_r <= '0;
-         done_r <= 1'b0;                 
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin         
-         case (state_r)
-           // In this version, we no longer set done_r to 0 in this state.
-           // We omit this code because reset will initialize the done
-           // register. Also, we want to eliminate the restart state,
-           // which requires the START state to provide the same done
-           // functionality. To accomplish that goal, the new START state
-           // simply preserves the value of done_r.        
-           START : begin
-              diff_r <= '0;        
-              count_r <= '0;
-              data_r <= data;
+    assign result = result_r;
+    assign done   = done_r;
 
-              if (go == 1'b1) begin
-                 // In this version, we have to clear done when circuit is
-                 // started because the START state just preserves the
-                 // previous value.
-                 done_r <= 1'b0;                 
-                 state_r <= COMPUTE;
-              end
-           end
+    // For this version, we can't use an always_ff because we have to use a
+    // blocking assignment in one state.
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            done_r   <= 1'b0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
 
-           COMPUTE : begin
-              // We need a blocking assignment here because we need to
-              // potentially assign the output the next value of diff.
-              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
-              data_r <= data_r >> 1;
-              count_r <= count_r + 1'b1;
+        end else begin
+            case (state_r)
+                // In this version, we no longer set done_r to 0 in this state.
+                // We omit this code because reset will initialize the done
+                // register. Also, we want to eliminate the restart state,
+                // which requires the START state to provide the same done
+                // functionality. To accomplish that goal, the new START state
+                // simply preserves the value of done_r.        
+                START: begin
+                    diff_r  <= '0;
+                    count_r <= '0;
+                    data_r  <= data;
 
-              if (count_r == WIDTH-1) begin
+                    if (go) begin
+                        // In this version, we have to clear done when the circuit
+                        // is started because the START state just preserves the
+                        // previous value.
+                        done_r  <= 1'b0;
+                        state_r <= COMPUTE;
+                    end
+                end
 
-                 // By assigning these here, we can get rid of the RESTART
-                 // state entirely.
-                 done_r <= 1'b1;
-                 result_r <= diff_r;             
-                 state_r <= START;
-              end
-           end     
+                COMPUTE: begin
+                    // We need a blocking assignment here because we need to
+                    // potentially assign the output the next value of diff.
+                    // Following my rules for blocking-assignments on clock edges, 
+                    // we declare a local variable to eliminate the possibility of
+                    // reading the variable outside the block.
+                    logic [$bits(diff_r)-1:0] next_diff;
+                    next_diff = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
 
-           default : state_r <= XXX;       
-         endcase          
-      end      
-   end   
+                    diff_r  <= next_diff;
+                    data_r  <= data_r >> 1;
+                    count_r <= count_r + 1'b1;
+
+                    if (count_r == WIDTH - 1) begin
+                        // By assigning these here, we can get rid of the RESTART
+                        // state entirely.
+                        done_r   <= 1'b1;
+                        result_r <= next_diff;
+                        state_r  <= START;
+                    end
+                end
+
+                default: state_r <= XXX;
+            endcase
+        end
+    end
 endmodule
 
 
 // Module: bit_diff_fsmd_2p
 // Description: This module implements a 2-process version of the original FSMD.
 
-module bit_diff_fsmd_2p
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_2p #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
 
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+    // For a 2-process FSMD, every register needs a variable for the output of
+    // the register, which is the current value represented by the _r suffix,
+    // and a variable for the input to the register (i.e., the value for the
+    // next cycle), which is determined by combinational logic.
+    state_t state_r, next_state;
+    logic done_r, next_done;
+    logic [$bits(data)-1:0] data_r, next_data;
+    logic [$bits(result)-1:0] result_r, next_result;
+    logic [$clog2(WIDTH)-1:0] count_r, next_count;
+    logic signed [$bits(result)-1:0] diff_r, next_diff;
 
-   // For a 2-process FSMD, every register needs a variable for the output of
-   // the register, which is the current value represented by the _r suffix,
-   // and a variable for the input to the register (i.e., the value for the
-   // next cycle), which is determined by combinational logic.
-   state_t state_r, next_state;
-   logic                                        done_r, next_done;   
-   logic [$bits(data)-1:0]                      data_r, next_data;
-   logic [$bits(result)-1:0]                    result_r, next_result;
-   logic [$clog2(WIDTH)-1:0]                    count_r, next_count;
-   logic signed [$bits(result)-1:0]             diff_r, next_diff;
+    assign result = result_r;
+    assign done   = done_r;
 
-   assign result = result_r;
-   assign done = done_r;
-      
-   // The first process simply implements all the registers.
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin
-         result_r <= '0;
-         done_r <= 1'b0;         
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin
-         result_r <= next_result;
-         done_r <= next_done;    
-         diff_r <= next_diff;
-         count_r <= next_count;
-         data_r <= next_data;
-         state_r <= next_state;
-      end 
-   end 
-
-   // The second process implements any combinational logic, which includes
-   // the inputs to all the registers, and any other combinational logic. For
-   // example, in this module the done output is not registered like in the
-   // the 1-process model. Although the 2-process model seems like overkill for
-   // this example, the advantage is that you can control exactly what is
-   // registered. For complex designs, registering everything is usually not
-   // ideal, which makes the 2-process model useful.
-   always_comb begin
-      
-      // Since this is combinational logic, we should never be assigning a
-      // _r version of the signals. The left hand side should either be a next_
-      // signal, or other variables that correspond to combinational logic.
-      //
-      // Here we assign default values to all the register inputs to make sure
-      // we don't have latches. For a register, a good default value is usually
-      // the current value because then we only have to assign the signal later
-      // if the register is going to change.
-      next_result = result_r;
-      next_done = done_r;      
-      next_diff = diff_r;
-      next_data = data_r;
-      next_count = count_r;
-      next_state = state_r;
-      
-      case (state_r)    
-        START : begin      
-           next_done = 1'b0;
-           next_result = '0;       
-           next_diff = '0;
-           next_data = data;
-           next_count = '0;
-
-           // Without the default assignment at the beginning of the block,
-           // this would result in a latch in the 2-process FSMD.
-           if (go == 1'b1) begin
-              next_state = COMPUTE;
-           end
+    // The first process simply implements all the registers.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            done_r   <= 1'b0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
+        end else begin
+            result_r <= next_result;
+            done_r   <= next_done;
+            diff_r   <= next_diff;
+            count_r  <= next_count;
+            data_r   <= next_data;
+            state_r  <= next_state;
         end
-        
-        COMPUTE : begin 
-           
-           next_diff = data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;
-           next_data = data_r >> 1;
-           next_count = count_r + 1'b1;
+    end
 
-           // Here, we could compare with next_count also and get rid of the
-           // -1. However, that would be non-ideal for two reasons. First,
-           // The addition for the count becomes an input to the comparator
-           // without a register in between, which could increase the the
-           // length of the critical path and slow down the clock. Second,
-           // the count variable would need an extra bit for the new condition
-           // to ever be true, which would increase the size of the adder, the
-           // comparator, and the register. 
-           if (count_r == WIDTH-1) begin
-              next_state = RESTART;
+    // The second process implements any combinational logic, which includes
+    // the inputs to all the registers, and any other combinational logic. For
+    // example, in this module the done output is not registered like in the
+    // the 1-process model. Although the 2-process model seems like overkill for
+    // this example, the advantage is that you can control exactly what is
+    // registered. For complex designs, registering everything is usually not
+    // ideal, which makes the 2-process model useful.
+    always_comb begin
 
-              // This looks potentially like a combinational loop because
-              // the always_comb block is sensitive to any variable that
-              // appears on the RHS of a statement. Because the block assigns
-              // next_diff while being sensitive to next_diff, this could loop
-              // forever, causing the simualtor to kill the job.
-              // However, the SystemVerilog recognizes this risk and does NOT
-              // make an always_comb sensitive to any variable assigned within
-              // the block.
-              next_result = next_diff;
-              next_done = 1'b1;       
-           end
-        end
+        // Since this is combinational logic, we should never be assigning a
+        // _r version of the signals. The left hand side should either be a next_
+        // signal, or other variables that correspond to combinational logic.
+        //
+        // Here we assign default values to all the register inputs to make sure
+        // we don't have latches. For a register, a good default value is usually
+        // the current value because then we only have to assign the signal later
+        // if the register is going to change.
+        next_result = result_r;
+        next_done   = done_r;
+        next_diff   = diff_r;
+        next_data   = data_r;
+        next_count  = count_r;
+        next_state  = state_r;
 
-        // The restart state here doesn't really do anything differently than
-        // the start state, so we could easily combine them like before.
-        RESTART : begin   
-           next_diff = '0;
-           next_count = '0;
-           next_data = data;
+        case (state_r)
+            START: begin
+                next_done   = 1'b0;
+                next_result = '0;
+                next_diff   = '0;
+                next_data   = data;
+                next_count  = '0;
 
-           if (go == 1'b1) begin
-              // We have to clear done here to ensure the register updates
-              // one cycle after go is asserted.
-              next_done = 1'b0;       
-              next_state = COMPUTE;
-           end
-        end
+                // Without the default assignment at the beginning of the block,
+                // this would result in a latch in the 2-process FSMD.
+                if (go) begin
+                    next_state = COMPUTE;
+                end
+            end
 
-        default : next_state = XXX;
-      endcase     
-   end      
+            COMPUTE: begin
+
+                next_diff  = data_r[0] ? diff_r + 1 : diff_r - 1;
+                next_data  = data_r >> 1;
+                next_count = count_r + 1'b1;
+
+                // Here, we could compare with next_count also and get rid of the
+                // -1. However, that would be non-ideal for two reasons. First,
+                // The addition for the count becomes an input to the comparator
+                // without a register in between, which could increase the the
+                // length of the critical path and slow down the clock. Second,
+                // the count variable would need an extra bit for the new condition
+                // to ever be true, which would increase the size of the adder, the
+                // comparator, and the register. 
+                if (count_r == WIDTH - 1) begin
+                    next_state  = RESTART;
+
+                    // This looks potentially like a combinational loop because
+                    // the always_comb block is sensitive to any variable that
+                    // appears on the RHS of a statement. Because the block assigns
+                    // next_diff while being sensitive to next_diff, this could loop
+                    // forever, causing the simualtor to kill the job.
+                    // However, the SystemVerilog recognizes this risk and does NOT
+                    // make an always_comb sensitive to any variable assigned within
+                    // the block.
+                    next_result = next_diff;
+                    next_done   = 1'b1;
+                end
+            end
+
+            // The restart state here doesn't really do anything differently than
+            // the start state, so we could easily combine them like before.
+            RESTART: begin
+                next_diff  = '0;
+                next_count = '0;
+                next_data  = data;
+
+                if (go) begin
+                    // We have to clear done here to ensure the register updates
+                    // one cycle after go is asserted.
+                    next_done  = 1'b0;
+                    next_state = COMPUTE;
+                end
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -461,115 +467,115 @@ endmodule
 // In general, the 2-process model is useful because the designer gets to
 // decide what is registered.
 
-module bit_diff_fsmd_2p_2
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_2p_2 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
 
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
 
-   state_t state_r, next_state;
-   logic [$bits(data)-1:0]                      data_r, next_data;
-   logic [$bits(result)-1:0]                    result_r, next_result;
-   logic [$clog2(WIDTH)-1:0]                    count_r, next_count;
-   logic signed [$bits(result)-1:0]             diff_r, next_diff;
+    state_t state_r, next_state;
+    logic [$bits(data)-1:0] data_r, next_data;
+    logic [$bits(result)-1:0] result_r, next_result;
+    logic [$clog2(WIDTH)-1:0] count_r, next_count;
+    logic signed [$bits(result)-1:0] diff_r, next_diff;
 
-   assign result = result_r;
+    assign result = result_r;
 
-   // Done is no longer registered, so we don't need it in this block.
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin
-         result_r <= '0;
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin
-         result_r <= next_result;
-         diff_r <= next_diff;
-         count_r <= next_count;
-         data_r <= next_data;
-         state_r <= next_state;
-      end 
-   end 
-
-   always_comb begin
-      
-      next_result = result_r;
-      next_diff = diff_r;
-      next_data = data_r;
-      next_count = count_r;
-      next_state = state_r;
-
-      // Done is combinational logic in this module, so it doesn't have a 
-      // "next" version. 
-      done = 1'b0;
-      
-      case (state_r)    
-        START : begin      
-           done = 1'b0;
-           next_result = '0;       
-           next_diff = '0;
-           next_data = data;
-           next_count = '0;
-
-           if (go == 1'b1) begin
-              next_state = COMPUTE;
-           end
+    // Done is no longer registered, so we don't need it in this block.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
+        end else begin
+            result_r <= next_result;
+            diff_r   <= next_diff;
+            count_r  <= next_count;
+            data_r   <= next_data;
+            state_r  <= next_state;
         end
-        
-        COMPUTE : begin 
+    end
 
-           next_diff = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
-           next_data = data_r >> 1;
-           next_count = count_r + 1'b1;
+    always_comb begin
 
-           if (count_r == WIDTH-1) begin
-              next_state = RESTART;
+        next_result = result_r;
+        next_diff = diff_r;
+        next_data = data_r;
+        next_count = count_r;
+        next_state = state_r;
 
-              // For us to be able to assert done in the next cycle, we need
-              // to send the new diff to the result register this cycle. Also, 
-              // we need to use the next version of diff since the register 
-              // won't be updated yet.
-              next_result = next_diff;
-           end
-        end
+        // Done is combinational logic in this module, so it doesn't have a 
+        // "next" version. 
+        done = 1'b0;
 
-        // The restart state is now identical to the start state with the
-        // exception of the done signal, which is now asserted. Basically, the
-        // logic for done has been moved from a separate register into logic
-        // based on the state register.
-        RESTART : begin   
-           done = 1'b1;            
-           next_diff = '0;
-           next_count = '0;
-           next_data = data;
+        case (state_r)
+            START: begin
+                done = 1'b0;
+                next_result = '0;
+                next_diff = '0;
+                next_data = data;
+                next_count = '0;
 
-           // Since done is now combinational logic, we don't want to clear it
-           // here otherwise it will be cleared in the same cycle that go
-           // is asserted. If that is desired behavior, it is fine to do so,
-           // but the specification for this module requires done to be cleared
-           // one cycle after the assertion of go.
-           //
-           // One reason to avoid clearing done within the same cycle as go is
-           // that if the logic for go outside this module depends on done,
-           // it creates a combinational loop. The 1-cycle delay avoids that
-           // problem.
-           if (go == 1'b1) next_state = COMPUTE;
-        end
+                if (go) next_state = COMPUTE;
+            end
 
-        default : next_state = XXX;
-      endcase     
-   end      
+            COMPUTE: begin
+
+                next_diff  = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
+                next_data  = data_r >> 1;
+                next_count = count_r + 1'b1;
+
+                if (count_r == WIDTH - 1) begin
+                    next_state  = RESTART;
+
+                    // For us to be able to assert done in the next cycle, we need
+                    // to send the new diff to the result register this cycle. Also, 
+                    // we need to use the next version of diff since the register 
+                    // won't be updated yet.
+                    next_result = next_diff;
+                end
+            end
+
+            // The restart state is now identical to the start state with the
+            // exception of the done signal, which is now asserted. Basically, the
+            // logic for done has been moved from a separate register into logic
+            // based on the state register.
+            RESTART: begin
+                done       = 1'b1;
+                next_diff  = '0;
+                next_count = '0;
+                next_data  = data;
+
+                // Since done is now combinational logic, we don't want to clear it
+                // here otherwise it will be cleared in the same cycle that go
+                // is asserted. If that is desired behavior, it is fine to do so,
+                // but the specification for this module requires done to be cleared
+                // one cycle after the assertion of go.
+                //
+                // One reason to avoid clearing done within the same cycle as go is
+                // that if the logic for go outside this module depends on done,
+                // it creates a combinational loop. The 1-cycle delay avoids that
+                // problem.
+                if (go) next_state = COMPUTE;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -583,94 +589,103 @@ endmodule
 // combinational process. The advantage of this strategy is that you don't need
 // the next version of most of the signals.
 
-module bit_diff_fsmd_2p_3
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_2p_3 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r;
+    output logic                                done
+);
 
-   logic [$bits(data)-1:0]                      data_r;
-   logic [$bits(result)-1:0]                    result_r;
-   logic [$clog2(WIDTH)-1:0]                    count_r;
-   logic signed [$bits(result)-1:0]             diff_r;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r;
 
-   assign result = result_r;
+    logic [$bits(data)-1:0]                      data_r;
+    logic [$bits(result)-1:0]                    result_r;
+    logic [$clog2(WIDTH)-1:0]                    count_r;
+    logic signed [$bits(result)-1:0]             diff_r;
 
-   // Note that this code is almost identical to a 1-process FSMD. We have
-   // simply removed the done logic.
-   always @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin              
-         result_r <= '0;   
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin         
-         case (state_r)
-           START : begin
-              result_r <= '0;
-              diff_r <= '0;
-              count_r <= '0;
-              data_r <= data;              
-              if (go == 1'b1) state_r <= COMPUTE;              
-           end
+    assign result = result_r;
 
-           COMPUTE : begin
-              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
-              data_r <= data_r >> 1;
-              count_r <= count_r + 1'b1;
-              if (count_r == WIDTH-1) begin
-                 result_r <= diff_r;
-                 state_r <= RESTART; 
-              end
-           end
+    // Note that this code is almost identical to a 1-process FSMD. We have
+    // simply removed the done logic.
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
+        end else begin
+            case (state_r)
+                START: begin
+                    result_r <= '0;
+                    diff_r   <= '0;
+                    count_r  <= '0;
+                    data_r   <= data;
+                    if (go) state_r <= COMPUTE;
+                end
 
-           RESTART : begin
-              count_r <= '0;
-              data_r <= data;
-              diff_r <= '0;                              
-              if (go == 1'b1) state_r <= COMPUTE;
-           end
+                COMPUTE: begin
+                    // We could move this next_diff combinational logic to 
+                    // the always_comb block if we want to use an always_ff here,
+                    // since next_diff is only needed in this state, and is not an
+                    // output, it is more convenient to leave it here.
+                    logic [$bits(diff_r)-1:0] next_diff;
+                    next_diff = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
 
-           default : state_r <= XXX;
-         endcase          
-      end      
-   end
+                    diff_r  <= next_diff;
+                    data_r  <= data_r >> 1;
+                    count_r <= count_r + 1'b1;
+                    if (count_r == WIDTH - 1) begin
+                        result_r <= next_diff;
+                        state_r  <= RESTART;
+                    end
+                end
 
-   // Since we actually want registers for all the code above, it is not
-   // necessary to add next signals for any of them, including the state_r.
-   // Instead, we'll just pull out the done_r signal and make it combinational
-   // logic in this process.
-   always_comb begin
-      case (state_r)
-         START : begin 
-            done = 1'b0;
-         end
-        
-        COMPUTE : begin 
-            done = 1'b0;
-         end
+                RESTART: begin
+                    count_r <= '0;
+                    data_r  <= data;
+                    diff_r  <= '0;
+                    if (go) state_r <= COMPUTE;
+                end
 
-        RESTART : begin
-           done = 1'b1;
-        end     
-      endcase 
-      
-      // Could be simplified to the following if you never plan on having any
-      // other logic in this process.
-      // done = state_r == RESTART;
-   end   
+                default: state_r <= XXX;
+            endcase
+        end
+    end
+
+    // Since we actually want registers for all the code above, it is not
+    // necessary to add next signals for any of them, including the state_r.
+    // Instead, we'll just pull out the done_r signal and make it combinational
+    // logic in this process.
+    always_comb begin
+        case (state_r)
+            START: begin
+                done = 1'b0;
+            end
+
+            COMPUTE: begin
+                done = 1'b0;
+            end
+
+            RESTART: begin
+                done = 1'b1;
+            end
+        endcase
+
+        // Could be simplified to the following if you never plan on having any
+        // other logic in this process.
+        // done = state_r == RESTART;
+    end
 endmodule
 
 
@@ -678,106 +693,110 @@ endmodule
 // Description: This extends the previous module by also separating
 // state_r and next_state, in addition to having done as combinational logic.
 
-module bit_diff_fsmd_2p_4
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_2p_4 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+    output logic                                done
+);
 
-   logic [$bits(data)-1:0]                      data_r;
-   logic [$bits(result)-1:0]                    result_r;
-   logic [$clog2(WIDTH)-1:0]                    count_r;
-   logic signed [$bits(result)-1:0]             diff_r;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   assign result = result_r;
+    logic [$bits(data)-1:0]                      data_r;
+    logic [$bits(result)-1:0]                    result_r;
+    logic [$clog2(WIDTH)-1:0]                    count_r;
+    logic signed [$bits(result)-1:0]             diff_r;
 
-   always @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin              
-         result_r <= '0;   
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-         state_r <= START;       
-      end
-      else begin
+    assign result = result_r;
 
-         // To add the next_state variable, this process now simply creates
-         // the state register.
-         state_r <= next_state;
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+            state_r  <= START;
+        end else begin
 
-         // All other signals are still registered without a next version, since
-         // we don't have a need for the next version.
-         case (state_r)
-           START : begin
-              result_r <= '0;
-              diff_r <= '0;
-              count_r <= '0;
-              data_r <= data;
-              // Notice there is no next-state logic here anymore. It is moved
-              // to the combinational process.
-           end
+            // To add the next_state variable, this process now simply creates
+            // the state register.
+            state_r <= next_state;
 
-           COMPUTE : begin
-              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
-              data_r <= data_r >> 1;
-              count_r <= count_r + 1'b1;
-              // This is non-ideal, but we have to replicate the 
-              // transition-sensitive logic here. One disadvantage of this
-              // approach is that replicating this logic is error prone because
-              // if we change it in one place, we might forget to change it in
-              // another.
-              // We could also change result to have a next version, and move
-              // this transition entirely to the combinational process.
-              if (count_r == WIDTH-1) begin
-                 result_r <= diff_r;           
-              end
-           end
+            // All other signals are still registered without a next version, since
+            // we don't have a need for the next version.
+            case (state_r)
+                START: begin
+                    result_r <= '0;
+                    diff_r   <= '0;
+                    count_r  <= '0;
+                    data_r   <= data;
+                    // Notice there is no next-state logic here anymore. It is moved
+                    // to the combinational process.
+                end
 
-           RESTART : begin
-              count_r <= '0;
-              data_r <= data;
-              diff_r <= '0;                                            
-           end
-         endcase          
-      end      
-   end
+                COMPUTE: begin
+                    logic [$bits(diff_r)-1:0] next_diff;
+                    next_diff = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
 
-   // In this version, we have done here since it isn't registered, in addition
-   // to the next_state logic, so we can see both the current state and the
-   // next state.
-   always_comb begin
+                    diff_r  <= next_diff;
+                    data_r  <= data_r >> 1;
+                    count_r <= count_r + 1'b1;
+                    // This is non-ideal, but we have to replicate the 
+                    // transition-sensitive logic here and in the always_comb. 
+                    // Cuch replication is error prone because if we change it in
+                    // one place, we might forget to change it in another.
+                    // We could also change result to have a next version, and move
+                    // this transition entirely to the combinational process.
+                    if (count_r == WIDTH - 1) begin
+                        result_r <= next_diff;
+                    end
+                end
 
-      next_state = state_r;
-      
-      case (state_r)
-         START : begin 
-            done = 1'b0;
-            if (go == 1'b1) next_state = COMPUTE;
-         end
-        
-        COMPUTE : begin 
-           done = 1'b0;
-           if (count_r == WIDTH-1) next_state = RESTART;    
+                RESTART: begin
+                    count_r <= '0;
+                    data_r  <= data;
+                    diff_r  <= '0;
+                end
+            endcase
         end
-        
-        RESTART : begin
-           done = 1'b1;
-           if (go == 1'b1) next_state = COMPUTE;
-        end  
+    end
 
-        default : next_state = XXX;  
-      endcase      
-   end   
+    // In this version, we have done here since it isn't registered, in addition
+    // to the next_state logic, so we can see both the current state and the
+    // next state.
+    always_comb begin
+
+        next_state = state_r;
+
+        case (state_r)
+            START: begin
+                done = 1'b0;
+                if (go) next_state = COMPUTE;
+            end
+
+            COMPUTE: begin
+                done = 1'b0;
+                if (count_r == WIDTH - 1) next_state = RESTART;
+            end
+
+            RESTART: begin
+                done = 1'b1;
+                if (go) next_state = COMPUTE;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -785,199 +804,212 @@ endmodule
 // Description: A modification of the previous module to use 3-processes.
 //
 // NOTE: Personally, I have never encountered an example where I would use this
-// strategy.
+// strategy. There are other 3-process styles, but I do not discuss them here.
+// See http://www.sunburst-design.com/papers/CummingsSNUG2019SV_FSM1.pdf for
+// a thorough discussion.
 
-module bit_diff_fsmd_3p
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_3p #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+    output logic                                done
+);
 
-   logic [$bits(data)-1:0]                      data_r;
-   logic [$bits(result)-1:0]                    result_r;
-   logic [$clog2(WIDTH)-1:0]                    count_r;
-   logic signed [$bits(result)-1:0]             diff_r;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   assign result = result_r;
+    logic [$bits(data)-1:0]                      data_r;
+    logic [$bits(result)-1:0]                    result_r;
+    logic [$clog2(WIDTH)-1:0]                    count_r;
+    logic signed [$bits(result)-1:0]             diff_r;
 
-   // In the 3-process model, one process is always just an always_ff for
-   // the state register.
-   always @(posedge clk or posedge rst)
-      if (rst == 1'b1) state_r <= START;       
-      else state_r <= next_state;
-   
-   // The second process is another always_ff (usually assuming no blocking
-   // assignments) that handles all the other registered logic. In other words,
-   // we have simply taken the one always_ff block from the previous module and
-   // separated it into two: one for the state register, and one for everything
-   // else.
-   always @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin              
-         result_r <= '0;   
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-      end
-      else begin
-         case (state_r)
-           START : begin
-              result_r <= '0;
-              diff_r <= '0;
-              count_r <= '0;
-              data_r <= data;
-           end
+    assign result = result_r;
 
-           COMPUTE : begin
-              diff_r = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;  
-              data_r <= data_r >> 1;
-              count_r <= count_r + 1'b1;
-              if (count_r == WIDTH-1) result_r <= diff_r;
-           end
+    // In the 3-process model, one process is always just an always_ff for
+    // the state register.
+    always @(posedge clk or posedge rst)
+        if (rst) state_r <= START;
+        else state_r <= next_state;
 
-           RESTART : begin
-              count_r <= '0;
-              data_r <= data;
-              diff_r <= '0;                                            
-           end
-         endcase          
-      end      
-   end
+    // The second process is another always_ff (usually assuming no blocking
+    // assignments) that handles all the other registered logic. In other words,
+    // we have simply taken the one always_ff block from the previous module and
+    // separated it into two: one for the state register, and one for everything
+    // else.
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+        end else begin
+            case (state_r)
+                START: begin
+                    result_r <= '0;
+                    diff_r   <= '0;
+                    count_r  <= '0;
+                    data_r   <= data;
+                end
 
-   // The third process handles all the combinational logic, which is identical
-   // to the previous example.
-   always_comb begin
+                COMPUTE: begin
+                    logic [$bits(diff_r)-1:0] next_diff;
+                    next_diff = data_r[0] ? diff_r + 1'b1 : diff_r - 1'b1;
 
-      next_state = state_r;
-      
-      case (state_r)
-         START : begin 
-            done = 1'b0;
-            if (go == 1'b1) next_state = COMPUTE;
-         end
-        
-        COMPUTE : begin 
-           done = 1'b0;
-           if (count_r == WIDTH-1) next_state = RESTART; 
-         end
+                    diff_r  <= next_diff;
+                    data_r  <= data_r >> 1;
+                    count_r <= count_r + 1'b1;
+                    if (count_r == WIDTH - 1) result_r <= next_diff;
+                end
 
-        RESTART : begin
-           done = 1'b1;
-           if (go == 1'b1) next_state = COMPUTE;
+                RESTART: begin
+                    count_r <= '0;
+                    data_r  <= data;
+                    diff_r  <= '0;
+                end
+            endcase
         end
-        
-        default : next_state = XXX;   
-      endcase      
-   end   
+    end
+
+    // The third process handles all the combinational logic, which is identical
+    // to the previous example.
+    always_comb begin
+
+        next_state = state_r;
+
+        case (state_r)
+            START: begin
+                done = 1'b0;
+                if (go) next_state = COMPUTE;
+            end
+
+            COMPUTE: begin
+                done = 1'b0;
+                if (count_r == WIDTH - 1) next_state = RESTART;
+            end
+
+            RESTART: begin
+                done = 1'b1;
+                if (go) next_state = COMPUTE;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
 // Module: bit_diff_fsmd_4p
 // Description: This module adds another process to further separate 
 // functionality by process.
+//
+// There are other 4-process styles, but I do not discuss them here.
+// See http://www.sunburst-design.com/papers/CummingsSNUG2019SV_FSM1.pdf for
+// a thorough discussion.
 
-module bit_diff_fsmd_4p
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsmd_4p #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+    output logic                                done
+);
 
-   logic [$bits(data)-1:0]                      data_r, next_data;
-   logic [$bits(result)-1:0]                    result_r, next_result;
-   logic [$clog2(WIDTH)-1:0]                    count_r, next_count;
-   logic signed [$bits(result)-1:0]             diff_r, next_diff;
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   assign result = result_r;
+    logic [$bits(data)-1:0] data_r, next_data;
+    logic [$bits(result)-1:0] result_r, next_result;
+    logic [$clog2(WIDTH)-1:0] count_r, next_count;
+    logic signed [$bits(result)-1:0] diff_r, next_diff;
 
-   // Like the 3-process model, in the 4-process model, one process is always 
-   // just an always_ff for the state register.
-   always @(posedge clk or posedge rst)
-      if (rst == 1'b1) state_r <= START;       
-      else state_r <= next_state;
+    assign result = result_r;
 
-   // The second process is combinational logic solely for the next state
-   // transitions.
-   always_comb begin
-      next_state = state_r;
-            
-      case (state_r)
-        START : if (go == 1'b1) next_state = COMPUTE;
-        COMPUTE : if (count_r == WIDTH-1) next_state = RESTART;
-        RESTART : if (go == 1'b1) next_state = COMPUTE;
-        default : next_state = XXX;
-      endcase      
-   end 
-   
-   // The 3rd process simply allocates all other registers.
-   always @(posedge clk or posedge rst) begin
-      if (rst == 1'b1) begin              
-         result_r <= '0;   
-         diff_r <= '0;   
-         count_r <= '0;
-         data_r <= '0;   
-      end
-      else begin         
-         result_r <= next_result;
-         diff_r <= next_diff;
-         count_r <= next_count;
-         data_r <= next_data;
-      end      
-   end // always @ (posedge clk or posedge rst)
+    // Like the 3-process model, in the 4-process model, one process is always 
+    // just an always_ff for the state register.
+    always @(posedge clk or posedge rst)
+        if (rst) state_r <= START;
+        else state_r <= next_state;
 
-   // The 4th process is all remaining combinational logic, which includes
-   // non-registered output logic, and all non-state register inputs.
-   always_comb begin
-      
-      next_result = result_r;
-      next_diff = diff_r;
-      next_data = data_r;
-      next_count = count_r;
+    // The second process is combinational logic solely for the next state
+    // transitions.
+    always_comb begin
+        next_state = state_r;
 
-      done = 1'b0;
-      
-      case (state_r)    
-        START : begin      
-           done = 1'b0;
-           next_result = '0;       
-           next_diff = '0;
-           next_data = data;
-           next_count = '0;
+        case (state_r)
+            START:   if (go) next_state = COMPUTE;
+            COMPUTE: if (count_r == WIDTH - 1) next_state = RESTART;
+            RESTART: if (go) next_state = COMPUTE;
+            default: next_state = XXX;
+        endcase
+    end
+
+    // The 3rd process simply allocates all other registers.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            result_r <= '0;
+            diff_r   <= '0;
+            count_r  <= '0;
+            data_r   <= '0;
+        end else begin
+            result_r <= next_result;
+            diff_r   <= next_diff;
+            count_r  <= next_count;
+            data_r   <= next_data;
         end
-        
-        COMPUTE : begin 
-           next_diff = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
-           next_data = data_r >> 1;
-           next_count = count_r + 1'b1;
-           if (count_r == WIDTH-1) next_result = next_diff;
-        end
+    end  // always @ (posedge clk or posedge rst)
 
-        RESTART : begin   
-           done = 1'b1;            
-           next_diff = '0;
-           next_count = '0;
-           next_data = data;
-        end
-      endcase     
-   end      
+    // The 4th process is all remaining combinational logic, which includes
+    // unregistered output logic, and all non-state register inputs.
+    always_comb begin
+
+        next_result = result_r;
+        next_diff = diff_r;
+        next_data = data_r;
+        next_count = count_r;
+
+        done = 1'b0;
+
+        case (state_r)
+            START: begin
+                done = 1'b0;
+                next_result = '0;
+                next_diff = '0;
+                next_data = data;
+                next_count = '0;
+            end
+
+            COMPUTE: begin
+                next_diff  = data_r[0] == 1'b1 ? diff_r + 1'b1 : diff_r - 1'b1;
+                next_data  = data_r >> 1;
+                next_count = count_r + 1'b1;
+                if (count_r == WIDTH - 1) next_result = next_diff;
+            end
+
+            RESTART: begin
+                done = 1'b1;
+                next_diff = '0;
+                next_count = '0;
+                next_data = data;
+            end
+        endcase
+    end
 endmodule
 
 
@@ -1018,79 +1050,69 @@ endmodule
 
 // Misc modules needed for a structural datapath
 
-module register
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic              clk,
-    input logic              rst,
-    input logic              en,
-    input logic [WIDTH-1:0]  in,
+module register #(
+    parameter int WIDTH
+) (
+    input  logic             clk,
+    input  logic             rst,
+    input  logic             en,
+    input  logic [WIDTH-1:0] in,
     output logic [WIDTH-1:0] out
-    );
+);
 
-   always_ff @(posedge clk or posedge rst) begin      
-      if (rst)
-        out <= '0;
-      else if (en)
-        out <= in;
-   end
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) out <= '0;
+        else if (en) out <= in;
+    end
 endmodule
 
-module mux2x1
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic [WIDTH-1:0]  in0,
-    input logic [WIDTH-1:0]  in1,
-    input logic              sel,
+module mux2x1 #(
+    parameter int WIDTH
+) (
+    input  logic [WIDTH-1:0] in0,
+    input  logic [WIDTH-1:0] in1,
+    input  logic             sel,
     output logic [WIDTH-1:0] out
-    );
+);
 
-   assign out = sel == 1'b1 ? in1 : in0;
+    assign out = sel ? in1 : in0;
 
 endmodule
 
-module add
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic [WIDTH-1:0]  in0, in1,
+module add #(
+    parameter int WIDTH
+) (
+    input  logic [WIDTH-1:0] in0,
+    in1,
     output logic [WIDTH-1:0] sum
-    );
+);
 
-   assign sum = in0 + in1;
-   
+    assign sum = in0 + in1;
+
 endmodule
 
-module shift_right
-  #(
-    parameter WIDTH,
-    parameter SHIFT_AMOUNT
-    )
-   (
-    input logic [WIDTH-1:0]  in,
+module shift_right #(
+    parameter int WIDTH,
+    parameter int SHIFT_AMOUNT
+) (
+    input  logic [WIDTH-1:0] in,
     output logic [WIDTH-1:0] out
-    );
+);
 
-   assign out = in >> SHIFT_AMOUNT;
-   
+    assign out = in >> SHIFT_AMOUNT;
+
 endmodule
 
-module eq
-  #(
-    parameter WIDTH   
-    )
-   (
-    input logic [WIDTH-1:0] in0, in1,
-    output logic            out
-    );
+module eq #(
+    parameter int WIDTH
+) (
+    input  logic [WIDTH-1:0] in0,
+    in1,
+    output logic             out
+);
 
-   assign out = in0 == in1 ? 1'b1 : 1'b0;
-   
+    assign out = in0 == in1 ? 1'b1 : 1'b0;
+
 endmodule
 
 
@@ -1100,104 +1122,150 @@ endmodule
 // See bit_diff.pdf for a graphical illustration of this datapath.
 
 //`default_nettype none
-module datapath1
-  #(
-    parameter WIDTH
-    )
-   (
-    input                                       var logic clk,
-    input                                       var logic rst,
-    input                                       var logic [WIDTH-1:0] data, 
-    input                                       var logic data_sel,
-    input                                       var logic data_en,
-    input                                       var logic diff_sel,
-    input                                       var logic diff_en,
-    input                                       var logic count_sel,
-    input                                       var logic count_en,
-    input                                       var logic result_en,
-    output logic                                count_done,
-    output logic signed [$clog2(WIDTH*2+1)-1:0] result
+module datapath1 #(
+    parameter int WIDTH
+) (
+    input var logic                                clk,
+    input var logic                                rst,
+    input var logic        [            WIDTH-1:0] data,
+    input var logic                                data_sel,
+    input var logic                                data_en,
+    input var logic                                diff_sel,
+    input var logic                                diff_en,
+    input var logic                                count_sel,
+    input var logic                                count_en,
+    input var logic                                result_en,
+    output    logic                                count_done,
+    output    logic signed [$clog2(WIDTH*2+1)-1:0] result
+);
+
+    localparam int DIFF_WIDTH = $clog2(WIDTH * 2 + 1);
+
+    logic [WIDTH-1:0] data_mux, data_r, data_shift;
+    logic [DIFF_WIDTH-1:0] diff_r, add_in1_mux, diff_add, diff_mux;
+
+    // Mux that defines provides input to the data register.
+    mux2x1 #(
+        .WIDTH(WIDTH)
+    ) DATA_MUX (
+        .in0(data_shift),
+        .in1(data),
+        .sel(data_sel),
+        .out(data_mux)
     );
 
-   localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-   
-   logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, diff_mux;
-   
-   // Mux that defines provides input to the data register.
-   mux2x1 #(.WIDTH(WIDTH)) DATA_MUX (.in0(data_shift), 
-                                     .in1(data), 
-                                     .sel(data_sel),
-                                     .out(data_mux));
+    // The data register.
+    register #(
+        .WIDTH(WIDTH)
+    ) DATA_REG (
+        .en (data_en),
+        .in (data_mux),
+        .out(data_r),
+        .*
+    );
+    // Shifter for the data register.
+    shift_right #(
+        .WIDTH       (WIDTH),
+        .SHIFT_AMOUNT(1)
+    ) DATA_SHIFT (
+        .in (data_r),
+        .out(data_shift)
+    );
 
-   // The data register.
-   register #(.WIDTH(WIDTH)) DATA_REG (.en(data_en), 
-                                       .in(data_mux), 
-                                       .out(data_r), 
-                                       .*);
-   // Shifter for the data register.
-   shift_right #(.WIDTH(WIDTH), 
-                 .SHIFT_AMOUNT(1)) DATA_SHIFT (.in(data_r), 
-                                               .out(data_shift));         
+    // Selects between a 1 or -1 input to the adder.
+    mux2x1 #(
+        .WIDTH(DIFF_WIDTH)
+    ) ADD_MUX (
+        .in0(DIFF_WIDTH'(-1)),
+        .in1(DIFF_WIDTH'(1)),
+        .sel(data_r[0]),
+        .out(add_in1_mux)
+    );
 
-   // Selects between a 1 or -1 input to the adder.
-   mux2x1 #(.WIDTH(DIFF_WIDTH)) ADD_MUX(.in0(DIFF_WIDTH'(-1)), 
-                                        .in1(DIFF_WIDTH'(1)), 
-                                        .sel(data_r[0]),
-                                        .out(add_in1_mux));
-   
-   // Adds the current difference with the output of the add_in1_mux (1 or -1).
-   add #(.WIDTH(DIFF_WIDTH)) DIFF_ADD (.in0(diff_r),
-                                       .in1(add_in1_mux),
-                                       .sum(diff_add));
-   
-   // Selects between 0 or the diff adder.
-   mux2x1 #(.WIDTH(DIFF_WIDTH)) DIFF_MUX (.in0(diff_add), 
-                                          .in1(DIFF_WIDTH'(0)), 
-                                          .sel(diff_sel),
-                                          .out(diff_mux));
+    // Adds the current difference with the output of the add_in1_mux (1 or -1).
+    add #(
+        .WIDTH(DIFF_WIDTH)
+    ) DIFF_ADD (
+        .in0(diff_r),
+        .in1(add_in1_mux),
+        .sum(diff_add)
+    );
 
-   // The diff register.
-   register #(.WIDTH(DIFF_WIDTH)) DIFF_REG (.en(diff_en), 
-                                            .in(diff_mux), 
-                                            .out(diff_r), 
-                                            .*);
-   
-   // The result register.
-   register #(.WIDTH(DIFF_WIDTH)) RESULT_REG (.en(result_en), 
-                                              .in(diff_mux), 
-                                              .out(result), 
-                                              .*);
-   
-   /*********************************************************************/
-   // Counter logic
+    // Selects between 0 or the diff adder.
+    mux2x1 #(
+        .WIDTH(DIFF_WIDTH)
+    ) DIFF_MUX (
+        .in0(diff_add),
+        .in1(DIFF_WIDTH'(0)),
+        .sel(diff_sel),
+        .out(diff_mux)
+    );
 
-   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
-   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
-   
-   // Selects between 0 and the count adder.
-   mux2x1 #(.WIDTH(COUNT_WIDTH)) COUNT_MUX (.in0(count_add),
-                                            .in1('0), 
-                                            .sel(count_sel),
-                                            .out(count_mux));
+    // The diff register.
+    register #(
+        .WIDTH(DIFF_WIDTH)
+    ) DIFF_REG (
+        .en (diff_en),
+        .in (diff_mux),
+        .out(diff_r),
+        .*
+    );
 
-   // Register for the count.
-   register #(.WIDTH(COUNT_WIDTH)) COUNT_REG (.en(count_en), 
-                                              .in(count_mux), 
-                                              .out(count_r), 
-                                              .*);
+    // The result register.
+    register #(
+        .WIDTH(DIFF_WIDTH)
+    ) RESULT_REG (
+        .en (result_en),
+        .in (diff_mux),
+        .out(result),
+        .*
+    );
 
-   // Increments the count.
-   add #(.WIDTH(COUNT_WIDTH)) COUNT_ADD (.in0(COUNT_WIDTH'(1)),
-                                         .in1(count_r),
-                                         .sum(count_add));
-   
-   // Comparator to check when the count is complete. Equivalent to
-   // count_r == WIDTH-1 from the FSMD.
-   eq #(.WIDTH(COUNT_WIDTH)) EQ (.in0(count_r),
-                                 .in1(COUNT_WIDTH'(WIDTH-1)),
-                                 .out(count_done));   
-   
+    /*********************************************************************/
+    // Counter logic
+
+    localparam int COUNT_WIDTH = $clog2(WIDTH);
+    logic [COUNT_WIDTH-1:0] count_mux, count_add, count_r;
+
+    // Selects between 0 and the count adder.
+    mux2x1 #(
+        .WIDTH(COUNT_WIDTH)
+    ) COUNT_MUX (
+        .in0(count_add),
+        .in1('0),
+        .sel(count_sel),
+        .out(count_mux)
+    );
+
+    // Register for the count.
+    register #(
+        .WIDTH(COUNT_WIDTH)
+    ) COUNT_REG (
+        .en (count_en),
+        .in (count_mux),
+        .out(count_r),
+        .*
+    );
+
+    // Increments the count.
+    add #(
+        .WIDTH(COUNT_WIDTH)
+    ) COUNT_ADD (
+        .in0(COUNT_WIDTH'(1)),
+        .in1(count_r),
+        .sum(count_add)
+    );
+
+    // Comparator to check when the count is complete. Equivalent to
+    // count_r == WIDTH-1 from the FSMD.
+    eq #(
+        .WIDTH(COUNT_WIDTH)
+    ) EQ (
+        .in0(count_r),
+        .in1(COUNT_WIDTH'(WIDTH - 1)),
+        .out(count_done)
+    );
+
 endmodule
 //`default_nettype wire   
 
@@ -1210,67 +1278,64 @@ endmodule
 //
 // See bit_diff.pdf for a graphical illustration of this datapath.
 
-module datapath2
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic [WIDTH-1:0]                     data, 
-    input logic                                 data_sel,
-    input logic                                 data_en,
-    input logic                                 diff_sel,
-    input logic                                 diff_en,
-    input logic                                 count_sel,
-    input logic                                 count_en,
-    input logic                                 result_en,
+module datapath2 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic        [            WIDTH-1:0] data,
+    input  logic                                data_sel,
+    input  logic                                data_en,
+    input  logic                                diff_sel,
+    input  logic                                diff_en,
+    input  logic                                count_sel,
+    input  logic                                count_en,
+    input  logic                                result_en,
     output logic                                count_done,
     output logic signed [$clog2(WIDTH*2+1)-1:0] result
-    );
+);
 
-   localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-   
-   logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, diff_mux, result_r;
+    localparam int DIFF_WIDTH = $clog2(WIDTH * 2 + 1);
 
-   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
-   logic [COUNT_WIDTH-1:0]               count_mux, count_add, count_r;
+    logic [WIDTH-1:0] data_mux, data_r, data_shift;
+    logic [DIFF_WIDTH-1:0] diff_r, add_in1_mux, diff_add, diff_mux, result_r;
 
-   // Data mux and shift
-   assign data_mux = data_sel ? data : data_shift;
-   assign data_shift = data_r >> 1;
+    localparam int COUNT_WIDTH = $clog2(WIDTH);
+    logic [COUNT_WIDTH-1:0] count_mux, count_add, count_r;
 
-   // Add mux, diff adder, and diff mux
-   assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
-   assign diff_add = diff_r + add_in1_mux;
-   assign diff_mux = diff_sel ? DIFF_WIDTH'(0) : diff_add;  
+    // Data mux and shift
+    assign data_mux = data_sel ? data : data_shift;
+    assign data_shift = data_r >> 1;
 
-   // Count mux, add, and done
-   assign count_mux = count_sel ? COUNT_WIDTH'(0) : count_add;
-   assign count_add = count_r + 1'b1;
-   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
+    // Add mux, diff adder, and diff mux
+    assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
+    assign diff_add = diff_r + add_in1_mux;
+    assign diff_mux = diff_sel ? DIFF_WIDTH'(0) : diff_add;
 
-   // Not necessary, but complies with my _r naming convention for registers
-   // created in an always block.
-   assign result = result_r;
+    // Count mux, add, and done
+    assign count_mux = count_sel ? COUNT_WIDTH'(0) : count_add;
+    assign count_add = count_r + 1'b1;
+    assign count_done = count_r == COUNT_WIDTH'(WIDTH - 1);
 
-   // Create the registers behaviorally.
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst) begin
-         data_r <= '0;
-         diff_r <= '0;
-         result_r <= '0;
-         count_r <= '0;  
-      end
-      else begin
-         if (data_en) data_r <= data_mux;
-         if (diff_en) diff_r <= diff_mux;
-         if (result_en) result_r <= diff_mux;
-         if (count_en) count_r <= count_mux;             
-      end      
-   end
-   
+    // Not necessary, but complies with my _r naming convention for registers
+    // created in an always block.
+    assign result = result_r;
+
+    // Create the registers behaviorally.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_r   <= '0;
+            diff_r   <= '0;
+            result_r <= '0;
+            count_r  <= '0;
+        end else begin
+            if (data_en) data_r <= data_mux;
+            if (diff_en) diff_r <= diff_mux;
+            if (result_en) result_r <= diff_mux;
+            if (count_en) count_r <= count_mux;
+        end
+    end
+
 endmodule
 
 
@@ -1280,107 +1345,111 @@ endmodule
 // we simply replace the previous datapath operations from the FSMD with
 // explicit control signals that configure the datapath to do the same thing.
 
-module fsm1
-  (
-   input logic  clk,
-   input logic  rst,
-   input logic  go,
-   input logic  count_done,
-   output logic done,
-   output logic data_sel,
-   output logic data_en,
-   output logic diff_sel,
-   output logic diff_en,
-   output logic count_sel,
-   output logic count_en,
-   output logic result_en
-   );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+module fsm1 (
+    input  logic clk,
+    input  logic rst,
+    input  logic go,
+    input  logic count_done,
+    output logic done,
+    output logic data_sel,
+    output logic data_en,
+    output logic diff_sel,
+    output logic diff_en,
+    output logic count_sel,
+    output logic count_en,
+    output logic result_en
+);
 
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst) state_r <= START;
-      else state_r <= next_state;      
-   end
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   always_comb begin
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) state_r <= START;
+        else state_r <= next_state;
+    end
 
-      done = 1'b0;
+    always_comb begin
 
-      result_en = 1'b0;
-      diff_en = 1'b0;
-      count_en = 1'b0;
-      data_en = 1'b0;
+        done = 1'b0;
 
-      diff_sel = 1'b0;
-      count_sel = 1'b0;
-      data_sel = 1'b0;
+        result_en = 1'b0;
+        diff_en = 1'b0;
+        count_en = 1'b0;
+        data_en = 1'b0;
 
-      next_state = state_r;
-            
-      case (state_r)
-        START : begin
-           
-           // Replaces diff_r <= '0;
-           diff_en = 1'b1;
-           diff_sel = 1'b1;
-           
-           // Replaces count_r <= '0;
-           count_en = 1'b1;
-           count_sel = 1'b1;
-           
-           // Replaces data_r <= data;
-           data_en = 1'b1;
-           data_sel = 1'b1;       
-           
-           if (go) next_state = COMPUTE;
-        end
+        diff_sel = 1'b0;
+        count_sel = 1'b0;
+        data_sel = 1'b0;
 
-        COMPUTE : begin
-           
-           // Selects are 1'b0 by default and don't have to be respecified here.
-           
-           // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;
-           diff_en = 1'b1;
+        next_state = state_r;
 
-           // Replaces data_r <= data_r >> 1;
-           data_en = 1'b1;
+        case (state_r)
+            START: begin
 
-           // Replaces count_r <= count_r + 1;
-           count_en = 1'b1;
+                // Replaces diff_r <= '0;
+                diff_en   = 1'b1;
+                diff_sel  = 1'b1;
 
-           // Replaces count_r == WIDTH-1
-           if (count_done) begin
-              // Enable the result register one cycle early to make sure it
-              // aligns with the assertion of done.
-              result_en = 1'b1;       
-              next_state = RESTART;
-           end
-        end
+                // Replaces count_r <= '0;
+                count_en  = 1'b1;
+                count_sel = 1'b1;
 
-        RESTART : begin
-           // Assert done in this state.
-           done = 1'b1;
+                // Replaces data_r <= data;
+                data_en   = 1'b1;
+                data_sel  = 1'b1;
 
-           // Replaces diff_r <= '0;
-           diff_en = 1'b1;
-           diff_sel = 1'b1;
-           
-           // Replaces count_r <= '0;
-           count_en = 1'b1;
-           count_sel = 1'b1;
-           
-           // Replaces data_r <= data
-           data_en = 1'b1;
-           data_sel = 1'b1;       
+                if (go) next_state = COMPUTE;
+            end
 
-           if (go) next_state = COMPUTE;           
-        end     
+            COMPUTE: begin
 
-        default : next_state = XXX;
-      endcase            
-   end 
+                // Selects are 1'b0 by default and don't have to be respecified here.
+
+                // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;
+                diff_en  = 1'b1;
+
+                // Replaces data_r <= data_r >> 1;
+                data_en  = 1'b1;
+
+                // Replaces count_r <= count_r + 1;
+                count_en = 1'b1;
+
+                // Replaces count_r == WIDTH-1
+                if (count_done) begin
+                    // Enable the result register one cycle early to make sure it
+                    // aligns with the assertion of done.
+                    result_en  = 1'b1;
+                    next_state = RESTART;
+                end
+            end
+
+            RESTART: begin
+                // Assert done in this state.
+                done = 1'b1;
+
+                // Replaces diff_r <= '0;
+                diff_en = 1'b1;
+                diff_sel = 1'b1;
+
+                // Replaces count_r <= '0;
+                count_en = 1'b1;
+                count_sel = 1'b1;
+
+                // Replaces data_r <= data
+                data_en = 1'b1;
+                data_sel = 1'b1;
+
+                if (go) next_state = COMPUTE;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -1388,66 +1457,60 @@ endmodule
 // Description: FSM+D implementation 1, which simply connects datapath 1 and
 // fsm1.
 
-module bit_diff_fsm_plus_d1
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsm_plus_d1 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
+    logic                                        count_done;
+    logic                                        data_sel;
+    logic                                        data_en;
+    logic                                        diff_sel;
+    logic                                        diff_en;
+    logic                                        count_sel;
+    logic                                        count_en;
+    logic                                        result_en;
 
-   logic                                        count_done;   
-   logic                                        data_sel;
-   logic                                        data_en;
-   logic                                        diff_sel;
-   logic                                        diff_en;
-   logic                                        count_sel;
-   logic                                        count_en;
-   logic                                        result_en;
-   
-   
-   fsm1 CONTROLLER (.*);
-   datapath1 #(.WIDTH(WIDTH)) DATAPATH (.*);
-   
-endmodule // bit_diff_fsm_plus_d1
+    // Generally not a good idea to use .* since it hides the port signals.
+    fsm1 CONTROLLER (.*);
+    datapath1 #(.WIDTH(WIDTH)) DATAPATH (.*);
+
+endmodule  // bit_diff_fsm_plus_d1
 
 
 // Module: bit_diff_fsm_plus_d2
 // Description: FSM+D implementation 2, which simply connects datapath 2 and
 // fsm1.
 
-module bit_diff_fsm_plus_d2
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsm_plus_d2 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
+    logic                                        count_done;
+    logic                                        data_sel;
+    logic                                        data_en;
+    logic                                        diff_sel;
+    logic                                        diff_en;
+    logic                                        count_sel;
+    logic                                        count_en;
+    logic                                        result_en;
 
-   logic                                        count_done;   
-   logic                                        data_sel;
-   logic                                        data_en;
-   logic                                        diff_sel;
-   logic                                        diff_en;
-   logic                                        count_sel;
-   logic                                        count_en;
-   logic                                        result_en;
-   
-   
-   fsm1 CONTROLLER (.*);
-   datapath2 #(.WIDTH(WIDTH)) DATAPATH (.*);
-   
-endmodule // bit_diff_fsm_plus_d2
+    // Generally not a good idea to use .* since it hides the port signals.
+    fsm1 CONTROLLER (.*);
+    datapath2 #(.WIDTH(WIDTH)) DATAPATH (.*);
+
+endmodule  // bit_diff_fsm_plus_d2
 
 
 // Module: datapath3
@@ -1456,69 +1519,64 @@ endmodule // bit_diff_fsm_plus_d2
 //
 // See bit_diff.pdf for a graphical illustration of this datapath.
 
-module datapath3
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic [WIDTH-1:0]                     data, 
-    input logic                                 data_sel,
-    input logic                                 data_en,
-    input logic                                 diff_rst,
-    input logic                                 diff_en,
-    input logic                                 count_rst,
-    input logic                                 count_en,
-    input logic                                 result_en,
+module datapath3 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic        [            WIDTH-1:0] data,
+    input  logic                                data_sel,
+    input  logic                                data_en,
+    input  logic                                diff_rst,
+    input  logic                                diff_en,
+    input  logic                                count_rst,
+    input  logic                                count_en,
+    input  logic                                result_en,
     output logic                                count_done,
     output logic signed [$clog2(WIDTH*2+1)-1:0] result
-    );
+);
+    localparam int DIFF_WIDTH = $clog2(WIDTH * 2 + 1);
 
-   localparam int                        DIFF_WIDTH = $clog2(WIDTH*2 + 1);
-   
-   logic [WIDTH-1:0]                     data_mux, data_r, data_shift;
-   logic [DIFF_WIDTH-1:0]                diff_r, add_in1_mux, diff_add, result_r;
-   localparam int                        COUNT_WIDTH = $clog2(WIDTH);
-   logic [COUNT_WIDTH-1:0]               count_add, count_r;
-   
-   assign data_mux = data_sel ? data : data_shift;
-   assign data_shift = data_r >> 1;
-   
-   assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
-   assign diff_add = diff_r + add_in1_mux;
+    logic [WIDTH-1:0] data_mux, data_r, data_shift;
+    logic [DIFF_WIDTH-1:0] diff_r, add_in1_mux, diff_add, result_r;
+    localparam int COUNT_WIDTH = $clog2(WIDTH);
+    logic [COUNT_WIDTH-1:0] count_add, count_r;
 
-   assign count_add = count_r + 1'b1;
-   assign count_done = count_r == COUNT_WIDTH'(WIDTH-1);
+    assign data_mux = data_sel ? data : data_shift;
+    assign data_shift = data_r >> 1;
 
-   assign result = result_r;
+    assign add_in1_mux = data_r[0] ? DIFF_WIDTH'(1) : DIFF_WIDTH'(-1);
+    assign diff_add = diff_r + add_in1_mux;
 
-   // Registers tied to the global reset.
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst) begin
-         data_r <= '0;
-         result_r <= '0;
-      end
-      else begin
-         if (data_en) data_r <= data_mux;
-         if (result_en) result_r <= diff_add;
-      end      
-   end
+    assign count_add = count_r + 1'b1;
+    assign count_done = count_r == COUNT_WIDTH'(WIDTH - 1);
 
-   // Register for counter, which has its own reset.
-   // This eliminates the need for the count_mux.
-   always_ff @(posedge clk or posedge count_rst) begin
-      if (count_rst) count_r <= '0;      
-      else if (count_en) count_r <= count_add;      
-   end
+    assign result = result_r;
 
-   // Register for diff, which has its own reset.
-   // This eliminates the need for the diff_mux.
-   always_ff @(posedge clk or posedge diff_rst) begin
-      if (diff_rst) diff_r <= '0;        
-      else if (count_en) diff_r <= diff_add;      
-   end
-   
+    // Registers tied to the global reset.
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_r   <= '0;
+            result_r <= '0;
+        end else begin
+            if (data_en) data_r <= data_mux;
+            if (result_en) result_r <= diff_add;
+        end
+    end
+
+    // Register for counter, which has its own reset.
+    // This eliminates the need for the count_mux.
+    always_ff @(posedge clk or posedge count_rst) begin
+        if (count_rst) count_r <= '0;
+        else if (count_en) count_r <= count_add;
+    end
+
+    // Register for diff, which has its own reset.
+    // This eliminates the need for the diff_mux.
+    always_ff @(posedge clk or posedge diff_rst) begin
+        if (diff_rst) diff_r <= '0;
+        else if (count_en) diff_r <= diff_add;
+    end
 endmodule
 
 
@@ -1526,100 +1584,103 @@ endmodule
 // Description: Updated FSM to work with datapath3, which uses separate resets
 // for the diff and count registers to eliminate the previous muxes.
 
-module fsm2
-  (
-   input logic  clk,
-   input logic  rst,
-   input logic  go,
-   input logic  count_done,
-   output logic done,
-   output logic data_sel,
-   output logic data_en,
-   output logic diff_rst,
-   output logic diff_en,
-   output logic count_rst,
-   output logic count_en,
-   output logic result_en
-   );
-   
-   typedef enum logic[1:0] {START, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+module fsm2 (
+    input  logic clk,
+    input  logic rst,
+    input  logic go,
+    input  logic count_done,
+    output logic done,
+    output logic data_sel,
+    output logic data_en,
+    output logic diff_rst,
+    output logic diff_en,
+    output logic count_rst,
+    output logic count_en,
+    output logic result_en
+);
+    typedef enum logic [1:0] {
+        START,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst) state_r <= START;
-      else state_r <= next_state;      
-   end
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) state_r <= START;
+        else state_r <= next_state;
+    end
 
-   always_comb begin
+    always_comb begin
 
-      done = 1'b0;
+        done = 1'b0;
 
-      result_en = 1'b0;
-      diff_en = 1'b0;
-      count_en = 1'b0;
-      data_en = 1'b0;
+        result_en = 1'b0;
+        diff_en = 1'b0;
+        count_en = 1'b0;
+        data_en = 1'b0;
 
-      data_sel = 1'b0;
+        data_sel = 1'b0;
 
-      // Use resets now instead of selects.
-      diff_rst = 1'b0;
-      count_rst = 1'b0;
+        // Use resets now instead of selects.
+        diff_rst = 1'b0;
+        count_rst = 1'b0;
 
-      next_state = state_r;
-      
-      case (state_r)
-        START : begin
+        next_state = state_r;
 
-           // Replaces diff_r <= '0;
-           diff_rst = 1'b1;
-           
-           // Replaces count_r <= '0;
-           count_rst = 1'b1;
-           
-           // Replaces data_r <= data
-           data_en = 1'b1;
-           data_sel = 1'b1;       
-           
-           if (go) next_state = COMPUTE;
-        end
+        case (state_r)
+            START: begin
 
-        COMPUTE : begin
-           
-           // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;  
-           diff_en = 1'b1;
+                // Replaces diff_r <= '0;
+                diff_rst  = 1'b1;
 
-           // Replaces data_r <= data_r >> 1;
-           data_en = 1'b1;
+                // Replaces count_r <= '0;
+                count_rst = 1'b1;
 
-           // Replaces count_r <= count_r + 1;
-           count_en = 1'b1;
+                // Replaces data_r <= data
+                data_en   = 1'b1;
+                data_sel  = 1'b1;
 
-           // Replaces count_r == WIDTH-1
-           if (count_done) begin
-              result_en = 1'b1;       
-              next_state = RESTART;
-           end
-        end
+                if (go) next_state = COMPUTE;
+            end
 
-        RESTART : begin
-           done = 1'b1;
+            COMPUTE: begin
 
-           // Replaces diff_r <= '0;
-           diff_rst = 1'b1;
-           
-           // Replaces count_r <= '0;
-           count_rst = 1'b1;
-           
-           // Replaces data_r <= data
-           data_en = 1'b1;
-           data_sel = 1'b1;       
+                // Replaces diff_r <= data_r[0] == 1'b1 ? diff_r + 1 : diff_r - 1;  
+                diff_en  = 1'b1;
 
-           if (go) next_state = COMPUTE;           
-        end     
+                // Replaces data_r <= data_r >> 1;
+                data_en  = 1'b1;
 
-        default : next_state = XXX;
-      endcase            
-   end 
+                // Replaces count_r <= count_r + 1;
+                count_en = 1'b1;
+
+                // Replaces count_r == WIDTH-1
+                if (count_done) begin
+                    result_en  = 1'b1;
+                    next_state = RESTART;
+                end
+            end
+
+            RESTART: begin
+                done = 1'b1;
+
+                // Replaces diff_r <= '0;
+                diff_rst = 1'b1;
+
+                // Replaces count_r <= '0;
+                count_rst = 1'b1;
+
+                // Replaces data_r <= data
+                data_en = 1'b1;
+                data_sel = 1'b1;
+
+                if (go) next_state = COMPUTE;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -1632,35 +1693,34 @@ endmodule
 // cause problems.
 //
 // One potential fix would be to change the datapath to use synchronous resets,
-// but for most FPGAs, that would just add back in the original muxes we wanted
+// but for some FPGAs, that would just add back in the original muxes we wanted
 // to remove.
 
-module bit_diff_fsm_plus_d3
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsm_plus_d3 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
 
-   logic                                        count_done;   
-   logic                                        data_sel;
-   logic                                        data_en;
-   logic                                        diff_rst;
-   logic                                        diff_en;
-   logic                                        count_rst;
-   logic                                        count_en;
-   logic                                        result_en;
-   
-   fsm2 CONTROLLER (.*);
-   datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
-   
-endmodule // bit_diff_fsm_plus_d3
+    logic                                        count_done;
+    logic                                        data_sel;
+    logic                                        data_en;
+    logic                                        diff_rst;
+    logic                                        diff_en;
+    logic                                        count_rst;
+    logic                                        count_en;
+    logic                                        result_en;
+
+    // Generally not a good idea to use .* since it hides the port signals.
+    fsm2 CONTROLLER (.*);
+    datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
+
+endmodule  // bit_diff_fsm_plus_d3
 
 
 // Module: fsm3
@@ -1669,102 +1729,105 @@ endmodule // bit_diff_fsm_plus_d3
 // the start of the computation by a cycle. However, it does provide a safer
 // reset strategy.
 
-module fsm3
-  (
-   input logic  clk,
-   input logic  rst,
-   input logic  go,
-   input logic  count_done,
-   output logic done,
-   output logic data_sel,
-   output logic data_en,
-   output logic diff_rst,
-   output logic diff_en,
-   output logic count_rst,
-   output logic count_en,
-   output logic result_en
-   );
-   
-   typedef enum logic[2:0] {START, INIT, COMPUTE, RESTART, XXX='x} state_t;
-   state_t state_r, next_state;
+module fsm3 (
+    input  logic clk,
+    input  logic rst,
+    input  logic go,
+    input  logic count_done,
+    output logic done,
+    output logic data_sel,
+    output logic data_en,
+    output logic diff_rst,
+    output logic diff_en,
+    output logic count_rst,
+    output logic count_en,
+    output logic result_en
+);
+    typedef enum logic [2:0] {
+        START,
+        INIT,
+        COMPUTE,
+        RESTART,
+        XXX = 'x
+    } state_t;
+    state_t state_r, next_state;
 
-   logic        count_rst_r, next_count_rst;
-   logic        diff_rst_r, next_diff_rst;
+    logic count_rst_r, next_count_rst;
+    logic diff_rst_r, next_diff_rst;
 
-   // Register the controlled asynchronous resets to be safer.
-   assign count_rst = count_rst_r;
-   assign diff_rst = diff_rst_r;
-   
-   always_ff @(posedge clk or posedge rst) begin
-      if (rst) begin
-         state_r <= START;
-         count_rst_r <= 1'b1;
-         diff_rst_r <= 1'b1;     
-      end
-      else begin
-         state_r <= next_state;
-         count_rst_r <= next_count_rst;
-         diff_rst_r <= next_diff_rst;    
-      end
-   end
+    // Register the controlled asynchronous resets to be safer.
+    assign count_rst = count_rst_r;
+    assign diff_rst  = diff_rst_r;
 
-   always_comb begin
-
-      done = 1'b0;
-
-      result_en = 1'b0;
-      diff_en = 1'b0;
-      count_en = 1'b0;
-      data_en = 1'b0;
-
-      data_sel = 1'b0;
-
-      next_diff_rst = 1'b0;
-      next_count_rst = 1'b0;
-
-      next_state = state_r;
-      
-      case (state_r)
-        START : begin
-
-           next_diff_rst = 1'b1;         
-           next_count_rst = 1'b1;
-           data_en = 1'b1;
-           data_sel = 1'b1;       
-           
-           if (go) next_state = INIT;
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            state_r <= START;
+            count_rst_r <= 1'b1;
+            diff_rst_r <= 1'b1;
+        end else begin
+            state_r <= next_state;
+            count_rst_r <= next_count_rst;
+            diff_rst_r <= next_diff_rst;
         end
+    end
 
-        // We need this extra state to allow time for the registered resets
-        // to update.
-        INIT: begin
-           next_state = COMPUTE;           
-        end
+    always_comb begin
 
-        COMPUTE : begin 
-           diff_en = 1'b1;
-           data_en = 1'b1;
-           count_en = 1'b1;
+        done = 1'b0;
 
-           if (count_done) begin
-              result_en = 1'b1;       
-              next_state = RESTART;
-           end
-        end
+        result_en = 1'b0;
+        diff_en = 1'b0;
+        count_en = 1'b0;
+        data_en = 1'b0;
 
-        RESTART : begin
-           done = 1'b1;
-           next_diff_rst = 1'b1;
-           next_count_rst = 1'b1;
-           data_en = 1'b1;
-           data_sel = 1'b1;       
+        data_sel = 1'b0;
 
-           if (go) next_state = INIT;      
-        end     
+        next_diff_rst = 1'b0;
+        next_count_rst = 1'b0;
 
-        default : next_state = XXX;
-      endcase            
-   end 
+        next_state = state_r;
+
+        case (state_r)
+            START: begin
+
+                next_diff_rst = 1'b1;
+                next_count_rst = 1'b1;
+                data_en = 1'b1;
+                data_sel = 1'b1;
+
+                if (go) next_state = INIT;
+            end
+
+            // We need this extra state to allow time for the registered resets
+            // to update.
+            INIT: begin
+                next_state = COMPUTE;
+            end
+
+            COMPUTE: begin
+                diff_en  = 1'b1;
+                data_en  = 1'b1;
+                count_en = 1'b1;
+
+                if (count_done) begin
+                    result_en  = 1'b1;
+                    next_state = RESTART;
+                end
+            end
+
+            RESTART: begin
+                done = 1'b1;
+                next_diff_rst = 1'b1;
+                next_count_rst = 1'b1;
+                data_en = 1'b1;
+                data_sel = 1'b1;
+
+                if (go) next_state = INIT;
+            end
+
+            default: next_state = XXX;
+        endcase
+    end
 endmodule
 
 
@@ -1772,61 +1835,58 @@ endmodule
 // Description: Combines fsm3 and datapath3 to reduce the area of earlier
 // versions with a safer reset strategy.
 
-module bit_diff_fsm_plus_d4
-  #(
-    parameter WIDTH
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff_fsm_plus_d4 #(
+    parameter int WIDTH
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
 
-   logic                                        count_done;   
-   logic                                        data_sel;
-   logic                                        data_en;
-   logic                                        diff_rst;
-   logic                                        diff_en;
-   logic                                        count_rst;
-   logic                                        count_en;
-   logic                                        result_en;
-   
-   fsm3 CONTROLLER (.*);
-   datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
-   
-endmodule // bit_diff_fsm_plus_d4
+    logic                                        count_done;
+    logic                                        data_sel;
+    logic                                        data_en;
+    logic                                        diff_rst;
+    logic                                        diff_en;
+    logic                                        count_rst;
+    logic                                        count_en;
+    logic                                        result_en;
+
+    // Generally not a good idea to use .* since it hides the port signals.
+    fsm3 CONTROLLER (.*);
+    datapath3 #(.WIDTH(WIDTH)) DATAPATH (.*);
+
+endmodule  // bit_diff_fsm_plus_d4
 
 
 // Module: bit_diff
 // Description: a top-level module for testing synthesis of the different
 // bit diff implementations.
 
-module bit_diff
-  #(
-    parameter WIDTH=16
-    )
-   (
-    input logic                                 clk,
-    input logic                                 rst,
-    input logic                                 go,
-    input logic [WIDTH-1:0]                     data,
+module bit_diff #(
+    parameter int WIDTH = 16
+) (
+    input  logic                                clk,
+    input  logic                                rst,
+    input  logic                                go,
+    input  logic        [            WIDTH-1:0] data,
     output logic signed [$clog2(2*WIDTH+1)-1:0] result,
-    output logic                                done    
-    );
+    output logic                                done
+);
 
-   bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_2p_2 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_2p_3 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_2p_4 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_3p #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsmd_4p #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
-   //bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
-      
+    //bit_diff_fsmd_1p #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_1p_2 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_2p #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_2p_2 #(.WIDTH(WIDTH)) TOP (.*);
+    bit_diff_fsmd_2p_3 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_2p_4 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_3p #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsmd_4p #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsm_plus_d1 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsm_plus_d2 #(.WIDTH(WIDTH)) TOP (.*);
+    //bit_diff_fsm_plus_d3 #(.WIDTH(WIDTH)) TOP (.*);
+
 endmodule
