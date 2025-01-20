@@ -39,9 +39,9 @@ module alu_tb;
 
         // Test NUM_TESTS random inputs and select values.
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 = $random;
-            in1 = $random;
-            sel = $random;
+            in0 <= $random;
+            in1 <= $random;
+            sel <= $random;
             #10;
             if (sel == 2'b00) correct_out = in0 + in1;
             else if (sel == 2'b01) correct_out = in0 - in1;
