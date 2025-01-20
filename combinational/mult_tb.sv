@@ -5,11 +5,10 @@
 // Description: Testbench for the different mult modules in mult.sv. Change
 // the module that is instantiated in the mult module to test different modules.
 
-module mult_tb;
-
-    localparam INPUT_WIDTH = 16;
-    localparam NUM_TESTS = 1000;
-
+module mult_tb #(
+    parameter int NUM_TESTS   = 1000,
+    parameter int INPUT_WIDTH = 16
+);
     logic [INPUT_WIDTH-1:0] in0, in1;
     logic [INPUT_WIDTH*2-1:0] product_signed, product_unsigned;
 
@@ -35,11 +34,12 @@ module mult_tb;
         logic [INPUT_WIDTH*2-1:0] correct_product_signed, correct_product_unsigned;
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 = $random;
-            in1 = $random;
-            correct_product_signed = signed'(in0) * signed'(in1);
-            correct_product_unsigned = in0 * in1;
+            in0 <= $random;
+            in1 <= $random;
             #10;
+            correct_product_signed   = signed'(in0) * signed'(in1);
+            correct_product_unsigned = in0 * in1;
+
             if (product_signed != correct_product_signed)
                 $error(
                     "[%0t]: signed product = %d instead of %d.",

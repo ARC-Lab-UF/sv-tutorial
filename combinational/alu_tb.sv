@@ -6,10 +6,10 @@
 // Module: alu_tb
 // Description: Testbench for alu module.
 
-module alu_tb;
-
-    localparam int NUM_TESTS = 10000;
-    localparam int WIDTH = 8;
+module alu_tb #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
     logic [WIDTH-1:0] in0, in1, out;
     logic [1:0] sel;
     logic neg, pos, zero;
