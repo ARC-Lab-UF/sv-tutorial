@@ -5,8 +5,8 @@
 
 module ripple_carry_adder_tb;
 
-    localparam NUM_TESTS = 1000;
-    localparam WIDTH = 8;
+    localparam int NUM_TESTS = 1000;
+    localparam int WIDTH = 8;
     logic [WIDTH-1:0] x, y, sum, correct_sum;
     logic cin, cout, correct_cout;
 
@@ -16,9 +16,9 @@ module ripple_carry_adder_tb;
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            x   = $random;
-            y   = $random;
-            cin = $random;
+            x   <= $random;
+            y   <= $random;
+            cin <= $random;
             #10;
             {correct_cout, correct_sum} = x + y + cin;
             if (sum != correct_sum)
