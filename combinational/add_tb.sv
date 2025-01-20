@@ -20,8 +20,8 @@ module add_tb #(
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 <= $random;
-            in1 <= $random;
+            in0 <= $urandom;
+            in1 <= $urandom;
             #10;
             if (sum != in0 + in1) $error("[%0t] sum = %d instead of %d.", $realtime, sum, in0 + in1);
         end
@@ -55,8 +55,8 @@ module add_carry_out_tb #(
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 <= $random;
-            in1 <= $random;
+            in0 <= $urandom;
+            in1 <= $urandom;
             #10;
             // This works, but breaks my formatter. It works because {} generates a 
             // vector that can be sliced.
@@ -98,9 +98,9 @@ module add_carry_inout_tb #(
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 <= $random;
-            in1 <= $random;
-            carry_in <= $random;
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
             #10;
             {correct_carry_out, correct_sum} = in0 + in1 + carry_in;
             // Works, but breaks formatter:
@@ -140,9 +140,9 @@ module add_carry_inout_overflow_tb #(
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 <= $random;
-            in1 <= $random;
-            carry_in <= $random;
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
             #10;
             {correct_carry_out, correct_sum} = in0 + in1 + carry_in;
             //correct_carry_out = {{1'b0, in0} + in1 + carry_in}[WIDTH];

@@ -38,7 +38,7 @@ module moore_tb #(
         rst <= 1'b0;
 
         for (int i = 0; i < NUM_CYCLES; i++) begin
-            en <= $random;
+            en <= $urandom;
             @(posedge clk);
             // The correct output simply rotates every time the enable is asserted.
             if (en) correct_out <= {correct_out[2:0], correct_out[3]};

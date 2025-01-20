@@ -268,7 +268,12 @@ endmodule
 
 
 module register #(
-    parameter int WIDTH = 32
+    parameter int WIDTH = 32,
+
+    // MAKE SURE TO UPDATE THESE FOR EACH MODULE SO THE TESTBENCH
+    // FUNCTIONALITY MATHCES
+    parameter logic USE_ENABLE = 1'b1,
+    parameter logic USE_ASYNC_RST = 1'b0
 ) (
     input  logic             clk,
     input  logic             rst,
@@ -276,30 +281,19 @@ module register #(
     input  logic [WIDTH-1:0] in,
     output logic [WIDTH-1:0] out
 );
-
-    localparam logic USE_ENABLE = 1'b0;
-    localparam logic USE_ASYNC_RST = 1'b1;
-    register_async_rst #(.WIDTH(WIDTH)) top (.*);
+    //register_async_rst #(.WIDTH(WIDTH)) top (.*);
     //register_async_rst2 #(.WIDTH(WIDTH)) top (.*);
 
-    /* localparam logic          USE_ENABLE = 1'b0;
-   localparam logic          USE_ASYNC_RST = 1'b0;   
-   register_sync_rst #(.WIDTH(WIDTH)) top (.*);
-   //register_sync_rst2 #(.WIDTH(WIDTH)) top (.*);*/
+    //register_sync_rst #(.WIDTH(WIDTH)) top (.*);
+    //register_sync_rst2 #(.WIDTH(WIDTH)) top (.*);
 
-    /*localparam logic USE_ENABLE = 1'b1;
-    localparam logic USE_ASYNC_RST = 1'b1;
     //register_en_async_rst #(.WIDTH(WIDTH)) top (.*);
-    //register_en_async_rst2 #(.WIDTH(WIDTH)) top (.*);*/
+    //register_en_async_rst2 #(.WIDTH(WIDTH)) top (.*);
 
-    /*localparam logic USE_ENABLE = 1'b1;
-    localparam logic USE_ASYNC_RST = 1'b0;
-    register_en_sync_rst #(.WIDTH(WIDTH)) top (.*);
-    //register_en_sync_rst2 #(.WIDTH(WIDTH)) top (.*);*/
+    //register_en_sync_rst #(.WIDTH(WIDTH)) top (.*);
+    register_en_sync_rst2 #(.WIDTH(WIDTH)) top (.*);
 
-    /*localparam logic          USE_ENABLE = 1'b1;
-   localparam logic          USE_ASYNC_RST = 1'b1;              
-   register_flexible #(.WIDTH(WIDTH)) top (.*);*/
+    /*register_flexible #(.WIDTH(WIDTH)) top (.*);*/
 
 
 endmodule

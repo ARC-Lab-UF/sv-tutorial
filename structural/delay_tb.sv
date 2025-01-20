@@ -43,8 +43,8 @@ module delay_tb #(
 
         // Genereate NUM_TESTS random tests.
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in <= $random;
-            en <= $random;
+            in <= $urandom;
+            en <= $urandom;
             @(posedge clk);
         end
 

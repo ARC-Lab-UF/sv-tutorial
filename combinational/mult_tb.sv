@@ -34,8 +34,8 @@ module mult_tb #(
         logic [INPUT_WIDTH*2-1:0] correct_product_signed, correct_product_unsigned;
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in0 <= $random;
-            in1 <= $random;
+            in0 <= $urandom;
+            in1 <= $urandom;
             #10;
             correct_product_signed   = signed'(in0) * signed'(in1);
             correct_product_unsigned = in0 * in1;

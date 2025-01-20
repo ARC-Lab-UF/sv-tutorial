@@ -16,9 +16,9 @@ module ripple_carry_adder_tb;
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            x   <= $random;
-            y   <= $random;
-            cin <= $random;
+            x   <= $urandom;
+            y   <= $urandom;
+            cin <= $urandom;
             #10;
             {correct_cout, correct_sum} = x + y + cin;
             if (sum != correct_sum)

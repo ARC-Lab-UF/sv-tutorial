@@ -5,35 +5,36 @@
 
 // Module: register_tb
 
-module register_tb;
+module register_tb #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
 
-    localparam NUM_TESTS = 10000;
-    localparam WIDTH = 8;
     logic clk, rst, en;
     logic [WIDTH-1:0] in, out;
 
     register #(.WIDTH(WIDTH)) DUT (.*);
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        clk <= 1'b0;
+        forever #5 clk <= ~clk;
     end
 
     initial begin : drive_inputs
         $timeformat(-9, 0, " ns");
 
-        rst = 1'b1;
-        in  = 1'b0;
-        en  = 1'b0;
+        rst <= 1'b1;
+        in  <= 1'b0;
+        en  <= 1'b0;
 
-        repeat(5) @(posedge clk);
+        repeat (5) @(posedge clk);
 
-        rst = 1'b0;
+        rst <= 1'b0;
 
         for (int i = 0; i < NUM_TESTS; i++) begin
-            in = $random;
-            if (DUT.USE_ENABLE) en = $random;
-            else en = 1'b1;
+            in <= $urandom;
+            if (DUT.USE_ENABLE) en <= $urandom;
+            else en <= 1'b1;
             @(posedge clk);
         end
 
