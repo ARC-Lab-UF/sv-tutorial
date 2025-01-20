@@ -20,7 +20,6 @@ in the structure that can be described with generate constructs, as the examples
 1. [Delay](delay.sv)
     - Introduces unpacked arrays, if generate, and parameter validation techniques.    
     - See the schematic [delay.pdf](delay.pdf) for reference.
-1. [Add Tree (TBD)]()
-    - Introduces recursion.    
-    
-
+1. Recursive Architectures (advanced)
+    - [Adder Tree Explanation](https://stitt-hub.com/you-can-and-should-write-recursive-rtl-code/)    
+    - [Optimized Adder Tree](https://stitt-hub.com/you-can-and-should-write-recursive-rtl-part-2/)
