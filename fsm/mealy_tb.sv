@@ -10,57 +10,51 @@
 
 module mealy_tb;
 
-   logic clk=0, rst, go, ack, done, en;
+    logic clk = 0, rst, go, ack, done, en;
 
-   mealy DUT (.*);
+    mealy DUT (.*);
 
-   initial begin : generate_clock
-      while (1)
-	#5 clk = ~clk;      
-   end
+    initial begin : generate_clock
+        while (1) #5 clk = ~clk;
+    end
 
-   initial begin
-      $timeformat(-9, 0, " ns");
-      
-      // Reset the FSM.
-      rst = 1'b1;
-      ack = 1'b0;
-      go = 1'b0;      
-      for (int i=0; i < 5; i++)
-	@(posedge clk);
+    initial begin
+        $timeformat(-9, 0, " ns");
 
-      rst = 1'b0;
-      @(posedge clk);
+        // Reset the FSM.
+        rst <= 1'b1;
+        ack <= 1'b0;
+        go  <= 1'b0;
+        repeat(5) @(posedge clk);
 
-      // Start the FSM.
-      go = 1'b1;
-      for (int i=0; i < 5; i++)
-	@(posedge clk);
-      
-      ack = 1'b1;
-      @(posedge clk);
-      ack = 1'b0;      
-      if (!done)
-	$display("ERROR (time %0t): done not asserted.", $realtime);	
-      
-      // Clear go
-      go = 1'b0;
-      @(posedge clk);
+        rst = 1'b0;
+        @(posedge clk);
 
-      // Repeat the execution to test the RESTART state
-      go = 1'b1;
-      for (int i=0; i < 5; i++)
-	@(posedge clk);
-      
-      ack = 1'b1;
-      @(posedge clk);
-      ack = 1'b0;      
-      if (!done)
-	$display("ERROR (time %0t): done not asserted after restart.", $realtime);	      
-      go = 1'b0;
+        // Start the FSM.
+        go <= 1'b1;
+        repeat(5) @(posedge clk);
 
-      disable generate_clock;
-      $display("Tests completed.");
-   end
-   
+        ack <= 1'b1;
+        @(posedge clk);
+        ack <= 1'b0;
+        if (!done) $error("[%0t] done not asserted.", $realtime);
+
+        // Clear go
+        go <= 1'b0;
+        @(posedge clk);
+
+        // Repeat the execution to test the RESTART state
+        go <= 1'b1;
+        repeat(5) @(posedge clk);
+
+        ack <= 1'b1;
+        @(posedge clk);
+        ack <= 1'b0;
+        if (!done) $error("[%0t] done not asserted after restart.", $realtime);
+        go <= 1'b0;
+
+        disable generate_clock;
+        $display("Tests completed.");
+    end
+
 endmodule
