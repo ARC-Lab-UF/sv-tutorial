@@ -8,9 +8,10 @@
 // NOTE: The testbench is exhaustive, so large NUM_INPUTS values will not
 // be feasible to test here.
 
-module priority_encoder_tb;
+module priority_encoder_tb #(
+    parameter int NUM_INPUTS = 8
+);
 
-    localparam NUM_INPUTS = 8;
     logic [NUM_INPUTS-1:0] inputs;
     logic [$clog2(NUM_INPUTS)-1:0] result;
     logic                          valid;
@@ -23,7 +24,7 @@ module priority_encoder_tb;
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < 2 ** NUM_INPUTS; i++) begin
-            inputs = i;
+            inputs <= i;
             #10;
 
             correct_result = '0;

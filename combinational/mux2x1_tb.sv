@@ -92,9 +92,9 @@ module mux2x1_tb;
         for (integer i = 0; i < 8; i = i + 1) begin
 
             // Index into the loop counter bits to assign individual inputs.
-            in0 = i[0];
-            in1 = i[1];
-            sel = i[2];
+            in0 <= i[0];
+            in1 <= i[1];
+            sel <= i[2];
 
             // Wait for the specified amount of time.
             #period;
@@ -107,5 +107,7 @@ module mux2x1_tb;
             check_output("out_if3", out_if3, correct_output);
             check_output("out_case", out_case, correct_output);
         end
+
+        $display("Tests completed.");
     end
 endmodule

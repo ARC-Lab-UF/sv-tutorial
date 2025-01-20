@@ -20,7 +20,7 @@ module priority_encoder_4in_tb;
         $timeformat(-9, 0, " ns");
 
         for (int i = 0; i < 16; i++) begin
-            inputs = i;
+            inputs <= i;
             #10;
 
             correct_result = '0;
