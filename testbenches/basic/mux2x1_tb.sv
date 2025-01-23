@@ -69,7 +69,7 @@ module mux2x1_tb;
         $timeformat(-9, 0, " ns");
 
         // Loop over all possible combinations of inputs.       
-        for (integer i = 0; i < 8; i = i + 1) begin
+        for (int i = 0; i < 8; i = i + 1) begin
 
             // Index into the loop counter bits to assign individual inputs.
             // Note that I am using non-blocking assignments here. We could get
@@ -116,13 +116,10 @@ endmodule
 module mux2x1_all_tb;
 
     logic in0, in1, sel;
-
     // We have four modules to test, so we need four outputs.
     logic out_assign, out_if, out_if2, out_case;
 
     logic correct_out;
-
-    localparam period = 20;
 
     // Instantiate the 4 DUTs.
     mux2x1_assign DUT_ASSIGN (
@@ -145,20 +142,19 @@ module mux2x1_all_tb;
     // We use a function here to avoid copying and pasting for the different LUTs
     function void check_output(string name, logic actual, logic correct);
         if (actual != correct) begin
-
-            $display("ERROR at time %0t: %s = %b instead of %d.", $realtime, name, actual, correct);
+            $error("[%0t] %s = %b instead of %d.", $realtime, name, actual, correct);
         end
     endfunction
 
     initial begin
         $timeformat(-9, 0, " ns");
 
-        for (integer i = 0; i < 8; i = i + 1) begin
+        for (int i = 0; i < 8; i = i + 1) begin
 
-            in0 = i[0];
-            in1 = i[1];
-            sel = i[2];
-            #period;
+            in0 <= i[0];
+            in1 <= i[1];
+            sel <= i[2];
+            #10;
 
             // Verify all the outputs.
             correct_out = sel ? in1 : in0;
