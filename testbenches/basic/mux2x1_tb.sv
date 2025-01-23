@@ -87,7 +87,8 @@ module mux2x1_tb;
             #period;
             // Wait for the specific amount of time.
             #time_period;
-            // Or, wait based o, an literal, where the unit comes from the timescale.
+            // Or, wait based on an integer literal, where the unit comes from 
+            // the timescale.
             #10;
             // Or, wait based on a time literal.
             #10ns;
