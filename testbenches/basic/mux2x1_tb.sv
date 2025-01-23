@@ -69,7 +69,7 @@ module mux2x1_tb;
         $timeformat(-9, 0, " ns");
 
         // Loop over all possible combinations of inputs.       
-        for (int i = 0; i < 8; i = i + 1) begin
+        for (int i = 0; i < 8; i++) begin
 
             // Index into the loop counter bits to assign individual inputs.
             // Note that I am using non-blocking assignments here. We could get
@@ -149,7 +149,7 @@ module mux2x1_all_tb;
     initial begin
         $timeformat(-9, 0, " ns");
 
-        for (int i = 0; i < 8; i = i + 1) begin
+        for (int i = 0; i < 8; i++) begin
 
             in0 <= i[0];
             in1 <= i[1];
