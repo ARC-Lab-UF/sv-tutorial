@@ -21,7 +21,7 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
     - Corresponding [module](basic/mux2x1.sv) and [testbench](basic/mux2x1_tb.sv).
     - Basic introduction into testbenches. Introduces timescale, waiting, functions, $timeformat, and $display.
 
-1. [Race Condition Intro (VERY IMPORTANT)](basic/race.sv)
+1. [Race Condition Intro](basic/race.sv)
     - Demonstration of common race condition problems, and how to avoid them.
     - Introduces $stop, $finish. 
 
