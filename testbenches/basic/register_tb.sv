@@ -56,6 +56,10 @@ module register_tb1;
 
         // Generate NUM_TESTS random inputs, once per cycle
         for (int i = 0; i < NUM_TESTS; i++) begin
+            // $urandom is a convenient function for getting a random 
+            // 32-bit number. There is also a $random, but I highly recommend
+            // against using it. $random is from an older standard, has less 
+            // flexible seeding, and generates far worse distributions.
             in <= $urandom;
             en <= $urandom;
             @(posedge clk);

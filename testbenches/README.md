@@ -35,7 +35,7 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 
 1. [Register](basic/register_tb.sv)
     - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
-    - Introduces $random and special cases for disable. 
+    - Introduces $urandom and special cases for disable. 
     - Demonstrates a commonly used problematic testbench strategy.
     
 ## Assertions
