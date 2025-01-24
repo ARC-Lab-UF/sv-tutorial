@@ -29,6 +29,10 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
     - Demonstration of reset race conditions, and how to avoid them.
     - Introduces clock generation, waiting for rising edges, disable. 
 
+1. [Race Conditions: the Root of All Verilog Evil](https://stitt-hub.com/race-conditions-the-root-of-all-verilog-evil/)
+    - Demonstration of other common race conditions.
+    - Low-level analysis of different simulation orders causing race conditions. 
+
 1. [Register](basic/register_tb.sv)
     - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
     - Introduces $random and special cases for disable. 
