@@ -44,7 +44,7 @@ In the basic testbench examples above, we manually check for errors with if stat
 more powerful construct that can be used to verify that any condition is true at any point in time. Most importantly, assertions can be combined with properties and sequences
 to verify complex behaviors concisely. We will see situations where many lines of testbench code can be replaced by a single assertion.
 
-1. [2:1 Mux (Different than earlier example)](assertions/mux2x1_tb.sv)
+1. [2:1 Mux (extends earlier example with immediate assertion)](assertions/mux2x1_tb.sv)
     - Corresponding [module](assertions/mux2x1.sv) and [testbench](assertions/mux2x1_tb.sv).
     - Shows basic syntax for immediate assertions.    
 1. [Flip-flop](assertions/ff_tb.sv)
