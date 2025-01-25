@@ -6,7 +6,7 @@ provides a good starting point. The Universal Verification Methodology (UVM) is 
 # Overview
 
 To test a design, we need a module to drive the inputs so we can verify the functionality. That module is usually referred to as a testbench. In its most simple form, a 
-testbench simple applies a set of inputs, waits some amount of time for the outputs to change, then applies new inputs. In a slightly more advanced form, the testbench also
+testbench simply applies a set of inputs, waits some amount of time for the outputs to change, then applies new inputs. In a slightly more advanced form, the testbench also
 verifies that outputs are correct. In more advanced forms, the testbench should check to ensure that certain properties are always true, while also checking for different 
 types of coverage (e.g., was every statement tested, were all relevant values tested, were all transitions tested, etc.). There are many strategies ranging from simple ad-hoc
 testbench strategies, to more advanced and more formal strategies such as UVM.
@@ -42,8 +42,7 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 
 In the basic testbench examples above, we manually check for errors with if statements combined with error messages. Although useful for simple tests, assertions are a much 
 more powerful construct that can be used to verify that any condition is true at any point in time. Most importantly, assertions can be combined with properties and sequences
-to verify complex behaviors concisely. In many cases, assertion propeties can completely eliminate the need for a separate reference model that provides correct functionality 
-for comparison.
+to verify complex behaviors concisely. We will see situations where many lines of testbench code can be replaced by a single assertion.
 
 1. [2:1 Mux (Different than earlier example)](assertions/mux2x1_tb.sv)
     - Corresponding [module](assertions/mux2x1.sv) and [testbench](assertions/mux2x1_tb.sv).
