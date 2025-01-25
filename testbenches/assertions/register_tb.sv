@@ -13,138 +13,186 @@
 // assertions, with the simplifying assumption that enable is always asserted. 
 // The next module will look at how to handle the enable.
 
-module register_tb1;
+module register_no_en_tb_bad #(
+    parameter int NUM_TESTS = 10000,
+    parameter WIDTH = 8
+);
+    logic clk, rst, en;
+    logic [WIDTH-1:0] in, out;
 
-   localparam NUM_TESTS = 10000;
-   localparam WIDTH = 8;
-   logic clk, rst, en;
-   logic [WIDTH-1:0] in, out;
-   
-   register #(.WIDTH(WIDTH)) DUT (.en(1'b1), .*);
+    register #(
+        .WIDTH(WIDTH)
+    ) DUT (
+        .en(1'b1),
+        .*
+    );
 
-   // Generate the clock.
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;      
-   end
+    // Generate the clock.
+    initial begin : generate_clock
+        clk <= 1'b0;
+        forever #5 clk <= ~clk;
+    end
 
-   // Drive the inputs.
-   initial begin : drive_inputs
-      $timeformat(-9, 0, " ns");         
+    // Drive the inputs.
+    initial begin : drive_inputs
+        $timeformat(-9, 0, " ns");
 
-      rst <= 1'b1;
-      in <= 1'b0;      
-      en <= 1'b1;
+        rst <= 1'b1;
+        in  <= 1;  // Purposely set to 1 here to expose assertion error.
+        en  <= 1'b1;
+        repeat (5) @(posedge clk);
+        @(negedge clk);
+        rst <= 1'b0;
 
-      for (int i=0; i < 5; i++)
-        @(posedge clk);
+        // Perform the tests.
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            in <= $urandom;
+            @(posedge clk);
+        end
 
-      @(negedge clk);
-      rst <= 1'b0;
+        disable generate_clock;
+        $display("Tests completed.");
+    end
 
-      // Perform the tests.
-      for (int i=0; i < NUM_TESTS; i++) begin    
-         in <= $random;
-         @(posedge clk);
-      end
+    // The following is a potential way to validate the output that was similar
+    // to what was shown in the earlier FF example. There is actually one 
+    // potential problem with this, which is that it will throw an error if the
+    // input is not equal to 0 during reset. This problem occurs because $past
+    // still tracks the previous inputs during reset.
+    assert property (@(posedge clk) disable iff (rst) out == $past(in, 1))
+    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
 
-      disable generate_clock;
-      $display("Tests completed.");
-   end 
-
-   // Verify the output:
-
-   // The following is a potential way to validate the output that was similar
-   // to what was shown in the earlier FF example. There is actually one 
-   // potential problem with this, which is that it will throw an error if the
-   // input is not equal to 0 during reset. This problem occurs because $past
-   // still tracks the previous inputs during reset.
-   // To see this problem, change the initialization value of in to 1 during
-   // reset.
-   assert property(@(posedge clk) disable iff (rst) out == $past(in,1));
-     
-   // Instead of explicitly disabling the check when the reset is asserted, we
-   // can use implication to check for the correct output one cycle after
-   // every cycle where there isn't a reset.
-   assert property(@(posedge clk) rst == 1'b0 |=> out == $past(in,1));
-   
-   // We should also check to make sure the reset is working correctly.
-   // This assertion checks for an synchronous reset because it verifies that
-   // out is 0 on every rising edge after rst is 1.
-   assert property(@(posedge clk) rst |=> out == '0);
-   
-   // To check for the asynchronous reset, we can use an immediate assertion.
-   always @(rst) #1 assert(out == '0);
+    // Verify reset.
+    assert property (@(posedge clk) rst |=> out == '0);
 endmodule
 
 
-// Module: register_tb2
-// Description: This testbench extends the previous one to handle the enable
-// and to cover more tests.
+module register_no_en_tb #(
+    parameter int NUM_TESTS = 10000,
+    parameter WIDTH = 8
+);
+    logic clk, rst, en;
+    logic [WIDTH-1:0] in, out;
 
-module register_tb2;
+    register #(
+        .WIDTH(WIDTH)
+    ) DUT (
+        .en(1'b1),
+        .*
+    );
 
-   localparam NUM_TESTS = 10000;
-   localparam WIDTH = 8;
-   logic clk, rst, en;
-   logic [WIDTH-1:0] in, out;
+    // Generate the clock.
+    initial begin : generate_clock
+        clk <= 1'b0;
+        forever #5 clk <= ~clk;
+    end
 
-   // Only used for one of the assertion alternatives.
-   logic             output_check_en = 1'b0, first_en = 1'b0;
-      
-   register #(.WIDTH(WIDTH)) DUT (.*);
+    // Drive the inputs.
+    initial begin : drive_inputs
+        $timeformat(-9, 0, " ns");
 
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;      
-   end
+        rst <= 1'b1;
+        in  <= 1;  // Purposely set to 1 here to expose assertion error.
+        en  <= 1'b1;
+        repeat (5) @(posedge clk);
+        @(negedge clk);
+        rst <= 1'b0;
 
-   initial begin : drive_inputs
-      $timeformat(-9, 0, " ns");         
+        // Perform the tests.
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            in <= $urandom;
+            @(posedge clk);
+        end
 
-      rst <= 1'b1;
-      in <= 1'b0;      
-      en <= 1'b0;
-      
-      for (int i=0; i < 5; i++)
-        @(posedge clk);
+        disable generate_clock;
+        $display("Tests completed.");
+    end
 
-      rst <= 1'b0;
+    // One potential solution is to extend the disable until the conditions is valid. 
+    // Although overkill in this situation, having custom disables for assertions that
+    // should only be applied in specific situations is useful.
+    logic [1:0] delayed_rst = '1;
+    always_ff @(posedge clk) delayed_rst <= {delayed_rst[0], rst};
+    assert property (@(posedge clk) disable iff (delayed_rst[1]) out == $past(in, 1))
+    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
 
-      for (int i=0; i < NUM_TESTS; i++) begin    
-         in <= $random;
-         en <= $random;
-         @(posedge clk);
+    // Alternatively, we can use implication to delay the comparison as much as we
+    // want. To do this, we need an "antecedent" (i.e. trigger condition) that defines
+    // when then condition (or "consequent") should be checked. Note that if the 
+    // antecedent is false, the entire implication becomes "vacuously true." This 
+    // basically means than if the antecedent is false, we don't care about the
+    // consequent. In this case, we want to evaluate the condition every cycle 
+    // starting 1 cycle after the reset is cleared. This translates to:
+    assert property (@(posedge clk) disable iff (rst) 1 |-> ##1 out == $past(in, 1))
+    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
 
-         // Only used for one of the assertion examples. Probably not
-         // recommended due to the complexity.
-         // If we've seen the first enable, then we can enable the output 
-         // checker assertion.
-         if (first_en) output_check_en = 1'b1;
-         // Flag that we've seen the first enable.
-         if (en) first_en = 1'b1;         
-      end
+    // or alternatively:
+    assert property (@(posedge clk) disable iff (rst) 1 |=> out == $past(in, 1))
+    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
 
-      disable generate_clock;
-      $display("Tests completed.");
-   end 
+    // Normally, you would have a constantly true trigger condition, but it makes
+    // sense in this context because without the trigger condition, we can't have
+    // the implication, which gives us the ability to ignore one cycle after reset.
 
-   // For the enable, we can use the same strategy as the FF example.
-   // Verify output when enable is asserted.
-   assert property(@(posedge clk) disable iff (rst) en |=> out == $past(in,1));
+    // Alternatively, you could do the following where we basically integrate the
+    // "disable iff rst" into the antecedent, which effectively acts as a disable.
+    assert property (@(posedge clk) !rst |=> out == $past(in, 1));
 
-   // Verify output when enable isn't asserted. Only one of these is needed
-   // since they are equivalent.
-   assert property(@(posedge clk) disable iff (rst) !en |=> out == $past(out,1));
-   assert property(@(posedge clk) disable iff (rst) !en |=> $stable(out));
+    // Verify reset.
+    assert property (@(posedge clk) rst |=> out == '0);
+endmodule
 
-   // Alternatively, we could replace the separate checks for when en is 1 and
-   // 0 by using the enable as a parameter to the past function. However, the
-   // past function will return incorrect values until there has been at least
-   // one enable, so we need to disable this check until the output is ready.
-   // This is probably overkill for this simple example, but can be useful for
-   // more complex examples.    
-   assert property(@(posedge clk) disable iff (!output_check_en) out == $past(in,1, en));
-   
-   always @(rst) #1 assert(out == '0);  
+
+// Module: register_en_tb
+// Description: This testbench extends the previous with an enable
+
+module register_en_tb #(
+    parameter int NUM_TESTS = 10000,
+    parameter WIDTH = 8
+);
+    logic clk, rst, en;
+    logic [WIDTH-1:0] in, out;
+
+    register #(
+        .WIDTH(WIDTH)
+    ) DUT (
+        .en(1'b1),
+        .*
+    );
+
+    // Generate the clock.
+    initial begin : generate_clock
+        clk <= 1'b0;
+        forever #5 clk <= ~clk;
+    end
+
+    // Drive the inputs.
+    initial begin : drive_inputs
+        $timeformat(-9, 0, " ns");
+
+        rst <= 1'b1;
+        in  <= 1;  // Purposely set to 1 here to expose assertion error.
+        en  <= 1'b1;
+        repeat (5) @(posedge clk);
+        //@(negedge clk);
+        rst <= 1'b0;
+
+        // Perform the tests.
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            in <= $urandom;
+            @(posedge clk);
+        end
+
+        disable generate_clock;
+        $display("Tests completed.");
+    end
+    
+    // We don't need a specialized disable or antecedent here because we now have the en.
+    assert property (@(posedge clk) disable iff (rst) en |=> out == $past(in, 1))
+    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+
+    assert property (@(posedge clk) disable iff (rst) !en |=> $stable(out));
+
+    // Verify reset.
+    assert property (@(posedge clk) rst |=> out == '0);
 endmodule
