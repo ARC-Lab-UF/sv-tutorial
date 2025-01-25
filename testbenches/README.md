@@ -49,7 +49,7 @@ to verify complex behaviors concisely. We will see situations where many lines o
     - Shows basic syntax for immediate assertions.    
 1. [Flip-flop](assertions/ff_tb.sv)
     - Corresponding [module](assertions/ff.sv) and [testbench](assertions/ff_tb.sv).
-    - Introduces concurrent assertions (assertion properties) and implication.
+    - Introduces concurrent assertions, properties, sequences, and implication.
     - Introduces $past and $stable.
 1. [Register](assertions/register_tb.sv)
     - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
