@@ -140,7 +140,7 @@ module mux2x1_all_tb;
         .*
     );
 
-    // We use a function here to avoid copying and pasting for the different LUTs
+    // We use a function here to avoid copying and pasting for the different DUTs
     function void check_output(string name, logic actual, logic correct);
         if (actual != correct) begin
             $error("[%0t] %s = %b instead of %d.", $realtime, name, actual, correct);
