@@ -18,8 +18,8 @@ module simple_pipeline_with_en_tb_bad #(
     parameter int WIDTH = 8
 );
     logic clk, rst, en, valid_in, valid_out;
-    logic [WIDTH-1:0] in[8];
-    logic [WIDTH-1:0] out;
+    logic [WIDTH-1:0] data_in[8];
+    logic [WIDTH-1:0] data_out;
 
     simple_pipeline_with_en #(.WIDTH(WIDTH)) DUT (.*);
 
@@ -35,8 +35,8 @@ module simple_pipeline_with_en_tb_bad #(
         rst      <= 1'b1;
         en       <= 1'b0;
         valid_in <= 1'b0;
-        in       <= '{default: '0};
-        for (int i = 0; i < 5; i++) @(posedge clk);
+        data_in  <= '{default: '0};
+        repeat (5) @(posedge clk);
         @(negedge clk);
         rst <= 1'b0;
         @(posedge clk);
@@ -44,7 +44,7 @@ module simple_pipeline_with_en_tb_bad #(
         // Run the tests.      
         for (int i = 0; i < NUM_TESTS; i++) begin
             en <= $urandom;
-            for (int j = 0; j < 8; j++) in[j] <= $urandom;
+            for (int j = 0; j < 8; j++) data_in[j] <= $urandom;
             valid_in <= $urandom;
             @(posedge clk);
         end
@@ -62,10 +62,10 @@ module simple_pipeline_with_en_tb_bad #(
     // IMPORTANT: avoid reading from variables that aren't provided as parameters
     // from the assertion itself. Assertions sample values on clock edges, whereas
     // other variable can be updated at any time.
-    function automatic logic is_out_correct(logic [WIDTH-1:0] in[8]);
+    function automatic logic is_out_correct(logic [WIDTH-1:0] data_in[8]);
         logic [WIDTH-1:0] sum = 0;
-        for (int i = 0; i < 4; i++) sum += in[i*2] * in[i*2+1];
-        return sum == out;
+        for (int i = 0; i < 4; i++) sum += data_in[i*2] * data_in[i*2+1];
+        return sum == data_out;
     endfunction
 
     // Verify data_out and valid_out. 
@@ -73,18 +73,18 @@ module simple_pipeline_with_en_tb_bad #(
     // is common to get the latency from package for the pipeline, or from a 
     // function in the package that calculates the latency based on various
     // parameters.
-    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> out == is_out_correct($past(in, DUT.LATENCY, en)));
+    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> data_out == is_out_correct($past(data_in, DUT.LATENCY, en)));
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> valid_out == $past(valid_in, DUT.LATENCY, en));
 
     // Verify the reset clears the outputs until the pipeline has filled.
-    assert property (@(posedge clk) $fell(rst) |-> out == '0 throughout en [-> DUT.LATENCY]);
+    assert property (@(posedge clk) $fell(rst) |-> data_out == '0 throughout en [-> DUT.LATENCY]);
     assert property (@(posedge clk) $fell(rst) |-> !valid_out throughout en [-> DUT.LATENCY]);
 
     // Verify enable stalls the outputs.
-    assert property (@(posedge clk) !en |=> $stable(out) && $stable(valid_out));
+    assert property (@(posedge clk) !en |=> $stable(data_out) && $stable(valid_out));
 
     // Make sure all pipeline stages are reset.
-    assert property (@(posedge clk) rst |=> out == '0);
+    assert property (@(posedge clk) rst |=> data_out == '0);
 
 endmodule
 
@@ -97,8 +97,8 @@ module simple_pipeline_with_en_tb1 #(
     parameter int WIDTH = 8
 );
     logic clk, rst, en, valid_in, valid_out;
-    logic [WIDTH-1:0] in[8];
-    logic [WIDTH-1:0] out;
+    logic [WIDTH-1:0] data_in[8];
+    logic [WIDTH-1:0] data_out;
 
     simple_pipeline_with_en #(.WIDTH(WIDTH)) DUT (.*);
 
@@ -114,8 +114,8 @@ module simple_pipeline_with_en_tb1 #(
         rst      <= 1'b1;
         en       <= 1'b0;
         valid_in <= 1'b0;
-        in       <= '{default: '0};
-        for (int i = 0; i < 5; i++) @(posedge clk);
+        data_in  <= '{default: '0};
+        repeat (5) @(posedge clk);
         @(negedge clk);
         rst <= 1'b0;
         @(posedge clk);
@@ -123,7 +123,7 @@ module simple_pipeline_with_en_tb1 #(
         // Run the tests.      
         for (int i = 0; i < NUM_TESTS; i++) begin
             en <= $urandom;
-            for (int j = 0; j < 8; j++) in[j] <= $urandom;
+            for (int j = 0; j < 8; j++) data_in[j] <= $urandom;
             valid_in <= $urandom;
             @(posedge clk);
         end
@@ -134,25 +134,25 @@ module simple_pipeline_with_en_tb1 #(
 
     // In this version, all values we need to compare are provided as inputs from
     // the sampled values in the assertion.
-    function automatic logic is_out_correct(logic [WIDTH-1:0] in[8], logic [WIDTH-1:0] out);
+    function automatic logic is_out_correct(logic [WIDTH-1:0] data_in[8], logic [WIDTH-1:0] data_out);
         logic [WIDTH-1:0] sum = 0;
-        for (int i = 0; i < 4; i++) sum += in[i*2] * in[i*2+1];
-        return sum == out;
+        for (int i = 0; i < 4; i++) sum += data_in[i*2] * data_in[i*2+1];
+        return sum == data_out;
     endfunction
 
     // Verify data_out and valid_out.
-    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> is_out_correct($past(in, DUT.LATENCY, en), out));
+    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> is_out_correct($past(data_in, DUT.LATENCY, en), data_out));
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> valid_out == $past(valid_in, DUT.LATENCY, en));
 
     // Verify the reset clears the outputs until the pipeline has filled.
-    assert property (@(posedge clk) $fell(rst) |-> out == '0 throughout en [-> DUT.LATENCY]);
+    assert property (@(posedge clk) $fell(rst) |-> data_out == '0 throughout en [-> DUT.LATENCY]);
     assert property (@(posedge clk) $fell(rst) |-> !valid_out throughout en [-> DUT.LATENCY]);
 
     // Verify enable stalls the outputs.
-    assert property (@(posedge clk) !en |=> $stable(out) && $stable(valid_out));
+    assert property (@(posedge clk) !en |=> $stable(data_out) && $stable(valid_out));
 
     // Make sure all pipeline stages are reset.
-    assert property (@(posedge clk) rst |=> out == '0);
+    assert property (@(posedge clk) rst |=> data_out == '0);
 
 endmodule
 
@@ -166,8 +166,8 @@ module simple_pipeline_with_en_tb2 #(
     parameter int WIDTH = 8
 );
     logic clk, rst, en, valid_in, valid_out;
-    logic [WIDTH-1:0] in[8];
-    logic [WIDTH-1:0] out;
+    logic [WIDTH-1:0] data_in[8];
+    logic [WIDTH-1:0] data_out;
 
     simple_pipeline_with_en #(.WIDTH(WIDTH)) DUT (.*);
 
@@ -183,8 +183,8 @@ module simple_pipeline_with_en_tb2 #(
         rst      <= 1'b1;
         en       <= 1'b0;
         valid_in <= 1'b0;
-        in       <= '{default: '0};
-        for (int i = 0; i < 5; i++) @(posedge clk);
+        data_in  <= '{default: '0};
+        repeat (5) @(posedge clk);
         @(negedge clk);
         rst <= 1'b0;
         @(posedge clk);
@@ -192,7 +192,7 @@ module simple_pipeline_with_en_tb2 #(
         // Run the tests.      
         for (int i = 0; i < NUM_TESTS; i++) begin
             en <= $urandom;
-            for (int j = 0; j < 8; j++) in[j] <= $urandom;
+            for (int j = 0; j < 8; j++) data_in[j] <= $urandom;
             valid_in <= $urandom;
             @(posedge clk);
         end
@@ -205,24 +205,24 @@ module simple_pipeline_with_en_tb2 #(
     // output, instead of comparing with the correct output directly. When
     // there is a single output, this strategy is preferred, but when the
     // output is an array, you often need a function to verify all output values.
-    function automatic logic [WIDTH-1:0] model(logic [WIDTH-1:0] in[8]);
+    function automatic logic [WIDTH-1:0] model(logic [WIDTH-1:0] data_in[8]);
         logic [WIDTH-1:0] sum = 0;
-        for (int i = 0; i < 4; i++) sum += in[i*2] * in[i*2+1];
+        for (int i = 0; i < 4; i++) sum += data_in[i*2] * data_in[i*2+1];
         return sum;
     endfunction
 
     // Verify data_out and valid_out.
-    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> out == model($past(in, DUT.LATENCY, en)));
+    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> data_out == model($past(data_in, DUT.LATENCY, en)));
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> valid_out == $past(valid_in, DUT.LATENCY, en));
 
     // Verify the reset clears the outputs until the pipeline has filled.
-    assert property (@(posedge clk) $fell(rst) |-> out == '0 throughout en [-> DUT.LATENCY]);
+    assert property (@(posedge clk) $fell(rst) |-> data_out == '0 throughout en [-> DUT.LATENCY]);
     assert property (@(posedge clk) $fell(rst) |-> !valid_out throughout en [-> DUT.LATENCY]);
 
     // Verify enable stalls the outputs.
-    assert property (@(posedge clk) !en |=> $stable(out) && $stable(valid_out));
+    assert property (@(posedge clk) !en |=> $stable(data_out) && $stable(valid_out));
 
     // Make sure all pipeline stages are reset.
-    assert property (@(posedge clk) rst |=> out == '0);
+    assert property (@(posedge clk) rst |=> data_out == '0);
 
 endmodule

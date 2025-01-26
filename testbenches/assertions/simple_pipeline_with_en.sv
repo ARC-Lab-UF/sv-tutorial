@@ -27,39 +27,39 @@ module simple_pipeline_with_en #(
     input  logic             clk,
     input  logic             rst,
     input  logic             en,
-    input  logic [WIDTH-1:0] in       [8],
+    input  logic [WIDTH-1:0] data_in  [8],
     input  logic             valid_in,
-    output logic [WIDTH-1:0] out,
+    output logic [WIDTH-1:0] data_out,
     output logic             valid_out
 );
     // Specifies the cycle latency of the pipeline.
     localparam int LATENCY = 4;
 
-    logic [WIDTH-1:0]       in_r[8];
+    logic [WIDTH-1:0]       data_in_r[8];
     logic [WIDTH-1:0]       mult_r[4];
     logic [WIDTH-1:0]       add_r[2];
-    logic [WIDTH-1:0]       out_r;
+    logic [WIDTH-1:0]       data_out_r;
     logic [LATENCY-1:0]     valid_delay_r;
 
-    assign out = out_r;
+    assign data_out = data_out_r;
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             // Reset all the registers.
-            in_r   <= '{default: '0};
-            mult_r <= '{default: '0};
-            add_r  <= '{default: '0};
-            out_r  <= '0;
+            data_in_r  <= '{default: '0};
+            mult_r     <= '{default: '0};
+            add_r      <= '{default: '0};
+            data_out_r <= '0;
         end else begin
             if (en == 1'b1) begin
                 // Register the inputs.
-                for (int i = 0; i < 8; i++) in_r[i] <= in[i];
+                for (int i = 0; i < 8; i++) data_in_r[i] <= data_in[i];
                 // Perform the multiplications.
-                for (int i = 0; i < 4; i++) mult_r[i] <= in_r[i*2] * in_r[i*2+1];
+                for (int i = 0; i < 4; i++) mult_r[i] <= data_in_r[i*2] * data_in_r[i*2+1];
                 // Create the first level of adders.
                 for (int i = 0; i < 2; i++) add_r[i] <= mult_r[i*2] + mult_r[i*2+1];
                 // Create the final adder.
-                out_r <= add_r[0] + add_r[1];
+                data_out_r <= add_r[0] + add_r[1];
             end
         end
     end
