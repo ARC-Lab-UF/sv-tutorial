@@ -121,8 +121,7 @@ module register_no_en_tb1 #(
     // Here, we delay the rst by one cycle to avoid the problem we saw.
     logic delayed_rst = 1'b1;
     always_ff @(negedge clk) delayed_rst <= rst;
-    assert property (@(posedge clk) disable iff (delayed_rst) out == $past(in, 1))
-    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+    assert property (@(posedge clk) disable iff (delayed_rst) out == $past(in, 1));
 
     // Alternatively, we can use implication to delay the comparison as much as we
     // want. To do this, we need an "antecedent" (i.e. trigger condition) that defines
@@ -131,12 +130,10 @@ module register_no_en_tb1 #(
     // the antecedent is false, we don't care about the consequent. In this case, 
     // we want to evaluate the condition every cycle starting 1 cycle after the reset 
     // is cleared. This translates to:
-    assert property (@(posedge clk) disable iff (rst) 1 |-> ##1 out == $past(in, 1))
-    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+    assert property (@(posedge clk) disable iff (rst) 1 |-> ##1 out == $past(in, 1));
 
     // or alternatively:
-    assert property (@(posedge clk) disable iff (rst) 1 |=> out == $past(in, 1))
-    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+    assert property (@(posedge clk) disable iff (rst) 1 |=> out == $past(in, 1));
 
     // Normally, you wouldn't have a constantly true trigger condition, but it makes
     // sense in this context because without the trigger condition, we can't have
@@ -151,7 +148,7 @@ module register_no_en_tb1 #(
 endmodule
 
 
-// Module: reigster_no_en_tb1
+// Module: reigster_no_en_tb2
 // Description: This module demonstrates some unexpected issues with disabling
 // the assertion when the disable condition changes on the same clock edge that
 // samples the assertion's variables.
@@ -201,34 +198,42 @@ module register_no_en_tb2 #(
 
     // Here we have similar assertions as the previous module, but to get them not to fail,
     // we need to wait for 2 cycles after reset. After looking over the simulation, the disable
-    // is functioning differently than expected. I have yet to verify if this is a simulator
-    // bug, or if it is how the SV standard defines the disable.
+    // is functioning differently than expected.
     //
-    // Clearly, each assertion samples values on the rising clock edge. In the code above,
+    // Each assertion samples values on the rising clock edge. In the code above,
     // the reset is cleared *after* a rising clock edge. However, on the edge where the reset
     // is cleared, these assertions are still being evaluated. This suggests that the disable
     // is evaluating a version of the rst signal that is updated after the edge where the
     // values are sampled.
     //
+    // Looking over the 1800-2017 LRM, page 423 says: "The values of variables 
+    // used in the disable condition are those in the current simulation cycle, 
+    // i.e., not sampled." Also, "If the disable condition is true at anytime 
+    // between the start of the attempt in the Observed region, inclusive, and 
+    // the end of the evaluation attempt, inclusive, then the overall evaluation of
+    // the property results in disabled." The combination of these two statements
+    // is exactly what we are seeing. The reset is being cleared before the end
+    // of the assertion, which causes it to be enabled, even though reset was
+    // asserted at the beginning of the assertion.
+    //
     // There are several ways to fix this: 1) wait two cycles instead of one before applying 
     // the consequent, 2) make sure to clear the disable condition at a time that does not
-    // coincide with a clock edge, or 3) change the input during the reset to ensure that
+    // coincide with a clock edge, or 3) use the $sampled function for the reset    
     // this edge case isn't evaluated. In the previous example, we did 2 because we were 
-    // clearing reset on a falling clock edge.
+    // clearing reset on a falling clock edge. Here, we will try 1 and 3.
     //
     // Both of the following wait two cycles after the reset to enable the assertion.
     logic [1:0] delayed_rst = '1;
     always_ff @(posedge clk) delayed_rst <= {delayed_rst[0], rst};
-    assert property (@(posedge clk) disable iff (delayed_rst[1]) out == $past(in, 1))
-    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+    assert property (@(posedge clk) disable iff (delayed_rst[1]) out == $past(in, 1));    
+    assert property (@(posedge clk) disable iff (rst) 1 |-> ##2 out == $past(in, 1));
 
-    assert property (@(posedge clk) disable iff (rst) 1 |-> ##2 out == $past(in, 1))
-    else $error("[%0t] actual = %0d, expected = %0d", $realtime, $sampled(out), $past(in, 1));
+    // Still wait 1 cycle, but use the sampled version of reset for the disable.
+    assert property (@(posedge clk) disable iff ($sampled(rst)) 1 |-> ##1 out == $past(in, 1));
 
-    // Interestingly, this assertion still works with just a 1-cycle delay, which is further 
-    // evidence that the disable's timing is doing something unexpected. The value of this
-    // rst, and the value of rst inside the disable, are different on the edge that rst is
-    // cleared.
+    // Interestingly, this assertion still works with just a 1-cycle delay because
+    // reset is outside the disable region, and is therefore sampled on the
+    // clock edge.
     assert property (@(posedge clk) !rst |=> out == $past(in, 1));
 
     // Verify reset.
