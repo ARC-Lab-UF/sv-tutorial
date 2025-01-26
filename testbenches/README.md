@@ -53,7 +53,8 @@ to verify complex behaviors concisely. We will see situations where many lines o
     - Introduces $past and $stable.
 1. [Register](assertions/register_tb.sv)
     - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
-    - Expands on implication and illustrates a significant improvement to the earlier register testbench that lacked assertions.    
+    - Demonstrates subtle problems that can cause assertion failures.
+    - Expands on implication and illustrates a significant improvement to the basic register testbench that lacked assertions.    
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
     - Introduces queues.
