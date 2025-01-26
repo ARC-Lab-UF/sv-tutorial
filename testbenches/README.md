@@ -54,11 +54,14 @@ to verify complex behaviors concisely. We will see situations where many lines o
 1. [Register](assertions/register_tb.sv)
     - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
     - Demonstrates subtle problems that can cause assertion failures.
+    - Demonstrates how to disable assertions.
     - Expands on implication and illustrates a significant improvement to the basic register testbench that lacked assertions.    
 1. [Delay](assertions/delay.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
     - Introduces queues.
-    - Expands on $past and $stable. Demonstrates how to disable assertion properties.
+    - Expands on $past. 
+    - Expands on implication and sequences.
+    - Demonstrates go-to replication and throughout operators.
 1. [Simple Pipeline](assertions/simple_pipeline.sv)
     - Corresponding [module](assertions/simple_pipeline.sv) and [testbench](assertions/simple_pipeline_tb.sv).
     - Introduces common problem with using functions in assertion properties.
