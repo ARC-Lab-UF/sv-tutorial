@@ -46,10 +46,10 @@ module simple_pipeline_with_en #(
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             // Reset all the registers.
-            for (int i = 0; i < 8; i++) in_r[i] <= '0;
-            for (int i = 0; i < 4; i++) mult_r[i] <= '0;
-            for (int i = 0; i < 2; i++) add_r[i] <= '0;
-            out_r <= '0;
+            in_r   <= '{default: '0};
+            mult_r <= '{default: '0};
+            add_r  <= '{default: '0};
+            out_r  <= '0;
         end else begin
             if (en == 1'b1) begin
                 // Register the inputs.

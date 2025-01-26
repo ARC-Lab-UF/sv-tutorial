@@ -68,7 +68,11 @@ module simple_pipeline_with_en_tb_bad #(
         return sum == out;
     endfunction
 
-    // Verify data_out and valid_out.
+    // Verify data_out and valid_out. 
+    // Notice how this reads the latency from the DUT itself. Alternatively, it
+    // is common to get the latency from package for the pipeline, or from a 
+    // function in the package that calculates the latency based on various
+    // parameters.
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> out == is_out_correct($past(in, DUT.LATENCY, en)));
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> valid_out == $past(valid_in, DUT.LATENCY, en));
 
