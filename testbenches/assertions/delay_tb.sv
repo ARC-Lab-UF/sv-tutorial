@@ -352,12 +352,17 @@ module delay_tb4 #(
     assert property (@(posedge clk) disable iff (rst) count == CYCLES |-> data_out == $past(data_in, CYCLES, en));
 
     // Although conceptually identical to the above assertion, this assertion
-    // fails in the first cycle that count == CYCLES. This problem is identical to
-    // what we saw in the register example, where the disable appears to 
-    // use values that get updated after the clock edge, where the other
-    // variables are sampled on the clock edge.
-    // TODO: Read the SV standard for the exact definition of disable.
+    // fails on the clock edge where count becomes CYCLES. This problem is identical to
+    // what was explained in the register example, where the disable does not sample
+    // values. As a result, the assertion is enabled earlier than expected due to
+    // count changing immediately after the clock edge where the other values
+    // were sampled.
+    //
     //assert property (@(posedge clk) disable iff (rst || count < CYCLES) data_out == $past(data_in, CYCLES, en));
+    //
+    // To fix it, we can do the following, which ends up identical to the first assertion:
+    //
+    //assert property (@(posedge clk) disable iff (rst || $sampled(count) < CYCLES) data_out == $past(data_in, CYCLES, en));
 
     assert property (@(posedge clk) disable iff (rst) count < CYCLES |-> data_out == '0);
 
