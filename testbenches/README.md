@@ -69,8 +69,8 @@ to verify complex behaviors concisely. We will see situations where many lines o
 1. [FIFO](assertions/fifo.sv)
     - Corresponding [module](assertions/fifo.sv) and [testbench](assertions/fifo_tb.sv).
     - Introduces hierarchical access of variables inside other modules.
-    - Demonstrates how to preserve ordering of data in assertion properties.
-    - Demonstrates queue reference model.
+    - Demonstrates incorrect and correct ways to preserve ordering of data in assertion properties.
+    - Demonstrates simple queue model as an alternative to complex assertions.
 
 ## Coverage
 
