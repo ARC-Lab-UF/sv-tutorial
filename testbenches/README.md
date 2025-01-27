@@ -71,6 +71,7 @@ to verify complex behaviors concisely. We will see situations where many lines o
     - Introduces hierarchical access of variables inside other modules.
     - Demonstrates incorrect and correct ways to preserve ordering of data in assertion properties.
     - Demonstrates simple queue model as an alternative to complex assertions.
+    - Demonstrates assertions within the [synthesizable code.](assertions/fifo.sv)
 
 ## Coverage
 
