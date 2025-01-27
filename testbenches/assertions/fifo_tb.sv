@@ -158,9 +158,7 @@ module fifo_tb2_bad #(
         // For example, if we change the range to ##[1:2] we will start to see
         // errors if they exist. However, that would also require reads to occur
         // within two cycles, or errors would be falsely reported.
-        @(posedge clk) (wr_en && !full,
-        data = wr_data
-        ) |-> ##[1:$] rd_en && !empty ##1 rd_data == data;
+        @(posedge clk) (wr_en && !full, data = wr_data) |-> ##[1:$] rd_en && !empty ##1 rd_data == data;
     endproperty  // check_output
 
     assert property (check_output) begin
