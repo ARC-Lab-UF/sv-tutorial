@@ -105,4 +105,6 @@ high coverage and no failed assertions, we gain much more confidence in the corr
 
 ## UVM
     
-1. TBD
+1. [Basic tutorial](uvm/basics/)
+    - Explains basic concepts of UVM including sequence items, monitors, drivers, agents, scoreboards, environments, tests, in addition to the UVM factory and config DB.
+    - Converts earlier bit_diff_tb into a UVM testbench.
