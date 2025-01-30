@@ -9,170 +9,194 @@
 // Module: add_tb1
 // Description: A testbench that uses cover properties to track whether or not
 // specific properties are ever true.
-module add_tb1;
+module add_tb1 #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 16
+);
+    logic [WIDTH-1:0] in0, in1;
+    logic [WIDTH-1:0] sum;
+    logic carry_out, carry_in;
 
-   localparam WIDTH = 16;
-   localparam NUM_TESTS = 1000;
-   
-   logic [WIDTH-1:0] in0, in1;
-   logic [WIDTH-1:0] sum;
-   logic             carry_out, carry_in;
-    
-   add #(.WIDTH(WIDTH)) DUT (.*);
-   
-   // The adder doesn't have a clock, but we can still use on in the testbench
-   // to coordinate assertion and cover properties.
-   logic             clk;
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;
-   end
-   
-   initial begin
-      $timeformat(-9, 0, " ns");
+    add #(.WIDTH(WIDTH)) DUT (.*);
 
-      // Generate random tests for all inputs.
-      for (int i=0; i < NUM_TESTS; i++) begin
-         in0 = $random;
-         in1 = $random;
-         carry_in = $random;             
-         @(posedge clk);
-      end
+    // The adder doesn't have a clock, but we can still use one in the testbench
+    // to coordinate assertion and cover properties.
+    logic clk = 1'b0;
+    initial begin : generate_clock
+        forever #5 clk <= ~clk;
+    end
 
-      $display("Tests completed.");
-      disable generate_clock;      
-   end
+    initial begin
+        $timeformat(-9, 0, " ns");
 
-   // These assertions will report errors if there are any incorrect outputs.
-   assert property (@(posedge clk) sum == in0 + in1 + carry_in);
-   assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
+        // Generate random tests for all inputs.
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-   // However, those assertions don't guarantee that we've tested everything.
-   // We could use cover properties to make sure that the testbench actually
-   // tests the situations that are most likely to cause errors.
-   //
-   // For example, these make sure there was at least one test where there 
-   // was a carry in, and at least one test that generated a carry out.
-   cp_carry_in : cover property (@(posedge clk) carry_in);
-   cp_carry_out : cover property (@(posedge clk) carry_out);
+        $display("Tests completed.");
+        disable generate_clock;
+    end
 
-   // Here we check to make sure that both inputs were 0 at some point.
-   cp_in0_eq_0 : cover property (@(posedge clk) in0 == 0);
-   cp_in1_eq_0 : cover property (@(posedge clk) in1 == 0);
+    // These assertions will report errors if there are any incorrect outputs.
+    logic [WIDTH:0] full_sum;
+    assign full_sum = {1'b0, in0} + in1 + carry_in;
+    assert property (@(posedge clk) sum == full_sum[WIDTH-1:0]);
+    assert property (@(posedge clk) carry_out == full_sum[WIDTH]);
 
-   // Here we check to make sure both inputs are tested with their maximum
-   // amounts. To get the maximum amount, we use the replication operator.
-   cp_in0_max : cover property (@(posedge clk) in0 == {WIDTH{1'b1}});
-   cp_in1_max : cover property (@(posedge clk) in1 == {WIDTH{1'b1}});
+    // I prefer the following, but the second one breaks my formatter.
+    //assert property (@(posedge clk) sum == in0 + in1 + carry_in);
+    //assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
 
-   // These are equivalent to the previous two covers, but use an alternative
-   // way of generating a WIDTH-bit signal of all ones. In general, any integer
-   // expression can be extended or truncated to a specific number of bits
-   // by specifying the width (as a constant or literal) followed by the
-   // expression in parantheses.
-   // VHDL Comparison: this construct is similar to the to_unsigned or to_signed
-   // fuctions in numeric_std.
-   //cp_in0_max2 : cover property (@(posedge clk) in0 == WIDTH'(-1));
-   //cp_in1_max2 : cover property (@(posedge clk) in1 == WIDTH'(-1));
+    // However, those assertions don't guarantee that we've tested everything.
+    // We could use cover properties to make sure that the testbench actually
+    // tests the situations that are most likely to cause errors.
+    //
+    // For example, these make sure there was at least one test where there 
+    // was a carry in, and at least one test that generated a carry out.
+    cp_carry_in :
+    cover property (@(posedge clk) carry_in);
+    cp_carry_out :
+    cover property (@(posedge clk) carry_out);
 
-   // For my test in Modelsim, none of the properties except the first two
-   // are covered. We'll see how to improve upon this later.
-   
-endmodule // add_tb1 
+    // Here we check to make sure that both inputs were 0 at some point.
+    cp_in0_eq_0 :
+    cover property (@(posedge clk) in0 == 0);
+    cp_in1_eq_0 :
+    cover property (@(posedge clk) in1 == 0);
+
+    // Here we check to make sure both inputs are tested with their maximum
+    // amounts. To get the maximum amount, we use the replication operator.
+    cp_in0_max :
+    cover property (@(posedge clk) in0 == {WIDTH{1'b1}});
+    cp_in1_max :
+    cover property (@(posedge clk) in1 == {WIDTH{1'b1}});
+
+    // These are equivalent to the previous two covers, but use an alternative
+    // way of generating a WIDTH-bit signal of all ones. In general, any integer
+    // expression can be extended or truncated to a specific number of bits
+    // by specifying the width (as a constant or literal) followed by the
+    // expression in parantheses.
+    // VHDL Comparison: this construct is similar to the to_unsigned or to_signed
+    // fuctions in numeric_std.
+    //cp_in0_max2 : cover property (@(posedge clk) in0 == WIDTH'(-1));
+    //cp_in1_max2 : cover property (@(posedge clk) in1 == WIDTH'(-1));
+
+    // Or, we could simply do it like this:
+    //cp_in0_max3 :
+    //cover property (@(posedge clk) in0 == '1);
+    //cp_in1_max3 :
+    //cover property (@(posedge clk) in1 == '1);
+
+    // For my test in Questa, none of the properties except the first two
+    // are covered. We'll see how to improve upon this later.
+
+endmodule  // add_tb1 
 
 
 // Module: add_tb2
 // Description: This testbench improves upon the previous one by adding tests
 // to ensure all the properties are covered.
 
-module add_tb2;
+module add_tb2 #(
+    parameter RANDOM_TESTS = 1000,
+    parameter ZERO_TESTS = 100,
+    parameter MAX_TESTS = 100,
+    parameter int WIDTH = 16
+);
+    logic [WIDTH-1:0] in0, in1;
+    logic [WIDTH-1:0] sum;
+    logic carry_out, carry_in;
 
-   localparam WIDTH = 16;
-   localparam RANDOM_TESTS = 1000;
-   localparam ZERO_TESTS = 100;
-   localparam MAX_TESTS = 100;
-   
-   logic [WIDTH-1:0] in0, in1;
-   logic [WIDTH-1:0] sum;
-   logic             carry_out, carry_in;
+    add #(.WIDTH(WIDTH)) DUT (.*);
+
+    // The adder doesn't have a clock, but we can still use one in the testbench
+    // to coordinate assertion and cover properties.
+    logic clk = 1'b0;
+    initial begin : generate_clock
+        forever #5 clk <= ~clk;
+    end
     
-   add #(.WIDTH(WIDTH)) DUT (.*);
-   
-   logic             clk;
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;
-   end
-   
-   initial begin
-      $timeformat(-9, 0, " ns");
+    initial begin
+        $timeformat(-9, 0, " ns");
 
-      // Random tests.
-      for (int i=0; i < RANDOM_TESTS; i++) begin
-         in0 = $random;
-         in1 = $random;
-         carry_in = $random;             
-         @(posedge clk);
-      end
+        // Random tests.
+        for (int i = 0; i < RANDOM_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // The previous testbench makes it unlikely for values of 0 to be used
-      // in the simulation. Here, we explicitly test each input with 0s.
-      // in0 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = 0;
-         in1 = $random;
-         carry_in = $random;             
-         @(posedge clk);
-      end
+        // The previous testbench makes it unlikely for values of 0 to be used
+        // in the simulation. Here, we explicitly test each input with 0s.
+        // in0 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= '0;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // in1 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = $random;
-         in1 = 0;
-         carry_in = $random;             
-         @(posedge clk);
-      end
+        // in1 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= '0;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // Similarly, we add tests with the maximum value of both inputs.
-      // Ideally, you would probably also want to test both inputs with their
-      // maximum values at the same time, which we omit here.
-      // in0 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = {WIDTH{1'b1}};
-         in1 = $random;
-         carry_in = $random;             
-         @(posedge clk);
-      end
+        // Similarly, we add tests with the maximum value of both inputs.
+        // Ideally, you would probably also want to test both inputs with their
+        // maximum values at the same time, which we omit here.
+        // in0 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= '1;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // in1 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = $random;
-         in1 = {WIDTH{1'b1}};
-         carry_in = $random;             
-         @(posedge clk);
-      end
-            
-      $display("Tests completed.");
-      disable generate_clock;      
-   end
+        // in1 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= '1;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-   // This testbench performs the same assertions and covers as before, but
-   // now we should see everything pass.
-   assert property (@(posedge clk) sum == in0 + in1 + carry_in);
-   assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
+        $display("Tests completed.");
+        disable generate_clock;
+    end
 
-   cp_carry_in : cover property (@(posedge clk) carry_in);
-   cp_carry_out : cover property (@(posedge clk) carry_out);
+    // This testbench performs the same assertions and covers as before, but
+    // now we should see everything pass.
+    logic [WIDTH:0] full_sum;
+    assign full_sum = {1'b0, in0} + in1 + carry_in;
+    assert property (@(posedge clk) sum == full_sum[WIDTH-1:0]);
+    assert property (@(posedge clk) carry_out == full_sum[WIDTH]);
 
-   cp_in0_eq_0 : cover property (@(posedge clk) in0 == 0);
-   cp_in1_eq_0 : cover property (@(posedge clk) in1 == 0);
+    cp_carry_in :
+    cover property (@(posedge clk) carry_in);
+    cp_carry_out :
+    cover property (@(posedge clk) carry_out);
 
-   cp_in0_max : cover property (@(posedge clk) in0 == {WIDTH{1'b1}});
-   cp_in1_max : cover property (@(posedge clk) in1 == {WIDTH{1'b1}});
+    cp_in0_eq_0 :
+    cover property (@(posedge clk) in0 == 0);
+    cp_in1_eq_0 :
+    cover property (@(posedge clk) in1 == 0);
+
+    cp_in0_max :
+    cover property (@(posedge clk) in0 == {WIDTH{1'b1}});
+    cp_in1_max :
+    cover property (@(posedge clk) in1 == {WIDTH{1'b1}});
 
 endmodule
 
-
+/*
 // Module: add_tb3
 // Description: This testbench shows alternative cover constructs:
 // covergroups and coverpoints. Whereas cover properties work well for specific
@@ -251,41 +275,41 @@ module add_tb3;
       
       // Random tests.
       for (int i=0; i < RANDOM_TESTS; i++) begin
-         in0 = $random;
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in0 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = 0;
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= 0;
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in1 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = $random;
-         in1 = 0;
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= 0;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in0 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = {WIDTH{1'b1}};
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= {WIDTH{1'b1}};
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in1 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = $random;
-         in1 = {WIDTH{1'b1}};
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= {WIDTH{1'b1}};
+         carry_in <= $urandom;             
          @(posedge clk);
       end
         
@@ -385,58 +409,58 @@ module add_tb4;
       
       // Random tests.
       for (int i=0; i < RANDOM_TESTS; i++) begin
-         in0 = $random;
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in0 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = 0;
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= 0;
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in1 == 0 tests.
       for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 = $random;
-         in1 = 0;
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= 0;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in0 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = {WIDTH{1'b1}};
-         in1 = $random;
-         carry_in = $random;             
+         in0 <= {WIDTH{1'b1}};
+         in1 <= $urandom;
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // in1 == MAX tests.
       for (int i=0; i < MAX_TESTS; i++) begin
-         in0 = $random;
-         in1 = {WIDTH{1'b1}};
-         carry_in = $random;             
+         in0 <= $urandom;
+         in1 <= {WIDTH{1'b1}};
+         carry_in <= $urandom;             
          @(posedge clk);
       end
 
       // Test both inputs at 0 to achieve 100% coverage.
       for (int i=0; i < 2; i++) begin
-         in0 = 0;
-         in1 = 0;
-         carry_in = i;           
+         in0 <= 0;
+         in1 <= 0;
+         carry_in <= i;           
          @(posedge clk);
       end
 
       // Test both inputs with their maximum values to achieve 100% coverage.
       for (int i=0; i < 2; i++) begin
          // Another way of setting all the bits to 1.
-         in0 = '1;
-         in1 = '1;       
-         carry_in = i;   
+         in0 <= '1;
+         in1 <= '1;       
+         carry_in <= i;   
          @(posedge clk);
       end
             
@@ -449,3 +473,4 @@ module add_tb4;
    assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
    
 endmodule
+*/
