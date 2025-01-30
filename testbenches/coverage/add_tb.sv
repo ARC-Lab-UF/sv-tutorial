@@ -119,7 +119,7 @@ module add_tb2 #(
     initial begin : generate_clock
         forever #5 clk <= ~clk;
     end
-    
+
     initial begin
         $timeformat(-9, 0, " ns");
 
@@ -196,7 +196,7 @@ module add_tb2 #(
 
 endmodule
 
-/*
+
 // Module: add_tb3
 // Description: This testbench shows alternative cover constructs:
 // covergroups and coverpoints. Whereas cover properties work well for specific
@@ -204,125 +204,128 @@ endmodule
 // range of values tested. Covergroups and points provide a convenient construct
 // for such coverage.
 
-module add_tb3;
+module add_tb3 #(
+    parameter RANDOM_TESTS = 1000,
+    parameter ZERO_TESTS = 100,
+    parameter MAX_TESTS = 100,
+    parameter int WIDTH = 16
+);
+    logic [WIDTH-1:0] in0, in1;
+    logic [WIDTH-1:0] sum;
+    logic carry_out, carry_in;
 
-   localparam WIDTH = 16;
-   localparam RANDOM_TESTS = 1000;
-   localparam ZERO_TESTS = 100;
-   localparam MAX_TESTS = 100;
-   
-   logic [WIDTH-1:0] in0, in1;
-   logic [WIDTH-1:0] sum;
-   logic             carry_out, carry_in;
-    
-   add #(.WIDTH(WIDTH)) DUT (.*);
+    add #(.WIDTH(WIDTH)) DUT (.*);
 
-   logic             clk;
+    logic clk = 1'b0;
+    initial begin : generate_clock
+        forever #5 clk <= ~clk;
+    end
 
-   // Here we use a covergroup that will test coverage of different possible
-   // values for whatever we request, where values are sampled on every rising
-   // clock edge.
-   covergroup cg @(posedge clk);
-      // Coverpoints specify variables (or other cover points) that should be
-      // sampled. By default, each coverpoint will have all its possible values
-      // divided up into at most 64 bins. For these two variables, there are
-      // only two possible values, so there will be a bin for 1'b0 occurrences 
-      // and a bin for 1'b1 occurences.
-      cin : coverpoint carry_in;
-      cout : coverpoint carry_out;
-      
-      // This will similarly track values of in0 and in1, but since these will
-      // have far more values for any reasonable WIDTH parameter, most
-      // situations will divide up all the values into 64 bins, and track
-      // occurences of values that fall into each bin.
-      in0_bin : coverpoint in0;
-      in1_bin : coverpoint in1;
+    // Here we use a covergroup that will test coverage of different possible
+    // values for whatever we request, where values are sampled on every rising
+    // clock edge.
+    covergroup cg @(posedge clk);
+        // Coverpoints specify variables (or other cover points) that should be
+        // sampled. By default, each coverpoint will have all its possible values
+        // divided up into at most 64 bins. For these two variables, there are
+        // only two possible values, so there will be a bin for 1'b0 occurrences 
+        // and a bin for 1'b1 occurences.
+        cin: coverpoint carry_in;
+        cout: coverpoint carry_out;
 
-      // If you want more (or fewer) bins, you can use the option.auto_bin_max
-      // parameter. For example, the following will do coverage of all 
-      // possible in0 values by creating a separate bin for each possible 
-      // value. NOTE: using this strategy for any significant WIDTH will run 
-      // out of memory. 
-      in0_complete : coverpoint in0 {option.auto_bin_max = 2**WIDTH;}
+        // This will similarly track values of in0 and in1, but since these will
+        // have far more values for any reasonable WIDTH parameter, most
+        // situations will divide up all the values into 64 bins, and track
+        // occurences of values that fall into each bin.
+        in0_bin: coverpoint in0;
+        in1_bin: coverpoint in1;
 
-      // These are two ways of checking all possible combinations of in0 and
-      // in1, either by coverpoint name, or variable name. This technique is
-      // called cross coverage.
-      //
-      // For this cross, we are crossing existing coverpoints. Because each of
-      // those points most likely has 64 bins, the cross coverage will have
-      // 64*64 = 4096 bins. Because this testbench is only performing 1000
-      // random tests, it is impossible for us to achieve 100% coverage here.
-      in0_cross_in1 : cross in0_bin, in1_bin;
+        // If you want more (or fewer) bins, you can use the option.auto_bin_max
+        // parameter. For example, the following will do coverage of all 
+        // possible in0 values by creating a separate bin for each possible 
+        // value. NOTE: using this strategy for any significant WIDTH will run 
+        // out of memory. 
+        in0_complete: coverpoint in0 {
+            option.auto_bin_max = 2 ** WIDTH;
+        }
 
-      // Here we perform a cross of all the input values. I can't find the
-      // exact language definition, but it appears that these inputs are binned
-      // first before being crossed, which makes this cross equivalent to the
-      // previous one.
-      //in0_cross_in1_2 : cross in0, in1;      
-            
-   endgroup
-   
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;
-   end
+        // These are two ways of checking all possible combinations of in0 and
+        // in1, either by coverpoint name, or variable name. This technique is
+        // called cross coverage.
+        //
+        // For this cross, we are crossing existing coverpoints. Because each of
+        // those points most likely has 64 bins, the cross coverage will have
+        // 64*64 = 4096 bins. Because this testbench is only performing 1000
+        // random tests, it is impossible for us to achieve 100% coverage here.
+        in0_cross_in1 : cross in0_bin, in1_bin;
 
-   cg cg_inst;      
-   initial begin
-      cg_inst = new();      
-      $timeformat(-9, 0, " ns");
-      
-      // Random tests.
-      for (int i=0; i < RANDOM_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    // Here we perform a cross of all the input values. I can't find the
+    // exact language definition, but it appears that these inputs are binned
+    // first before being crossed, which makes this cross equivalent to the
+    // previous one.
+    // NOTE: Questa even warns that this is identical.
+    //in0_cross_in1_2 : cross in0, in1;
 
-      // in0 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 <= 0;
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    endgroup
 
-      // in1 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= 0;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    cg cg_inst;
 
-      // in0 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 <= {WIDTH{1'b1}};
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    initial begin
+        cg_inst = new();
+        $timeformat(-9, 0, " ns");
 
-      // in1 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= {WIDTH{1'b1}};
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
-        
-      $display("Tests completed.");
-      $display("Coverage = %0.2f %%", cg_inst.get_inst_coverage());      
-      disable generate_clock;      
-   end
+        // Random tests.
+        for (int i = 0; i < RANDOM_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-   // These assertions will report errors if there are any incorrect outputs.
-   assert property (@(posedge clk) sum == in0 + in1 + carry_in);
-   assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
-   
-endmodule // add_tb3
+        // in0 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= 0;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
+
+        // in1 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= 0;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
+
+        // in0 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= '1;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
+
+        // in1 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= '1;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
+
+        $display("Tests completed.");
+        $display("Coverage = %0.2f %%", cg_inst.get_inst_coverage());
+        disable generate_clock;
+    end
+
+    // These assertions will report errors if there are any incorrect outputs.
+    logic [WIDTH:0] full_sum;
+    assign full_sum = {1'b0, in0} + in1 + carry_in;
+    assert property (@(posedge clk) sum == full_sum[WIDTH-1:0]);
+    assert property (@(posedge clk) carry_out == full_sum[WIDTH]);
+
+endmodule  // add_tb3
 
 
 // Module: add_tb4
@@ -332,7 +335,7 @@ endmodule // add_tb3
 // -Make sure we test at least 10 examples where a carry out is produced.
 // -Make sure each input is tested with a value of 0 at least 10 times.
 // -Make sure each input is tested with a max value at least 10 times.
-// -If we divide up the range of all input values into 16 bins, make sure at
+// -If we divide up the range of all input values into 16 bins, make sure 
 //  all bins occur at least once during the testing.
 // -Make sure all combinations of the 16 bins are tested for both inputs.
 // -Make sure that we test both inputs with 0 at the same time.
@@ -341,136 +344,138 @@ endmodule // add_tb3
 // This testbench shows how to create covergroups and points to check for this
 // coverage, while also extending the tests to ensure we achieve 100% coverage.
 
-module add_tb4;
+module add_tb4 #(
+    // To achieve 100% coverage for a WIDTH of 16, this parameter had to be
+    // increased to ensure that cross coverage has achieved for the input
+    // combinations.
+    parameter RANDOM_TESTS = 10000,
+    parameter ZERO_TESTS = 100,
+    parameter MAX_TESTS = 100,
+    parameter int WIDTH = 16
+);
+    logic [WIDTH-1:0] in0, in1;
+    logic [WIDTH-1:0] sum;
+    logic carry_out, carry_in;
 
-   localparam WIDTH = 16;
+    add #(.WIDTH(WIDTH)) DUT (.*);
 
-   // To achieve 100% coverage for a WIDTH of 16, this parameter had to be
-   // increased to ensure that cross coverage has achieved for the input
-   // combinations.
-   localparam RANDOM_TESTS = 10000;
-   //localparam RANDOM_TESTS = 1000;
+    logic clk = 1'b0;
+    initial begin : generate_clock
+        forever #5 clk <= ~clk;
+    end
 
-   localparam ZERO_TESTS = 100;
-   localparam MAX_TESTS = 100;
-   
-   logic [WIDTH-1:0] in0, in1;
-   logic [WIDTH-1:0] sum;
-   logic             carry_out, carry_in;
-    
-   add #(.WIDTH(WIDTH)) DUT (.*);
+    covergroup cg @(posedge clk);
+        // Make sure the carry_in is asserted at least 100 times.
+        cin: coverpoint carry_in {
+            bins one = {1}; option.at_least = 100;
+        }
+        // Make sure the carry out is generated at least 10 times.
+        cout: coverpoint carry_out {
+            bins one = {1}; option.at_least = 10;
+        }
 
-   logic             clk;
-   covergroup cg @(posedge clk);
-      // Make sure the carry_in is asserted at least 100 times.
-      cin : coverpoint carry_in {bins one = {1}; option.at_least = 100;}
-      // Make sure the carry out is generated at least 10 times.
-      cout : coverpoint carry_out {bins one = {1}; option.at_least = 10;}
+        // Make sure that in0 has a 0 and max value tested at least 10 times.
+        in0_extremes: coverpoint in0 {
+            bins zero = {0}; bins max_ = {{WIDTH{1'b1}}}; option.at_least = 10;
+        }
+        // Make sure that in1 has a 0 and max value tested at least 10 times.
+        in1_extremes: coverpoint in1 {
+            bins zero = {0}; bins max_ = {{WIDTH{1'b1}}}; option.at_least = 10;
+        }
 
-      // Make sure that in0 has a 0 and max value tested at least 10 times.
-      in0_extremes : coverpoint in0 {
-         bins zero = {0};
-         bins max_ = {{WIDTH{1'b1}}};
-         option.at_least = 10; 
-      }
-      // Make sure that in1 has a 0 and max value tested at least 10 times.
-      in1_extremes : coverpoint in1 {
-         bins zero = {0};
-         bins max_ = {{WIDTH{1'b1}}};
-         option.at_least = 10; 
-      }
+        // Divide up the input space into 16 bins and make sure all bins are
+        // tested at least once.
+        in0_full: coverpoint in0 {
+            option.auto_bin_max = 16;
+        }
+        in1_full: coverpoint in1 {option.auto_bin_max = 16;}
 
-      // Divide up the input space into 16 bins and make sure all bins are
-      // tested at least once.
-      in0_full : coverpoint in0 {option.auto_bin_max = 16;}
-      in1_full : coverpoint in1 {option.auto_bin_max = 16;}
-       
-      // Make sure all combinations of input bins are tested at least once.
-      in0_cross_in1 : cross in0_full, in1_full;
+        // Make sure all combinations of input bins are tested at least once.
+        in0_cross_in1 : cross in0_full, in1_full;
 
-      // Check to make sure both inputs are 0 or the max value at the same time.
-      // It would be more readable to use cover properties here, but if we
-      // want this included in the coverage reporting for the group, we need it
-      // here.
-      in0_in1_eq_0 : coverpoint (in0==0 && in1==0) {bins true = {1'b1};}
-      in0_in1_eq_max : coverpoint (in0=={WIDTH{1'b1}} && in1=={WIDTH{1'b1}}) {bins true = {1'b1};}
-           
-   endgroup
+        // Check to make sure both inputs are 0 or the max value at the same time.
+        // It would be more readable to use cover properties here, but if we
+        // want this included in the coverage reporting for the group, we need it
+        // here.
+        in0_in1_eq_0: coverpoint (in0 == 0 && in1 == 0) {
+            bins true = {1'b1};
+        }
+        in0_in1_eq_max: coverpoint (in0 == {WIDTH{1'b1}} && in1 == {WIDTH{1'b1}}) {bins true = {1'b1};}
 
-   initial begin : generate_clock
-      clk = 1'b0;
-      while(1) #5 clk = ~clk;
-   end
+    endgroup
 
-   cg cg_inst;      
-   initial begin
-      cg_inst = new();      
-      $timeformat(-9, 0, " ns");
-      
-      // Random tests.
-      for (int i=0; i < RANDOM_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    cg cg_inst;
 
-      // in0 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 <= 0;
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+    initial begin
+        cg_inst = new();
+        $timeformat(-9, 0, " ns");
 
-      // in1 == 0 tests.
-      for (int i=0; i < ZERO_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= 0;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+        // Random tests.
+        for (int i = 0; i < RANDOM_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // in0 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 <= {WIDTH{1'b1}};
-         in1 <= $urandom;
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+        // in0 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= 0;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // in1 == MAX tests.
-      for (int i=0; i < MAX_TESTS; i++) begin
-         in0 <= $urandom;
-         in1 <= {WIDTH{1'b1}};
-         carry_in <= $urandom;             
-         @(posedge clk);
-      end
+        // in1 == 0 tests.
+        for (int i = 0; i < ZERO_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= 0;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // Test both inputs at 0 to achieve 100% coverage.
-      for (int i=0; i < 2; i++) begin
-         in0 <= 0;
-         in1 <= 0;
-         carry_in <= i;           
-         @(posedge clk);
-      end
+        // in0 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= '1;
+            in1 <= $urandom;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-      // Test both inputs with their maximum values to achieve 100% coverage.
-      for (int i=0; i < 2; i++) begin
-         // Another way of setting all the bits to 1.
-         in0 <= '1;
-         in1 <= '1;       
-         carry_in <= i;   
-         @(posedge clk);
-      end
-            
-      $display("Tests completed.");
-      $display("Coverage = %0.2f %%", cg_inst.get_inst_coverage());      
-      disable generate_clock;      
-   end
+        // in1 == MAX tests.
+        for (int i = 0; i < MAX_TESTS; i++) begin
+            in0 <= $urandom;
+            in1 <= '1;
+            carry_in <= $urandom;
+            @(posedge clk);
+        end
 
-   assert property (@(posedge clk) sum == in0 + in1 + carry_in);
-   assert property (@(posedge clk) carry_out == {{1'b0, in0} + in1 + carry_in}[WIDTH]);
-   
+        // Test both inputs at 0 to achieve 100% coverage.
+        for (int i = 0; i < 2; i++) begin
+            in0 <= 0;
+            in1 <= 0;
+            carry_in <= i;
+            @(posedge clk);
+        end
+
+        // Test both inputs with their maximum values to achieve 100% coverage.
+        for (int i = 0; i < 2; i++) begin
+            // Another way of setting all the bits to 1.
+            in0 <= '1;
+            in1 <= '1;
+            carry_in <= i;
+            @(posedge clk);
+        end
+
+        $display("Tests completed.");
+        $display("Coverage = %0.2f %%", cg_inst.get_inst_coverage());
+        disable generate_clock;
+    end
+
+    logic [WIDTH:0] full_sum;
+    assign full_sum = {1'b0, in0} + in1 + carry_in;
+    assert property (@(posedge clk) sum == full_sum[WIDTH-1:0]);
+    assert property (@(posedge clk) carry_out == full_sum[WIDTH]);
+
 endmodule
-*/
+
