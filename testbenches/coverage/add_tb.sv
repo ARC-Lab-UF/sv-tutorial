@@ -376,11 +376,11 @@ module add_tb4 #(
 
         // Make sure that in0 has a 0 and max value tested at least 10 times.
         in0_extremes: coverpoint in0 {
-            bins zero = {0}; bins max_ = {{WIDTH{1'b1}}}; option.at_least = 10;
+            bins zero = {0}; bins max_ = {'1}; option.at_least = 10;
         }
         // Make sure that in1 has a 0 and max value tested at least 10 times.
         in1_extremes: coverpoint in1 {
-            bins zero = {0}; bins max_ = {{WIDTH{1'b1}}}; option.at_least = 10;
+            bins zero = {0}; bins max_ = {'1}; option.at_least = 10;
         }
 
         // Divide up the input space into 16 bins and make sure all bins are
@@ -400,7 +400,7 @@ module add_tb4 #(
         in0_in1_eq_0: coverpoint (in0 == 0 && in1 == 0) {
             bins true = {1'b1};
         }
-        in0_in1_eq_max: coverpoint (in0 == {WIDTH{1'b1}} && in1 == {WIDTH{1'b1}}) {bins true = {1'b1};}
+        in0_in1_eq_max: coverpoint (in0 == '1 && in1 == '1) {bins true = {1'b1};}
 
     endgroup
 
