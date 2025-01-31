@@ -44,6 +44,15 @@ class bit_diff_driver extends uvm_driver #(bit_diff_item);
             // of the testbench to focus on transactions at an appropriate level
             // of abstraction, rather than dealing with the specifics of the 
             // interface.
+            //
+            // In most cases, from what I've seen, it would be more common to
+            // treat just the data as the transaction, with the driver implicitly
+            // assertion go for every sequence item. However, while good for
+            // feature testing, that strategy wouldn't test go being asserted
+            // during the execution of the DUT, which is a likely candidate for
+            // causing errors. This is an example of why it might make sense
+            // to have different sequence items and different drivers to ensure
+            // that you achieve better coverage.
             vif.data <= req.data;
             vif.go <= req.go;
             @(posedge vif.clk);
