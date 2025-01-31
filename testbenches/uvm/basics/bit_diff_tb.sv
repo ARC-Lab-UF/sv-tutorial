@@ -1,5 +1,12 @@
+
+// Explanation order:
+// bit_diff_tb
+// bit_diff_intf
+// bit_diff_item
+
+
 `include "bit_diff_if.svh"
-`include "bit_diff_simple_test.svh"
+//`include "bit_diff_simple_test.svh"
 
 `timescale 1 ns / 100 ps
 
