@@ -22,7 +22,6 @@ import uvm_pkg::*;
 
 `include "bit_diff_item.svh"
 
-// TODO: chance bit_diff_item to bit_diff_sequence_item
 class bit_diff_sequencer extends uvm_sequencer #(bit_diff_item);
     `uvm_component_utils(bit_diff_sequencer)
 
