@@ -9,14 +9,14 @@ class bit_diff_item extends uvm_sequence_item;
     parameter int WIDTH = 8;
     rand bit [WIDTH-1:0] data;
     rand bit go;
-    bit signed [$clog2[(WIDTH*2-1)-1:0]] result;
+    bit signed [$clog2(WIDTH*2-1)-1:0] result;
 
     `uvm_object_utils_begin(bit_diff_item)
-    `uvm_field_int(data, UVM_ALL_ON)
-    `uvm_field_int(go, UVM_ALL_ON)
+        `uvm_field_int(data, UVM_ALL_ON)
+        `uvm_field_int(go, UVM_ALL_ON)
     `uvm_object_utils_end
 
-    function new (string name="bit_diff_item");
+    function new(string name = "bit_diff_item");
         super.new(name);
     endfunction
 

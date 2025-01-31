@@ -4,7 +4,7 @@
 // bit_diff_intf
 // bit_diff_item
 
-
+`include "uvm_macros.svh"
 `include "bit_diff_if.svh"
 //`include "bit_diff_simple_test.svh"
 
