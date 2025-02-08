@@ -42,7 +42,7 @@ class axi4_stream_driver #(
             vif.tvalid <= 1'b1;
             @(posedge vif.aclk iff vif.tready);
             vif.tvalid <= 1'b0;
-            repeat (5) @(posedge vif.aclk);
+            repeat ($urandom_range(0, 50)) @(posedge vif.aclk);
             seq_item_port.item_done();
         end
     endtask

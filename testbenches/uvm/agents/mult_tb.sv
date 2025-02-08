@@ -11,6 +11,8 @@ import uvm_pkg::*;
 
 module mult_tb #(
     parameter int NUM_TESTS   = 10000,
+    parameter bit TOGGLE_READY = 1'b1,
+
     parameter int INPUT_WIDTH = 8
 );
     bit clk = 1'b0;
@@ -35,7 +37,15 @@ module mult_tb #(
         .out_tdata (out_intf.tdata)
     );
 
-    assign out_intf.tready = 1'b1;
+    initial begin
+        if (!TOGGLE_READY) out_intf.tready <= 1'b0;
+        else begin
+            forever begin
+                out_intf.tready <= $urandom;
+                @(posedge clk);
+            end
+        end
+    end 
 
     initial begin
         rst <= 1'b1;
@@ -61,5 +71,23 @@ module mult_tb #(
         run_test("mult_simple_test");
     end
 
+    assert property (@(posedge clk) disable iff (rst) !out_intf.tready |=> $stable(out_intf.tdata))
+    else `uvm_error("ASSERT", "Output changed with tready disabled.");
+
+    assert property (@(posedge clk) disable iff (rst) !out_intf.tready |=> $stable(out_intf.tvalid))
+    else `uvm_error("ASSERT", "Valid changed with tready disabled.");
+
+    // Validate required properties of AXI: once tvalid is asserted, it must remain asserted until
+    // tready is asserted.
+    assert property (@(posedge clk) disable iff (rst) $fell(out_intf.tvalid) |-> $past(out_intf.tready, 1))
+    else `uvm_error("ASSERT", "Output tvalid must be asserted continuously until tready is asserted.");
+
+    // Validate the input interfaces too, even though these are driven by our drivers. This essentially
+    // helps ensure that the axi4_stream_driver compiles with AXI standards.
+    assert property (@(posedge clk) disable iff (rst) $fell(in0_intf.tvalid) |-> $past(in0_intf.tready, 1))
+    else `uvm_error("ASSERT", "In0 tvalid must be asserted continuously until tready is asserted.");
+
+    assert property (@(posedge clk) disable iff (rst) $fell(in0_intf.tvalid) |-> $past(in0_intf.tready, 1))
+    else `uvm_error("ASSERT", "In1 tvalid must be asserted continuously until tready is asserted.");
 
 endmodule
