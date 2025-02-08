@@ -6,8 +6,10 @@ import uvm_pkg::*;
 
 `include "axi4_stream_seq_item.svh"
 
-class axi4_stream_sequencer extends uvm_sequencer #(axi4_stream_seq_item);
-    `uvm_component_utils(axi4_stream_sequencer)
+class axi4_stream_sequencer #(
+    parameter int DATA_WIDTH = 32
+) extends uvm_sequencer #(axi4_stream_seq_item #(DATA_WIDTH));
+    `uvm_component_param_utils(axi4_stream_sequencer#(DATA_WIDTH))
 
     function new(string name, uvm_component parent);
         super.new(name, parent);

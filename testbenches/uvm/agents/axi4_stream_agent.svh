@@ -14,7 +14,7 @@ class axi4_stream_agent #(
     `uvm_component_param_utils(axi4_stream_agent#(DATA_WIDTH))
 
     bit is_active;
-    axi4_stream_sequencer sequencer;
+    axi4_stream_sequencer #(DATA_WIDTH) sequencer;
     axi4_stream_driver #(DATA_WIDTH) driver;
     axi4_stream_monitor #(DATA_WIDTH) monitor;
 
@@ -25,9 +25,13 @@ class axi4_stream_agent #(
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-        sequencer = axi4_stream_sequencer::type_id::create("sequencer", this);
+        sequencer = axi4_stream_sequencer#(DATA_WIDTH)::type_id::create("sequencer", this);
         driver    = axi4_stream_driver#(DATA_WIDTH)::type_id::create("driver", this);
         monitor   = axi4_stream_monitor#(DATA_WIDTH)::type_id::create("monitor", this);
+    endfunction
+
+    function void connect_phase(uvm_phase phase);
+        driver.seq_item_port.connect(sequencer.seq_item_export);
     endfunction
 endclass
 

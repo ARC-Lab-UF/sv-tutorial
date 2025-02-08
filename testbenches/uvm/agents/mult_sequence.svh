@@ -9,7 +9,7 @@ import uvm_pkg::*;
 
 import mult_tb_pkg::*;
 
-class mult_sequence extends uvm_sequence #(axi4_stream_seq_item);
+class mult_sequence extends uvm_sequence #(axi4_stream_seq_item #(mult_tb_pkg::INPUT_WIDTH));
     `uvm_object_utils(mult_sequence)
 
     int num_tests;
