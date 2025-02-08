@@ -1,4 +1,4 @@
-module axi4_stream_mult #(
+module mult #(
     parameter int INPUT_WIDTH = 8
 ) (
     input logic aclk,
