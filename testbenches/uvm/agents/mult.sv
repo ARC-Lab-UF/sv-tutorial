@@ -1,5 +1,6 @@
 module mult #(
-    parameter int INPUT_WIDTH = 8
+    parameter int INPUT_WIDTH = 8,
+    parameter bit IS_SIGNED = 1'b0
 ) (
     input logic aclk,
     input logic arst_n,
@@ -42,7 +43,9 @@ module mult #(
             //if (in_tvalid[1]) in_r[1] <= in_tdata[1];
 
             //product_r <= in_r[0] * in_r[1];
-            product_r <= in_tdata[0] * in_tdata[1];
+
+            if (IS_SIGNED) product_r <= signed'(in_tdata[0]) * signed'(in_tdata[1]);
+            else product_r <= in_tdata[0] * in_tdata[1];
             product_valid_r <= ready;
         end
 

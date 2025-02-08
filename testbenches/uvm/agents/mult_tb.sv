@@ -13,7 +13,8 @@ module mult_tb #(
     parameter int NUM_TESTS   = 10000,
     parameter bit TOGGLE_READY = 1'b1,
 
-    parameter int INPUT_WIDTH = 8
+    parameter int INPUT_WIDTH = 8,
+    parameter bit IS_SIGNED = 1'b1
 );
     bit clk = 1'b0;
     bit rst;
@@ -25,7 +26,8 @@ module mult_tb #(
 
     // Instantiate the DUT.
     mult #(
-        .INPUT_WIDTH(INPUT_WIDTH)
+        .INPUT_WIDTH(INPUT_WIDTH),
+        .IS_SIGNED(IS_SIGNED)
     ) DUT (
         .aclk      (clk),
         .arst_n    (!rst),
@@ -65,6 +67,8 @@ module mult_tb #(
 
         // Store the number of tests.
         uvm_config_db#(int)::set(uvm_root::get(), "*", "num_tests", NUM_TESTS);
+
+        uvm_config_db#(bit)::set(uvm_root::get(), "*", "is_signed", IS_SIGNED);
     end
 
     initial begin

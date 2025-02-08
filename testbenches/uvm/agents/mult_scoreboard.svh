@@ -26,11 +26,14 @@ class mult_scoreboard extends uvm_scoreboard;
     uvm_tlm_analysis_fifo #(logic [2*mult_tb_pkg::INPUT_WIDTH-1:0]) out_fifo;
 
     int passed, failed;
+    bit is_signed;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
         passed = 0;
         failed = 0;
+
+        if (!uvm_config_db#(bit)::get(this, "", "is_signed", is_signed)) `uvm_fatal("NO_IS_SIGNED", "is_signed not specified.");
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -60,7 +63,10 @@ class mult_scoreboard extends uvm_scoreboard;
             in1_fifo.get(in1);
             out_fifo.get(actual);
 
-            expected = in0 * in1;
+            // Our model is so simple, we'll just do it here.
+            if (is_signed) expected = signed'(in0) * signed'(in1);
+            else expected = in0 * in1;
+
             if (actual == expected) begin
                 `uvm_info("SCOREBOARD", $sformatf("Test passed for in0=%0d, in1=%0d.", in0, in1), UVM_LOW)
                 passed++;
