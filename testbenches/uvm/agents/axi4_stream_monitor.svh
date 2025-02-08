@@ -14,7 +14,7 @@ class axi4_stream_monitor #(
     virtual axi4_stream_if #(.DATA_WIDTH(DATA_WIDTH)) vif;
 
     // Analysis port needs to specify the parameterized sequence item
-    uvm_analysis_port #(axi4_stream_seq_item #(DATA_WIDTH)) analysis_port;
+    uvm_analysis_port #(logic #(DATA_WIDTH)) analysis_port;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
