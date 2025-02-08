@@ -27,8 +27,8 @@ class axi4_stream_driver #(
 
     virtual task run_phase(uvm_phase phase);
 
-        @(posedge vif.aclk iff !vif.arst_n);
-        @(posedge vif.aclk iff vif.arst_n);
+        @(posedge vif.aclk iff !vif.aresetn);
+        @(posedge vif.aclk iff vif.aresetn);
 
         forever begin
             seq_item_port.get_next_item(req);

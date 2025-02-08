@@ -58,7 +58,7 @@ class mult_scoreboard extends uvm_scoreboard;
         forever begin
             in0_fifo.get(in0);
             in1_fifo.get(in1);
-            out_port.get(actual);
+            out_fifo.get(actual);
 
             expected = in0 * in1;
             if (actual == expected) begin

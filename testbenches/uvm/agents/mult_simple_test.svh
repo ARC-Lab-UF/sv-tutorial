@@ -24,12 +24,12 @@ class mult_simple_test extends mult_base_test;
     endfunction
 
     task run_phase(uvm_phase phase);
-        mult_sequence #(mult_tb_pkg::INPUT_WIDTH) seq_in0, seq_in1;
+        mult_sequence seq_in0, seq_in1;
         
         phase.raise_objection(this);
 
-        seq_in0 = mult_sequence#(mult_tb_pkg::INPUT_WIDTH)::type_id::create("seq_in0");
-        seq_in1 = mult_sequence#(mult_tb_pkg::INPUT_WIDTH)::type_id::create("seq_in1");
+        seq_in0 = mult_sequence::type_id::create("seq_in0");
+        seq_in1 = mult_sequence::type_id::create("seq_in1");
 
         fork
             seq_in0.start(env.agent_in0.sequencer);

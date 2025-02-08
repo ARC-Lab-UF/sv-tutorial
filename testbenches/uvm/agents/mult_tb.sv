@@ -5,6 +5,7 @@
 import uvm_pkg::*;
 
 `include "axi4_stream_if.svh"
+`include "mult_simple_test.svh"
 
 `timescale 1 ns / 100 ps
 
@@ -55,7 +56,7 @@ module mult_tb #(
     end
 
     initial begin
-        run_test();
+        run_test("mult_simple_test");
     end
 
 

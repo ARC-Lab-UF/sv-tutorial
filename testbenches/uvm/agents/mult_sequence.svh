@@ -7,10 +7,10 @@ import uvm_pkg::*;
 `include "axi4_stream_seq_item.svh"
 `include "axi4_stream_sequencer.svh"
 
-class mult_sequence #(
-    parameter int DATA_WIDTH = 32
-) extends uvm_sequence #(axi4_stream_seq_item);
-    `uvm_component_param_utils(mult_sequence#(DATA_WIDTH))
+import mult_tb_pkg::*;
+
+class mult_sequence extends uvm_sequence #(axi4_stream_seq_item);
+    `uvm_component_utils(mult_sequence)
 
     int num_tests;
 
@@ -21,7 +21,7 @@ class mult_sequence #(
 
     virtual task body();
         for (int i = 0; i < num_tests; i++) begin
-            req = axi4_stream_seq_item#(DATA_WIDTH)::type_id::create($sformatf("req%0d", i));
+            req = axi4_stream_seq_item#(mult_tb_pkg::INPUT_WIDTH)::type_id::create($sformatf("req%0d", i));
             wait_for_grant();
             req.randomize();
             send_request(req);
