@@ -9,7 +9,7 @@ import uvm_pkg::*;
 
 class mult_sequence #(
     parameter int DATA_WIDTH = 32
-) extends uvm_sequence #(axi4_streaming_seq_item);
+) extends uvm_sequence #(axi4_stream_seq_item);
     `uvm_component_param_utils(mult_sequence#(DATA_WIDTH))
 
     int num_tests;
@@ -21,7 +21,7 @@ class mult_sequence #(
 
     virtual task body();
         for (int i = 0; i < num_tests; i++) begin
-            req = axi4_streaming_seq_item#(DATA_WIDTH)::type_id::create($sformatf("req%0d", i));
+            req = axi4_stream_seq_item#(DATA_WIDTH)::type_id::create($sformatf("req%0d", i));
             wait_for_grant();
             req.randomize();
             send_request(req);

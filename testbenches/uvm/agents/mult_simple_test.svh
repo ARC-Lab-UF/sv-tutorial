@@ -7,6 +7,9 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
+import mult_tb_pkg::*;
+
+`include "mult_sequence.svh"
 `include "mult_base_test.svh"
 
 class mult_simple_test extends mult_base_test;
@@ -17,16 +20,22 @@ class mult_simple_test extends mult_base_test;
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
-        super.build_phase(phase);        
+        super.build_phase(phase);
     endfunction
 
     task run_phase(uvm_phase phase);
-        //mult_sequence seq;
+        mult_sequence #(mult_tb_pkg::INPUT_WIDTH) seq_in0, seq_in1;
+        
         phase.raise_objection(this);
 
-        //seq = mult_sequence::type_id::create("seq");        
-        //seq.start(env.agent.sequencer);
-        
+        seq_in0 = mult_sequence#(mult_tb_pkg::INPUT_WIDTH)::type_id::create("seq_in0");
+        seq_in1 = mult_sequence#(mult_tb_pkg::INPUT_WIDTH)::type_id::create("seq_in1");
+
+        fork
+            seq_in0.start(env.agent_in0.sequencer);
+            seq_in1.start(env.agent_in1.sequencer);
+        join
+
         phase.drop_objection(this);
     endtask
 

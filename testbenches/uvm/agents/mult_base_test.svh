@@ -1,18 +1,6 @@
 // Greg Stitt
 // University of Florida
 
-// Finally, we get to the last class we need, which is a uvm_test. The test
-// is the top-level of the UVM hiearchy. In general, a test will instantiate
-// and configure the environment based on the needs of the test. It will then
-// create some number of sequences that get driven to the DUT, where those
-// sequences are configured based on the specifics of each test.
-//
-// In this file, we don't create an actual test, but instead create a test
-// base class that will provide the functionality we need for any other test.
-// In this case, that common functionality is creating the environment. It also
-// demonstrates other functionality, such as printing the UVM topology and 
-// reporting statistics upon completion.
-
 `ifndef _MULT_BASE_TEST_SVH_
 `define _MULT_BASE_TEST_SVH_
 
