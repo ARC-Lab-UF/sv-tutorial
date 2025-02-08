@@ -1,4 +1,7 @@
-interface axi_stream_if #(
+`ifndef _AXI4_STREAM_IF_
+`define _AXI4_STREAM_IF_
+
+interface axi4_stream_if #(
     parameter DATA_WIDTH = 32,
     parameter ID_WIDTH   = 4,
     parameter DEST_WIDTH = 4,
@@ -17,3 +20,5 @@ interface axi_stream_if #(
     logic [USER_WIDTH-1:0] tuser;
 
 endinterface
+
+`endif
