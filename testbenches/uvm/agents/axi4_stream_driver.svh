@@ -27,16 +27,23 @@ class axi4_stream_driver #(
 
     virtual task run_phase(uvm_phase phase);
 
-        @(posedge vif.aclk iff !vif.aresetn);
-        @(posedge vif.aclk iff vif.aresetn);
+
+        //@(posedge vif.aclk iff !vif.aresetn);
+        //@(posedge vif.aclk iff vif.aresetn);
+
+        /*repeat (5) @(posedge vif.aclk);
+        vif.tdata <= '1;*/
+        vif.tvalid <= 1'b0;
+        repeat (10) @(posedge vif.aclk);
 
         forever begin
-            seq_item_port.get_next_item(req);
-            vif.tdata  <= req.data;
+            //seq_item_port.get_next_item(req);
+            vif.tdata  <= $urandom; //req.data;
             vif.tvalid <= 1'b1;
             @(posedge vif.aclk iff vif.tready);
             vif.tvalid <= 1'b0;
             repeat (5) @(posedge vif.aclk);
+            //seq_item_port.item_done();
         end
     endtask
 endclass

@@ -25,7 +25,7 @@ class mult_sequence extends uvm_sequence #(axi4_stream_seq_item);
         for (int i = 0; i < num_tests; i++) begin
             req = axi4_stream_seq_item#(mult_tb_pkg::INPUT_WIDTH)::type_id::create($sformatf("req%0d", i));
             wait_for_grant();
-            req.randomize();
+            void'(req.randomize());
             send_request(req);
             wait_for_item_done();
         end

@@ -35,6 +35,8 @@ module mult_tb #(
         .out_tdata (out_intf.tdata)
     );
 
+    assign out_intf.tready = 1'b1;
+
     initial begin
         rst <= 1'b1;
         repeat (5) @(posedge clk);
