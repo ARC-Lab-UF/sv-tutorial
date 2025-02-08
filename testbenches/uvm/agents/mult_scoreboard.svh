@@ -12,18 +12,18 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-class mult_scoreboard #(
-    parameter int DATA_WIDTH = 32
-) extends uvm_scoreboard;
-    `uvm_component_param_utils(mult_scoreboard#(DATA_WIDTH))
+import mult_tb_pkg::*;
 
-    uvm_analysis_export #(logic [DATA_WIDTH-1:0]) in0_ae;
-    uvm_analysis_export #(logic [DATA_WIDTH-1:0]) in1_ae;
-    uvm_analysis_export #(logic [2*DATA_WIDTH-1:0]) out_ae;
+class mult_scoreboard extends uvm_scoreboard;
+    `uvm_component_utils(mult_scoreboard)
 
-    uvm_tlm_analysis_fifo #(logic [DATA_WIDTH-1:0]) in0_fifo;
-    uvm_tlm_analysis_fifo #(logic [DATA_WIDTH-1:0]) in1_fifo;
-    uvm_tlm_analysis_fifo #(logic [2*DATA_WIDTH-1:0]) out_fifo;
+    uvm_analysis_export #(logic [mult_tb_pkg::INPUT_WIDTH-1:0]) in0_ae;
+    uvm_analysis_export #(logic [mult_tb_pkg::INPUT_WIDTH-1:0]) in1_ae;
+    uvm_analysis_export #(logic [2*mult_tb_pkg::INPUT_WIDTH-1:0]) out_ae;
+
+    uvm_tlm_analysis_fifo #(logic [mult_tb_pkg::INPUT_WIDTH-1:0]) in0_fifo;
+    uvm_tlm_analysis_fifo #(logic [mult_tb_pkg::INPUT_WIDTH-1:0]) in1_fifo;
+    uvm_tlm_analysis_fifo #(logic [2*mult_tb_pkg::INPUT_WIDTH-1:0]) out_fifo;
 
     int passed, failed;
 
@@ -52,8 +52,8 @@ class mult_scoreboard #(
     endfunction
 
     virtual task run_phase(uvm_phase phase);
-        logic [DATA_WIDTH-1:0] in0, in1;
-        logic [2*DATA_WIDTH-1:0] actual, expected;
+        logic [INPUT_WIDTH-1:0] in0, in1;
+        logic [2*INPUT_WIDTH-1:0] actual, expected;
 
         forever begin
             in0_fifo.get(in0);
