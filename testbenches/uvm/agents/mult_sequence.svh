@@ -10,7 +10,7 @@ import uvm_pkg::*;
 import mult_tb_pkg::*;
 
 class mult_sequence extends uvm_sequence #(axi4_stream_seq_item);
-    `uvm_component_utils(mult_sequence)
+    `uvm_object_utils(mult_sequence)
 
     int num_tests;
 
@@ -20,6 +20,8 @@ class mult_sequence extends uvm_sequence #(axi4_stream_seq_item);
     endfunction
 
     virtual task body();
+        axi4_stream_seq_item#(mult_tb_pkg::INPUT_WIDTH) req;
+
         for (int i = 0; i < num_tests; i++) begin
             req = axi4_stream_seq_item#(mult_tb_pkg::INPUT_WIDTH)::type_id::create($sformatf("req%0d", i));
             wait_for_grant();
