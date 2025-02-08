@@ -7,9 +7,9 @@ interface axi4_stream_if #(
     parameter DEST_WIDTH = 4,
     parameter USER_WIDTH = 1
 ) (
-    input logic aclk 
+    input logic aclk,
+    input logic aresetn
 );
-    logic aresetn;
     logic tvalid;
     logic tready; 
     logic [DATA_WIDTH-1:0] tdata;  

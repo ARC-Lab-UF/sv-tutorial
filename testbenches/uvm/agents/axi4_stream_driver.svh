@@ -16,33 +16,40 @@ class axi4_stream_driver #(
 
     virtual axi4_stream_if #(.DATA_WIDTH(DATA_WIDTH)) vif;
 
+    int min_delay, max_delay;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        min_delay = 1;
+        max_delay = 1;
     endfunction
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-        //if (!uvm_config_db#(virtual bit_diff_if)::get(this, "", "vif", vif)) `uvm_fatal("NO_VIF", {"Virtual interface must be set for: ", get_full_name()});
+    endfunction
+
+    function void set_delay(int min, int max);
+        min_delay = min;
+        max_delay = max;
     endfunction
 
     virtual task run_phase(uvm_phase phase);
         axi4_stream_seq_item #(DATA_WIDTH) req;
 
-        //@(posedge vif.aclk iff !vif.aresetn);
-        //@(posedge vif.aclk iff vif.aresetn);
-
-        /*repeat (5) @(posedge vif.aclk);
-        vif.tdata <= '1;*/
         vif.tvalid <= 1'b0;
-        repeat (10) @(posedge vif.aclk);
+
+        // Wait until reset has cleared to start driving.
+        @(posedge vif.aclk iff !vif.aresetn);
+        @(posedge vif.aclk iff vif.aresetn);
+        @(posedge vif.aclk);
 
         forever begin
             seq_item_port.get_next_item(req);
-            vif.tdata  <= $urandom; //req.data;
+            vif.tdata  <= req.data;
             vif.tvalid <= 1'b1;
             @(posedge vif.aclk iff vif.tready);
             vif.tvalid <= 1'b0;
-            repeat ($urandom_range(0, 50)) @(posedge vif.aclk);
+            repeat ($urandom_range(min_delay-1, max_delay-1)) @(posedge vif.aclk);
             seq_item_port.item_done();
         end
     endtask

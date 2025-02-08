@@ -21,6 +21,9 @@ class mult_env extends uvm_env;
     virtual axi4_stream_if #(mult_tb_pkg::INPUT_WIDTH) in1_vif;
     virtual axi4_stream_if #(2 * mult_tb_pkg::INPUT_WIDTH) out_vif;
 
+    int min_driver_delay;
+    int max_driver_delay;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
     endfunction
@@ -36,10 +39,17 @@ class mult_env extends uvm_env;
         if (!uvm_config_db#(virtual axi4_stream_if #(INPUT_WIDTH))::get(this, "", "in0_vif", in0_vif)) `uvm_fatal("NO_VIF", {"Virtual interface must be set for: ", get_full_name()});
         if (!uvm_config_db#(virtual axi4_stream_if #(INPUT_WIDTH))::get(this, "", "in1_vif", in1_vif)) `uvm_fatal("NO_VIF", {"Virtual interface must be set for: ", get_full_name()});
         if (!uvm_config_db#(virtual axi4_stream_if #(2*INPUT_WIDTH))::get(this, "", "out_vif", out_vif)) `uvm_fatal("NO_VIF", {"Virtual interface must be set for: ", get_full_name()});
+
+        if (!uvm_config_db#(int)::get(this, "", "min_driver_delay", min_driver_delay)) min_driver_delay = 1;
+        if (!uvm_config_db#(int)::get(this, "", "max_driver_delay", max_driver_delay)) max_driver_delay = 1;
+
     endfunction
 
     // Connect the monitor and scoreboard ports (the scoreboard internally uses a FIFO).
     function void connect_phase(uvm_phase phase);
+        agent_in0.driver.set_delay(min_driver_delay, max_driver_delay);
+        agent_in1.driver.set_delay(min_driver_delay, max_driver_delay);
+
         agent_in0.monitor.ap.connect(scoreboard.in0_ae);
         agent_in1.monitor.ap.connect(scoreboard.in1_ae);
         agent_out.monitor.ap.connect(scoreboard.out_ae);
