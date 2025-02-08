@@ -13,20 +13,22 @@ class axi4_stream_monitor #(
 
     virtual axi4_stream_if #(.DATA_WIDTH(DATA_WIDTH)) vif;
 
-    // Analysis port needs to specify the parameterized sequence item
-    uvm_analysis_port #(logic[DATA_WIDTH-1:0]) analysis_port;
+    uvm_analysis_port #(logic[DATA_WIDTH-1:0]) ap;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        ap = new("ap", this);
     endfunction
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
     endfunction
 
-    // The done monitor by using the interface's wait_for_done task.
     task run_phase(uvm_phase phase);
-        
+        forever begin
+            @(posedge vif.aclk iff vif.tvalid && vif.tready);
+            ap.write(vif.tdata);
+        end
     endtask
 endclass
 
