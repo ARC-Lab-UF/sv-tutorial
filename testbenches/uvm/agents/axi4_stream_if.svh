@@ -4,7 +4,7 @@ interface axi_stream_if #(
     parameter DEST_WIDTH = 4,
     parameter USER_WIDTH = 1
 ) (
-    input logic aclk  // Clock signal
+    input logic aclk 
 );
     logic aresetn;
     logic tvalid;
