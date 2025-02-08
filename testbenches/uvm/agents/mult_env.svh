@@ -5,13 +5,15 @@
 import uvm_pkg::*;
 
 `include "axi4_stream_agent.svh"
-`include "axi4_stream_mult_scoreboard.svh"
+`include "mult_scoreboard.svh"
 
 class axi4_stream_mult_env extends uvm_env;
     `uvm_component_utils(axi4_stream_mult_env)
 
-    axi4_stream_agent agent;
-    axi4_stream_scoreboard scoreboard;
+    axi4_stream_agent agent_in0;
+    axi4_stream_agent agent_in1;
+    axi4_stream_agent agent_out;
+    mult_scoreboard scoreboard;
     
     //uvm_tlm_fifo #(int) start_fifo, done_fifo;
 
