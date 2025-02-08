@@ -31,8 +31,8 @@ module mult_tb #(
     ) DUT (
         .aclk      (clk),
         .arst_n    (!rst),
-        .in_tvalid ('{in0_intf.tvalid, in1_intf.tvalid}),
-        .in_tready ('{in0_intf.tready, in1_intf.tready}),
+        .in_tvalid ({in0_intf.tvalid, in1_intf.tvalid}),
+        .in_tready ({in0_intf.tready, in1_intf.tready}),
         .in_tdata  ('{in0_intf.tdata, in1_intf.tdata}),
         .out_tvalid(out_intf.tvalid),
         .out_tready(out_intf.tready),
