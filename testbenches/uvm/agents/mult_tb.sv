@@ -87,7 +87,7 @@ module mult_tb #(
     initial begin
         // Uncomment to run testbench without the makefile
         //run_test("mult_simple_test");
-        
+
         run_test();
     end
 
