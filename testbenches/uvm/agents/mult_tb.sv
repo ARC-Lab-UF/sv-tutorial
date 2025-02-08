@@ -43,6 +43,7 @@ module mult_tb #(
         .out_tdata (out_intf.tdata)
     );
 
+    // Optionally toggle the ready signal randomly.
     initial begin
         if (!TOGGLE_READY) out_intf.tready <= 1'b1;
         else begin
@@ -53,6 +54,9 @@ module mult_tb #(
         end
     end 
 
+    // Reset the DUT. We do that outside the interfaces in this testbench
+    // because there are three separate interfaces, so it isn't clear
+    // which one should control the reset.
     initial begin
         rst <= 1'b1;
         repeat (5) @(posedge clk);
@@ -81,7 +85,10 @@ module mult_tb #(
     end
 
     initial begin
-        run_test("mult_simple_test");
+        // Uncomment to run testbench without the makefile
+        //run_test("mult_simple_test");
+        
+        run_test();
     end
 
     assert property (@(posedge clk) disable iff (rst) !out_intf.tready |=> $stable(out_intf.tdata))
@@ -96,7 +103,7 @@ module mult_tb #(
     else `uvm_error("ASSERT", "Output tvalid must be asserted continuously until tready is asserted.");
 
     // Validate the input interfaces too, even though these are driven by our drivers. This essentially
-    // helps ensure that the axi4_stream_driver compiles with AXI standards.
+    // helps ensure that the axi4_stream_driver complies with AXI standards.
     assert property (@(posedge clk) disable iff (rst) $fell(in0_intf.tvalid) |-> $past(in0_intf.tready, 1))
     else `uvm_error("ASSERT", "In0 tvalid must be asserted continuously until tready is asserted.");
 
