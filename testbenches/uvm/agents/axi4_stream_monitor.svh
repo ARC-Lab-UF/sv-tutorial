@@ -25,10 +25,10 @@ class axi4_stream_monitor #(
     endfunction
 
     task run_phase(uvm_phase phase);
-        /*forever begin
+        forever begin
             @(posedge vif.aclk iff vif.tvalid && vif.tready);
             ap.write(vif.tdata);
-        end*/
+        end
     endtask
 endclass
 
