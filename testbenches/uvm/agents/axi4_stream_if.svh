@@ -21,7 +21,7 @@ interface axi4_stream_if #(
     logic [USER_WIDTH-1:0] tuser;*/
 
     initial begin
-        if (DATA_WIDTH % 8 != 0) $fatal(1, "AXI DATA_WIDTH must be byte aligned");
+        if (DATA_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI DATA_WIDTH=%0d is not byte aligned", DATA_WIDTH));
     end
 
 endinterface

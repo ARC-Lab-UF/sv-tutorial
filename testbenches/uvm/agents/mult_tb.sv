@@ -15,7 +15,7 @@ module mult_tb #(
     parameter int NUM_TESTS   = 10000,
     parameter bit TOGGLE_READY = 1'b0,
     parameter int MIN_DRIVER_DELAY = 1,
-    parameter int MAX_DRIVER_DELAY = 1,
+    parameter int MAX_DRIVER_DELAY = 5,
     parameter bit IS_SIGNED = 1'b1
 );
     bit clk = 1'b0;
