@@ -11,7 +11,7 @@
 // INPUT_WIDTH*2 bits.
 
 module mult #(
-    parameter int INPUT_WIDTH = 8,
+    parameter int INPUT_WIDTH = 16,
     parameter bit IS_SIGNED   = 1'b0
 ) (
     input logic aclk,
@@ -31,7 +31,7 @@ module mult #(
     logic [INPUT_WIDTH*2-1:0] product_r;
     logic product_valid_r;
 
-    initial if (INPUT_WIDTH % 8 !=0) $fatal(1, $sformatf("AXI requires INPUT_WIDTH (%0d) to be byte aligned", INPUT_WIDTH));
+    initial if (INPUT_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI requires INPUT_WIDTH (%0d) to be byte aligned", INPUT_WIDTH));
 
     // Enable/disable the pipeline. AXI streaming is a little weird and can't
     // simply stall on !out_tready. The spec says that a transmitter cannot
@@ -85,7 +85,7 @@ module mult #(
             if (IS_SIGNED) product_r <= signed'(in_tdata[0]) * signed'(in_tdata[1]);
             else product_r <= in_tdata[0] * in_tdata[1];
 
-            product_valid_r <= (&in_tready) && (&in_tvalid);
+            product_valid_r <= &in_tvalid;
         end
 
         if (!arst_n) begin
