@@ -3,8 +3,8 @@
 
 // This module demonstrates a simple AXI4-stream multiplier. Note that it this
 // is not how I would recommend implementing such a multiplier. This example
-// is intentionally artificial to help demonstrate UVM practices with the need
-// for a complex DUT.
+// is intentionally artificial to help demonstrate UVM practices without the 
+// need for a complex DUT.
 //
 // The module has two streaming input ports, and one streaming output port.
 // The input ports both have INPUT_WIDTH bits, and the output port has
