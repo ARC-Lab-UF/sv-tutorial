@@ -17,6 +17,12 @@
 // reuse. If your DUT uses standard interfaces for which agents already exist,
 // your UVM changes will be limited to application-specific components: tests,
 // environments, scoreboards, and sequence items.
+//
+// Finally this example demonstrates the usage of uvm_analysis_port, whereas
+// the previous example used uvm_blocking_put_ports. The biggest difference
+// between the two is that the blocking put port is used for communication 
+// between one producer and one consumer. Analysis ports allow you to 
+// broadcast from one producer to multiple consumers.
 
 `include "uvm_macros.svh"
 import uvm_pkg::*;

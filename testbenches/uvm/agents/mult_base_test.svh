@@ -1,6 +1,8 @@
 // Greg Stitt
 // University of Florida
 
+// This file provides a base class for other tests.
+
 `ifndef _MULT_BASE_TEST_SVH_
 `define _MULT_BASE_TEST_SVH_
 
