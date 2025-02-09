@@ -48,7 +48,7 @@ I strongly suggest reading the files in the following order, due to the comments
 1. [axi4_stream_driver](axi4_stream_driver.svh)    
     - Implements the AXI4 stream driver. Note that this driver is completely independent of the DUT and can be reused by any AXI stream interface.
 
-1. [mult_sequencer](mult_sequencer.svh)    
+1. [axi4_sequencer](axi4_sequencer.svh)    
     - Implements the AXI4 stream sequencer.
 
 1. [axi4_stream_agent](axi4_stream_agent.svh)    
