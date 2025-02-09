@@ -71,9 +71,14 @@ module mult #(
     // problems are why you would likely never have just a multiplier in an
     // AXI streaming module. Maintaining AXI compliance and safe practices adds
     // overhead that should be amortized over larger amounts of logic.
+    //
+    // If I didn't care about latency and/or resources, I would just put a FIFO 
+    // on each input and connect in_tready[i] to !fifo_full[i]. This is the 
+    // safest practice since it decouples the ports from each other and makes
+    // the ready logic independent of valid.
 
-    assign in_tready[0] = !(en && in_tvalid[0] && !in_tvalid[1]);
-    assign in_tready[1] = !(en && in_tvalid[1] && !in_tvalid[0]);
+    assign in_tready[0] = en && in_tvalid[1];
+    assign in_tready[1] = en && in_tvalid[0];
 
     always_ff @(posedge aclk) begin
         if (en) begin
