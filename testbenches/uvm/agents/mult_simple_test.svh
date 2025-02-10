@@ -33,6 +33,22 @@ class mult_simple_test extends mult_base_test;
 
         // Since the DUT uses separate interfaces for each input, we'll want
         // separate sequence instances for each.
+        // 
+        // Note that since there is no sequence for the output interface, the
+        // output agent's DUT does nothing. In later examples, we'll see a way
+        // fully disable the driver. An agent that uses the driver is usually
+        // known as a active agent, whereas an agent that doesn't is referred
+        // to as a passive agent.
+        //
+        // Passive agents are not limited to output interfaces. We'll see 
+        // examples where we'll integrate an existing UVM setup for a module
+        // into a higher-level test, of which the module is just one part.
+        // In that case, the module is driven by other modules, so we want to
+        // disable the agent's driver (make it passive), while still using the
+        // monitor to check for errors. This is one of the biggest advantages of
+        // UVM. When you have a UVM testbench for one module, you can resuse 
+        // within higher level tests to perform the same verification on each
+        // individual module.
         seq_in0 = mult_sequence::type_id::create("seq_in0");
         seq_in1 = mult_sequence::type_id::create("seq_in1");
 
