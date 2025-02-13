@@ -55,7 +55,7 @@ module mult_tb #(
 );
     bit clk = 1'b0;
     bit rst;
-    bit rst_n;
+    bit rst_n = 1'b0;
     always #5 clk <= ~clk;
     assign rst_n = ~rst;
 
@@ -64,7 +64,7 @@ module mult_tb #(
     // relying on a default value to simplify the UVM code.
     axi4_stream_if #(.DATA_WIDTH(mult_tb_pkg::INPUT_WIDTH)) in0_intf (clk, rst_n);
     axi4_stream_if #(.DATA_WIDTH(mult_tb_pkg::INPUT_WIDTH)) in1_intf (clk, rst_n);
-    axi4_stream_if #(.DATA_WIDTH(2 * mult_tb_pkg::INPUT_WIDTH)) out_intf (clk, rst);
+    axi4_stream_if #(.DATA_WIDTH(2 * mult_tb_pkg::INPUT_WIDTH)) out_intf (clk, rst_n);
 
     // Instantiate the DUT.
     mult #(
@@ -133,23 +133,10 @@ module mult_tb #(
     // NOTE: AXI is a little weird and prohibits transmitters from waiting on tready
     // to assert tvalid. Normally, a transmitter treats a ready signal as an enable,
     // but that practice is not AXI-compliant.
-    assert property (@(posedge clk) disable iff (rst) !(out_intf.tready || !out_intf.tvalid) |=> $stable(out_intf.tdata))
+    assert property (@(posedge clk) disable iff (rst) !out_intf.tready && out_intf.tvalid |=> $stable(out_intf.tdata))
     else `uvm_error("ASSERT", "Output changed with tready disabled.");
 
-    assert property (@(posedge clk) disable iff (rst) !(out_intf.tready || !out_intf.tvalid) |=> $stable(out_intf.tvalid))
+    assert property (@(posedge clk) disable iff (rst) !out_intf.tready && out_intf.tvalid |=> $stable(out_intf.tvalid))
     else `uvm_error("ASSERT", "Valid changed with tready disabled.");
-
-    // Validate required properties of AXI: once tvalid is asserted, it must remain asserted until
-    // tready is asserted.
-    assert property (@(posedge clk) disable iff (rst) $fell(out_intf.tvalid) |-> $past(out_intf.tready, 1))
-    else `uvm_error("ASSERT", "Output tvalid must be asserted continuously until tready is asserted.");
-
-    // Validate the input interfaces too, even though these are driven by our drivers. This essentially
-    // helps ensure that the axi4_stream_driver complies with AXI standards.
-    assert property (@(posedge clk) disable iff (rst) $fell(in0_intf.tvalid) |-> $past(in0_intf.tready, 1))
-    else `uvm_error("ASSERT", "In0 tvalid must be asserted continuously until tready is asserted.");
-
-    assert property (@(posedge clk) disable iff (rst) $fell(in0_intf.tvalid) |-> $past(in0_intf.tready, 1))
-    else `uvm_error("ASSERT", "In1 tvalid must be asserted continuously until tready is asserted.");
 
 endmodule

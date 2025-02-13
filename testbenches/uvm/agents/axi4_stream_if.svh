@@ -29,8 +29,15 @@ interface axi4_stream_if #(
 
     // AXI requires byte aligned data widths, so confirm compliance here.
     initial begin
-        if (DATA_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI DATA_WIDTH=%0d is not byte aligned", DATA_WIDTH));
+        if (DATA_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI DATA_WIDTH=%0d is not byte aligned", DATA_WIDTH));        
     end
+
+    // Validate required properties of AXI: once tvalid is asserted, it must remain asserted until
+    // tready is asserted.
+    assert property (@(posedge aclk) disable iff (!aresetn) $fell(tvalid) |-> $past(tready, 1))
+    else `uvm_error("ASSERT", "tvalid must be asserted continuously until tready is asserted.");
+
+
 
 endinterface
 
