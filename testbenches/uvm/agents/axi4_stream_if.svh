@@ -1,4 +1,5 @@
 // Greg Stitt
+// Wes Piard
 // University of Florida
 
 // A simplified subset of the AXI4 streaming interface. I've included all the 
@@ -36,8 +37,6 @@ interface axi4_stream_if #(
     // tready is asserted.
     assert property (@(posedge aclk) disable iff (!aresetn) $fell(tvalid) |-> $past(tready, 1))
     else `uvm_error("ASSERT", "tvalid must be asserted continuously until tready is asserted.");
-
-
 
 endinterface
 
