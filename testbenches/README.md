@@ -110,8 +110,11 @@ high coverage and no failed assertions, we gain much more confidence in the corr
     - Converts earlier bit_diff_tb into a UVM testbench.
 
 1. [UVM agent and coverage tutorial](uvm/agents/)
-    - Explains how to create a reusable UVM agent (with driver, monitor, and sequencer) for an AXI4 stream interface.
+    - Explains how to create a reusable UVM agent (with driver, monitor, and sequencer) for a simplified AXI4 stream interface.
     - Demonstrates analysis ports, exports, and FIFOs.
     - Shows how to integrate coverage into a UVM environment.
     - Tests an AXI4 stream multiplier.
-    
+
+1. [UVM and Parameterized Interfaces](uvm/agents_parameterized/)
+    - Extends the previous example with full parameterization of widths for data and sideband signals.
+    - Demonstrates highly flexible, highly reusable UVM agent for AXI4 streaming.
