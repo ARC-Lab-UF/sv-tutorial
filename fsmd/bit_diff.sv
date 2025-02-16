@@ -777,6 +777,7 @@ module bit_diff_fsmd_2p_4 #(
     always_comb begin
 
         next_state = state_r;
+        done       = 1'b0;
 
         case (state_r)
             START: begin
