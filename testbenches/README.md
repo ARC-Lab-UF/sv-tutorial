@@ -108,3 +108,10 @@ high coverage and no failed assertions, we gain much more confidence in the corr
 1. [Basic tutorial](uvm/basics/)
     - Explains basic concepts of UVM including sequence items, monitors, drivers, agents, scoreboards, environments, tests, in addition to the UVM factory and config DB.
     - Converts earlier bit_diff_tb into a UVM testbench.
+
+1. [UVM agent and coverage tutorial](uvm/agents/)
+    - Explains how to create a reusable UVM agent (with driver, monitor, and sequencer) for an AXI4 stream interface.
+    - Demonstrates analysis ports, exports, and FIFOs.
+    - Shows how to integrate coverage into a UVM environment.
+    - Tests an AXI4 stream multiplier.
+    
