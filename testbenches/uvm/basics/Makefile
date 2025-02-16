@@ -81,7 +81,7 @@ gui: optimize
 		echo "Error: UVM_TESTNAME is not set. Usage: make gui UVM_TESTNAME=<test_name>"; \
 		exit 1; \
 	fi
-	$(VSIM) $(VSIM_GUI_FLAGS) $(OPTIMIZED_TOP)
+	$(VSIM) $(VSIM_GUI_FLAGS) $(OPTIMIZED_TOP) &
 
 # Clean up generated files
 clean:
