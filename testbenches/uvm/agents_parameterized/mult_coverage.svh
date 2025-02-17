@@ -128,7 +128,7 @@ class mult_output_coverage extends uvm_component;
     `uvm_component_utils(mult_output_coverage)
 
     // We define another axi item here with a different width for the output, while still relying on defaults for the sideband signals.
-    typedef axi4_stream_seq_item#(2*mult_tb_pkg::INPUT_WIDTH, axi4_stream_pkg::DEFAULT_ID_WIDTH, axi4_stream_pkg::DEFAULT_DEST_WIDTH, axi4_stream_pkg::DEFAULT_USER_WIDTH) axi_item;
+    typedef axi4_stream_seq_item#(2 * mult_tb_pkg::INPUT_WIDTH, axi4_stream_pkg::DEFAULT_ID_WIDTH, axi4_stream_pkg::DEFAULT_DEST_WIDTH, axi4_stream_pkg::DEFAULT_USER_WIDTH) axi_item;
 
     // Analysis export to receive data from monitor
     uvm_analysis_export #(axi_item) out_ae;
@@ -136,12 +136,12 @@ class mult_output_coverage extends uvm_component;
     // Analysis FIFO
     uvm_tlm_analysis_fifo #(axi_item) out_fifo;
 
-    logic [2*mult_tb_pkg::INPUT_WIDTH-1:0] output_data;
+    logic [2*mult_tb_pkg::INPUT_WIDTH-1:0] out_data;
 
     // NOTE: This will only achieve 50% for signed multplication. It is left
     // as an exercise to adjust it for signed products.
     covergroup output_coverage;
-        unsigned_cp: coverpoint output_data {option.auto_bin_max = 16;}
+        unsigned_cp: coverpoint out_data {option.auto_bin_max = 16;}
     endgroup
 
     function new(string name, uvm_component parent);
@@ -168,7 +168,7 @@ class mult_output_coverage extends uvm_component;
         axi4_stream_seq_item #(2 * mult_tb_pkg::INPUT_WIDTH) out = new();
         forever begin
             out_fifo.get(out);
-            output_data = out.tdata;
+            out_data = out.tdata;
             output_coverage.sample();
         end
     endtask

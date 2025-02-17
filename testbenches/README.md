@@ -115,6 +115,11 @@ high coverage and no failed assertions, we gain much more confidence in the corr
     - Shows how to integrate coverage into a UVM environment.
     - Tests an AXI4 stream multiplier.
 
-1. [UVM and Parameterized Interfaces](uvm/agents_parameterized/)
+1. [UVM and parameterized interfaces](uvm/agents_parameterized/)
     - Extends the previous example with full parameterization of widths for data and sideband signals.
     - Demonstrates highly flexible, highly reusable UVM agent for AXI4 streaming.
+
+1. [Multiple tests and abstraction levels](uvm/multiple_tests/)
+    - Demonstrates how to simulate using transactions at different abstraction levels.
+    - Demonstrates how to create multiple tests.
+    - Illustrates more complex contraints for randomization of transactions.
