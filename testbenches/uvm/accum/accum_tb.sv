@@ -7,7 +7,7 @@ import uvm_pkg::*;
 import accum_tb_pkg::*;
 
 `include "axi4_stream_if.svh"
-`include "mult_simple_test.svh"
+`include "accum_simple_test.svh"
 
 `timescale 1 ns / 100 ps
 
@@ -31,13 +31,13 @@ module accum_tb #(
     // Instantiate the three AXI interfaces: 2 input and 1 output. Note that 
     // the output interface has a different width, which prohibits us from 
     // relying on a default value to simplify the UVM code.
-    axi4_stream_if #(.DATA_WIDTH(accum_tb_pkg::INPUT_WIDTH)) in_intf (clk, rst_n);    
-    axi4_stream_if #(.DATA_WIDTH(accum_tb_pkg::OUTPUT_WIDTH)) out_intf (clk, rst_n);
+    axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH) in_intf (clk, rst_n);    
+    axi4_stream_if #(accum_tb_pkg::OUTPUT_WIDTH) out_intf (clk, rst_n);
 
     // Instantiate the DUT.
     accum #(
-        .INPUT_WIDTH(mult_tb_pkg::INPUT_WIDTH),
-        .OUTPUT_WIDTH(mult_tb_pkg::OUTPUT_WIDTH),
+        .INPUT_WIDTH(accum_tb_pkg::INPUT_WIDTH),
+        .OUTPUT_WIDTH(accum_tb_pkg::OUTPUT_WIDTH)
     ) DUT (
         .aclk      (clk),
         .arst_n    (rst_n),
@@ -74,8 +74,8 @@ module accum_tb #(
         $timeformat(-9, 0, " ns");
 
         // Store the virtual interfaces.
-        uvm_config_db#(virtual axi4_stream_if #(mult_tb_pkg::INPUT_WIDTH))::set(uvm_root::get(), "*", "in_vif", in0_intf);
-        uvm_config_db#(virtual axi4_stream_if #(mult_tb_pkg::OUTPUT_WIDTH))::set(uvm_root::get(), "*", "out_vif", out_intf);
+        uvm_config_db#(virtual axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH))::set(uvm_root::get(), "*", "in_vif", in_intf);
+        uvm_config_db#(virtual axi4_stream_if #(accum_tb_pkg::OUTPUT_WIDTH))::set(uvm_root::get(), "*", "out_vif", out_intf);
 
         // Store the number of tests.
         uvm_config_db#(int)::set(uvm_root::get(), "*", "num_tests", NUM_TESTS);
@@ -87,7 +87,7 @@ module accum_tb #(
 
     initial begin
         // Uncomment to run testbench without the makefile
-        //run_test("mult_simple_test");
+        //run_test("accum_simple_test");
 
         run_test();
     end
