@@ -70,7 +70,7 @@ class accum_scoreboard extends uvm_scoreboard;
             end           
 
             // Check for errors.
-            if (actual == expected) begin
+            if (actual === expected) begin
                 `uvm_info("SCOREBOARD", $sformatf("Test passed."), UVM_LOW)
                 passed++;
             end else begin
@@ -78,7 +78,7 @@ class accum_scoreboard extends uvm_scoreboard;
                 failed++;
             end
 
-            if ((is_packet_level || in.tlast) && !out_item.tlast) begin
+            if ((is_packet_level || in.tlast) && out_item.tlast !== 1'b1) begin
                 `uvm_error("SCOREBOARD", $sformatf("Test failed: tlast not asserted at end of packet."))
                 failed++;
             end
