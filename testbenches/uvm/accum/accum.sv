@@ -17,10 +17,12 @@ module accum #(
     // AXI4 stream interface for the output
     output logic                    out_tvalid,
     input  logic                    out_tready,
-    output logic [OUTPUT_WIDTH-1:0] out_tdata
+    output logic [OUTPUT_WIDTH-1:0] out_tdata,
+    output logic                    out_tlast
 );
     logic en;
     logic out_valid_r;
+    logic out_tlast_r;
     logic first_r;
     logic [OUTPUT_WIDTH-1:0] accum_r;
 
@@ -37,8 +39,8 @@ module accum #(
 
     always_ff @(posedge aclk) begin
         if (en) begin
-            // The output is valid 1 cycle after a valid tlast.
-            out_valid_r <= in_tlast & in_tvalid;
+            out_valid_r <= in_tvalid;
+            out_tlast_r <= in_tlast;
 
             // Don't accumulate unless the input is valid.
             if (in_tvalid) begin
@@ -51,10 +53,12 @@ module accum #(
         if (!arst_n) begin
             first_r <= 1'b1;
             out_valid_r <= 1'b0;
+            out_tlast_r <= 1'b0;
         end
     end
 
     assign out_tvalid = out_valid_r;
     assign out_tdata  = accum_r;
+    assign out_tlast = out_tlast_r;
 
 endmodule

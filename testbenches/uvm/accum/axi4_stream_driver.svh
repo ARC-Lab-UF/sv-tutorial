@@ -46,7 +46,7 @@ class axi4_stream_driver #(
     endfunction
 
     // Main driving logic.
-    virtual task run_phase(uvm_phase phase);   
+    virtual task run_phase(uvm_phase phase);
         // The sequence item also requires all parameters.     
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) req;
 
@@ -62,22 +62,20 @@ class axi4_stream_driver #(
             // Get the sequence item.
             seq_item_port.get_next_item(req);
 
-            if (req.is_packet_level) begin
-                for (int i=0; i < req.tdata.size(); i++) begin
-                    vif.tvalid <= 1'b1;
-                    vif.tdata  <= req.tdata[i];
-                    vif.tstrb  <= req.tstrb[i];
-                    vif.tkeep  <= req.tkeep[i];
-                    vif.tlast  <= req.is_packet_level ? i == req.tdata.size()-1 : req.tlast;
-                    vif.tid    <= req.tid;
-                    vif.tdest  <= req.tdest;
-                    vif.tuser  <= req.tuser;
-                    @(posedge vif.aclk iff vif.tready);                    
+            for (int i = 0; i < req.tdata.size(); i++) begin
+                vif.tvalid <= 1'b1;
+                vif.tdata  <= req.tdata[i];
+                vif.tstrb  <= req.tstrb[i];
+                vif.tkeep  <= req.tkeep[i];
+                vif.tlast  <= req.is_packet_level ? i == req.tdata.size()-1 : req.tlast;
+                vif.tid    <= req.tid;
+                vif.tdest  <= req.tdest;
+                vif.tuser  <= req.tuser;
+                @(posedge vif.aclk iff vif.tready);
 
-                    vif.tvalid <= 1'b0;
-                    repeat ($urandom_range(min_delay - 1, max_delay - 1)) @(posedge vif.aclk);
-                end
-            end            
+                vif.tvalid <= 1'b0;
+                repeat ($urandom_range(min_delay - 1, max_delay - 1)) @(posedge vif.aclk);
+            end
 
             // Tell the sequencer we are done with the seq item.
             seq_item_port.item_done();
