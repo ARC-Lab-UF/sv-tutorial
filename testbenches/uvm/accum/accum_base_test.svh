@@ -58,8 +58,8 @@ class accum_base_test extends uvm_test;
         $display("\nOutput Bin Coverage: %.2f%%", env.output_coverage.output_coverage.get_coverage());
 
         $display("\nToggle Coverage");
-        $display("  In Toggle Coverage: %.2f%%", env.input_coverage.toggle_coverage.toggle_cp.get_coverage());
-        $display("  Out Toggle Coverage: %.2f%%", env.output_coverage.toggle_coverage.toggle_cp.get_coverage());
+        $display("  In Toggle Coverage: %.2f%%", env.input_coverage.in_toggle_coverage.cg.toggle_cp.get_coverage());
+        $display("  Out Toggle Coverage: %.2f%%", env.output_coverage.out_toggle_coverage.cg.toggle_cp.get_coverage());
 
     endfunction
 
