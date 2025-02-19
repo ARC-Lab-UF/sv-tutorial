@@ -27,10 +27,13 @@ class axi4_stream_driver #(
     // Configuration parameters.
     int min_delay, max_delay;
 
+    bit is_packet_level;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
         min_delay = 1;
         max_delay = 1;
+        is_packet_level = 0;
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -59,24 +62,22 @@ class axi4_stream_driver #(
             // Get the sequence item.
             seq_item_port.get_next_item(req);
 
-            // Drive the data onto the tdata port and assert tvalid.
-            vif.tvalid <= 1'b1;
-            vif.tdata  <= req.tdata;
-            vif.tstrb  <= req.tstrb;
-            vif.tkeep  <= req.tkeep;
-            vif.tlast  <= req.tlast;
-            vif.tid    <= req.tid;
-            vif.tdest  <= req.tdest;
-            vif.tuser  <= req.tuser;
+            if (req.is_packet_level) begin
+                for (int i=0; i < req.tdata.size(); i++) begin
+                    vif.tvalid <= 1'b1;
+                    vif.tdata  <= req.tdata[i];
+                    vif.tstrb  <= req.tstrb[i];
+                    vif.tkeep  <= req.tkeep[i];
+                    vif.tlast  <= req.is_packet_level ? i == req.tdata.size()-1 : req.tlast;
+                    vif.tid    <= req.tid;
+                    vif.tdest  <= req.tdest;
+                    vif.tuser  <= req.tuser;
+                    @(posedge vif.aclk iff vif.tready);                    
 
-            // Hold the data and tvalid until tready is asserted. This is 
-            // required by the AXI spec.
-            @(posedge vif.aclk iff vif.tready);
-
-            // Clear tvalid for a random amount of cycles to enable more 
-            // thorough testing.
-            vif.tvalid <= 1'b0;
-            repeat ($urandom_range(min_delay - 1, max_delay - 1)) @(posedge vif.aclk);
+                    vif.tvalid <= 1'b0;
+                    repeat ($urandom_range(min_delay - 1, max_delay - 1)) @(posedge vif.aclk);
+                end
+            end            
 
             // Tell the sequencer we are done with the seq item.
             seq_item_port.item_done();

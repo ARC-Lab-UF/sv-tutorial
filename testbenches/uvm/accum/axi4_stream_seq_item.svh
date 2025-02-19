@@ -33,10 +33,10 @@ class axi4_stream_seq_item #(
     /////////////////////////////////////////////////////////////
 
     // For single
-    rand logic [DATA_WIDTH-1:0] tdata;
+    rand logic [DATA_WIDTH-1:0] tdata[];
 
-    logic [DATA_WIDTH/8-1:0] tstrb = '1;
-    logic [DATA_WIDTH/8-1:0] tkeep = '1;
+    logic [DATA_WIDTH/8-1:0] tstrb[];
+    logic [DATA_WIDTH/8-1:0] tkeep[];
     logic tlast = 1'b0;
     logic [ID_WIDTH-1:0] tid = '0;
     logic [DEST_WIDTH-1:0] tdest = '0;
@@ -46,6 +46,31 @@ class axi4_stream_seq_item #(
         super.new(name);
         // By default, we'll use individual beats.
         is_packet_level = 1'b0;
+        tdata = new [1];
+        tstrb = new [1];
+        tkeep = new [1];
+        tstrb[0] = '1;
+        tkeep[0] = '1;
+    endfunction
+
+    function automatic void init_from_queue(axi4_stream_seq_item#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) q[$]);
+        if (q.size() == 0) return;
+    
+        tdata = new [q.size()];
+        tstrb = new [q.size()];
+        tkeep = new [q.size()];
+        
+        foreach(q[i]) begin
+            tdata[i] = q[i].tdata[0];
+            tstrb[i] = q[i].tstrb[0];
+            tkeep[i] = q[i].tkeep[0];
+        end
+
+        tid = q[0].tid;
+        tdest = q[0].tid;
+        tuser = q[0].tid;
+
+        is_packet_level = 1'b1;
     endfunction
 endclass
 

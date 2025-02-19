@@ -36,7 +36,8 @@ class accum_sequence extends uvm_sequence #(axi4_stream_seq_item #(accum_tb_pkg:
             // is that the sequence item is AXI specific, so it doesn't make
             // sense to put application-specific constraints on the interface.
             void'(req.randomize() with {
-                tdata dist {
+                tdata.size() == 1;
+                tdata[0] dist {
                     '0                                       :/ 2,
                     '1                                       :/ 2,
                     [0 : 2 ** accum_tb_pkg::INPUT_WIDTH - 2] :/ 96

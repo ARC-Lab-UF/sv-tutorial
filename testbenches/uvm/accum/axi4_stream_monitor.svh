@@ -29,11 +29,14 @@ class axi4_stream_monitor #(
     // item through the analysis port in case the sideband information is needed.
     uvm_analysis_port #(axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)) ap;
 
+    bit is_packet_level;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
 
         // Create the anaylsis port.
         ap = new("ap", this);
+        is_packet_level = 0;
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -43,6 +46,8 @@ class axi4_stream_monitor #(
     task run_phase(uvm_phase phase);
         // We need all the parameters when creating a sequence item.
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) item;
+        axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) packet_item;
+        axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) packet[$];
 
         forever begin
             @(posedge vif.aclk iff vif.tvalid && vif.tready);
@@ -53,15 +58,30 @@ class axi4_stream_monitor #(
             // through the analysis port. Instead, we need to make sure that
             // every item sent is a new item. SystemVerilog has garbage
             // collection, so you don't need to worry about deleting the items.
-            item       = new();
-            item.tdata = vif.tdata;
-            item.tstrb = vif.tstrb;
-            item.tkeep = vif.tkeep;
-            item.tlast = vif.tlast;
-            item.tid   = vif.tid;
-            item.tdest = vif.tdest;
-            item.tuser = vif.tuser;
-            ap.write(item);
+            item          = new();
+            item.tdata[0] = vif.tdata;
+            item.tstrb[0] = vif.tstrb;
+            item.tkeep[0] = vif.tkeep;
+            item.tlast    = vif.tlast;
+            item.tid      = vif.tid;
+            item.tdest    = vif.tdest;
+            item.tuser    = vif.tuser;
+
+            if (is_packet_level) begin
+                // Push the individual beats onto a queue until receiving the
+                // last beat of the packet.
+                packet.push_back(item);
+
+                if (vif.tlast) begin
+                    // Send the entire packet at once.
+                    packet_item = new();
+                    packet_item.init_from_queue(packet);
+                    ap.write(packet_item);
+                    packet.delete();
+                end
+            end else begin
+                ap.write(item);
+            end
         end
     endtask
 endclass

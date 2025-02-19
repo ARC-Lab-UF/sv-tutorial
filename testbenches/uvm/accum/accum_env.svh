@@ -13,6 +13,7 @@ import axi4_stream_pkg::*;
 `include "axi4_stream_agent.svh"
 `include "accum_scoreboard.svh"
 //`include "accum_coverage.svh"
+//`include "accum_predictor.svh"
 
 class accum_env extends uvm_env;
     `uvm_component_utils(accum_env)
@@ -71,8 +72,8 @@ class accum_env extends uvm_env;
         
         // Connect the coverage classes. Note that any analysis port can be
         // send to and consumer.
-        agent_in.monitor.ap.connect(input_coverage.in_ae);        
-        agent_out.monitor.ap.connect(output_coverage.out_ae);
+        //agent_in.monitor.ap.connect(input_coverage.in_ae);        
+        //agent_out.monitor.ap.connect(output_coverage.out_ae);
     endfunction
 
 endclass
