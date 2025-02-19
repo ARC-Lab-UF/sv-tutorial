@@ -61,7 +61,7 @@ class accum_input_coverage extends uvm_component;
         super.new(name, parent);
 
         // Instantiate the cover groups.
-        input_coverage  = new();
+        input_coverage = new();
         in_toggle_coverage = new();
     endfunction
 
@@ -99,6 +99,7 @@ class accum_input_coverage extends uvm_component;
     endtask
 endclass
 
+
 // Coverage class for output values
 class accum_output_coverage extends uvm_component;
     `uvm_component_utils(accum_output_coverage)
@@ -107,10 +108,10 @@ class accum_output_coverage extends uvm_component;
     uvm_analysis_export #(axi_item) out_ae;
     uvm_tlm_analysis_fifo #(axi_item) out_fifo;
 
-    logic [accum_tb_pkg::OUTPUT_WIDTH-1:0] output_data;
+    logic [accum_tb_pkg::OUTPUT_WIDTH-1:0] out_data;
 
     covergroup output_coverage;
-        output_cp: coverpoint output_data {option.auto_bin_max = 16;}
+        output_cp: coverpoint out_data {option.auto_bin_max = 16;}
     endgroup
 
     toggle_coverage #(accum_tb_pkg::OUTPUT_WIDTH) out_toggle_coverage;
@@ -141,12 +142,12 @@ class accum_output_coverage extends uvm_component;
         forever begin
             out_fifo.get(out);
             for (int i = 0; i < out.tdata.size(); i++) begin
-                output_data = out.tdata[i];
+                out_data = out.tdata[i];
                 output_coverage.sample();
 
                 // Manually sample each individual bit for toggle coverage.
                 for (int j = 0; j < accum_tb_pkg::OUTPUT_WIDTH; j++) begin
-                    out_toggle_coverage.cg.sample(j, output_data[j]);
+                    out_toggle_coverage.cg.sample(j, out_data[j]);
                 end
             end
         end
