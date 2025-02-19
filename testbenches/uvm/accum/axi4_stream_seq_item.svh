@@ -21,7 +21,7 @@ class axi4_stream_seq_item #(
     // In this example, we add a bit to specify in the sequence item captures a
     // transaction that is an entire packet, or an individual beat of a packet.
     bit is_packet_level;
-    
+
     rand logic [DATA_WIDTH-1:0] tdata[];
     rand logic [DATA_WIDTH/8-1:0] tstrb[];
     rand logic [DATA_WIDTH/8-1:0] tkeep[];
@@ -30,25 +30,31 @@ class axi4_stream_seq_item #(
     logic [DEST_WIDTH-1:0] tdest = '0;
     logic [USER_WIDTH-1:0] tuser = '0;
 
+    constraint size_c {
+        tstrb.size() == tdata.size();
+        tkeep.size() == tdata.size();
+    }
+    //constraint array_c { foreach(array[i]) array[i] == i;}
+
     function new(string name = "axi4_stream_seq_item");
         super.new(name);
         // By default, we'll use individual beats.
         is_packet_level = 1'b0;
-        tdata = new [1];
-        tstrb = new [1];
-        tkeep = new [1];
+        tdata = new[1];
+        tstrb = new[1];
+        tkeep = new[1];
         tstrb[0] = '1;
         tkeep[0] = '1;
     endfunction
 
     function automatic void init_from_queue(axi4_stream_seq_item#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) q[$]);
         if (q.size() == 0) return;
-    
-        tdata = new [q.size()];
-        tstrb = new [q.size()];
-        tkeep = new [q.size()];
-        
-        foreach(q[i]) begin
+
+        tdata = new[q.size()];
+        tstrb = new[q.size()];
+        tkeep = new[q.size()];
+
+        foreach (q[i]) begin
             tdata[i] = q[i].tdata[0];
             tstrb[i] = q[i].tstrb[0];
             tkeep[i] = q[i].tkeep[0];

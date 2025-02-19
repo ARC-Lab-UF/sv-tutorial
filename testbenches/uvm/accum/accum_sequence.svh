@@ -40,8 +40,6 @@ class accum_beat_sequence extends accum_base_sequence;
 
             void'(req.randomize() with {
                 tdata.size() == 1;
-                tstrb.size() == 1;
-                tkeep.size() == 1;
                 tdata[0] dist {
                     '0                                       :/ 2,
                     '1                                       :/ 2,
@@ -53,6 +51,7 @@ class accum_beat_sequence extends accum_base_sequence;
                 };
                 tstrb[0] == '1;
                 tkeep[0] == '1;
+                is_packet_level == 1'b0;
             });
 
             send_request(req);
@@ -67,7 +66,7 @@ class accum_packet_sequence extends accum_base_sequence;
 
     function new(string name = "accum_packet_sequence");
         super.new(name);
-        is_packet_level = 1'b0;
+        is_packet_level = 1'b1;
     endfunction
 
     virtual task body();
@@ -75,10 +74,10 @@ class accum_packet_sequence extends accum_base_sequence;
             req = axi4_stream_seq_item#(accum_tb_pkg::INPUT_WIDTH)::type_id::create($sformatf("req%0d", i));
             wait_for_grant();
 
+            req.is_packet_level = 1'b1;
+
             assert(req.randomize() with {
-                tdata.size() == 10;
-                tstrb.size() == 10;
-                tkeep.size() == 10;
+                tdata.size() inside {[1:10]};
                 foreach (tdata[i]) {
                     tdata[i] dist {
                         '0                                       :/ 2,
@@ -86,10 +85,13 @@ class accum_packet_sequence extends accum_base_sequence;
                         [0 : 2 ** accum_tb_pkg::INPUT_WIDTH - 2] :/ 96
                     };
                     tstrb[i] == '1;
-                    tkeep[i] == '1;
+                    tkeep[i] == '1;                    
                 }
+                is_packet_level == 1'b1;
             }) else $fatal(1, "Randomization failed.");
 
+            // tlast is undefined for a packet-level transaction. The driver
+            // will set tlast automatically.
             req.tlast = 1'bX;
 
             send_request(req);
