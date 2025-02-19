@@ -13,7 +13,7 @@ import accum_tb_pkg::*;
 `timescale 1 ns / 100 ps
 
 module accum_tb #(
-    parameter int NUM_PACKETS   = 10000,
+    parameter int NUM_PACKETS   = 1000,
 
     // Enable/disable random toggling of the downstream ready signal.
     parameter bit TOGGLE_READY = 1'b1,
@@ -25,7 +25,7 @@ module accum_tb #(
 
     // Put constraints on the randomized packet sizes.
     parameter int MIN_PACKET_SIZE = 1,
-    parameter int MAX_PACKET_SIZE = 20
+    parameter int MAX_PACKET_SIZE = 100
 );
     bit clk = 1'b0;
     bit rst;

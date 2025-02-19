@@ -93,9 +93,9 @@ class accum_packet_sequence extends accum_base_sequence;
                 foreach (tdata[i]) {
                     tdata[i] dist {
                         '0                                       :/ 2,
-                        '1                                       :/ 2,
+                        '1                                       :/ 2000,
                         [0 : 2 ** accum_tb_pkg::INPUT_WIDTH - 2] :/ 96
-                    };
+                    };                
                     tstrb[i] == '1;
                     tkeep[i] == '1;
                 }

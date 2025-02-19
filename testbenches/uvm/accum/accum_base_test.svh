@@ -50,20 +50,16 @@ class accum_base_test extends uvm_test;
         end
 
         // Add coverage summary
-/*        $display("=== Coverage Summary ===\n");
+        $display("=== Coverage Summary ===\n");
         $display("Input Bin Coverage: %.2f%%", env.input_coverage.input_coverage.get_coverage());
-        $display("  In0 Coverage: %.2f%%", env.input_coverage.input_coverage.in0_cp.get_coverage());
-        $display("  In0 Extremes Coverage: %.2f%%", env.input_coverage.input_coverage.in0_extremes_cp.get_coverage());
-        $display("  In1 Coverage: %.2f%%", env.input_coverage.input_coverage.in1_cp.get_coverage());
-        $display("  In1 Extremes Coverage: %.2f%%", env.input_coverage.input_coverage.in1_extremes_cp.get_coverage());
-        $display("  Cross Coverage: %.2f%%", env.input_coverage.input_coverage.in_cross.get_coverage());
+        $display("  In Coverage: %.2f%%", env.input_coverage.input_coverage.in_cp.get_coverage());
+        $display("  In Extremes Coverage: %.2f%%", env.input_coverage.input_coverage.in_extremes_cp.get_coverage());
 
         $display("\nOutput Bin Coverage: %.2f%%", env.output_coverage.output_coverage.get_coverage());
 
         $display("\nToggle Coverage");
-        $display("  In0 Toggle Coverage: %.2f%%", env.input_coverage.in0_toggle_coverage.toggle_cp.get_coverage());
-        $display("  In1 Toggle Coverage: %.2f%%", env.input_coverage.in1_toggle_coverage.toggle_cp.get_coverage());
-*/
+        $display("  In Toggle Coverage: %.2f%%", env.input_coverage.toggle_coverage.toggle_cp.get_coverage());
+        $display("  Out Toggle Coverage: %.2f%%", env.output_coverage.toggle_coverage.toggle_cp.get_coverage());
 
     endfunction
 
