@@ -33,11 +33,14 @@ class accum_env extends uvm_env;
     int min_driver_delay;
     int max_driver_delay;
 
-    bit is_packet_level;
-
     function new(string name, uvm_component parent);
         super.new(name, parent);
-        is_packet_level = 1'b0;
+    endfunction
+
+    function automatic void configure_transaction_level(bit is_packet_level);
+        agent_in.configure_transaction_level(is_packet_level);
+        agent_out.configure_transaction_level(is_packet_level);
+        scoreboard.is_packet_level = is_packet_level;
     endfunction
 
     function void build_phase(uvm_phase phase);

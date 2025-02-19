@@ -21,22 +21,10 @@ class axi4_stream_seq_item #(
     // In this example, we add a bit to specify in the sequence item captures a
     // transaction that is an entire packet, or an individual beat of a packet.
     bit is_packet_level;
-
-    /////////////////////////////////////////////////////////////
-    // Packet Abstraction Level
-    /////////////////////////////////////////////////////////////
-    // In the case of a packet, this dynamic array will contain the packet data.
-    logic [DATA_WIDTH-1:0] packet[];
-
-    /////////////////////////////////////////////////////////////
-    // Single-beat Abstraction Level
-    /////////////////////////////////////////////////////////////
-
-    // For single
+    
     rand logic [DATA_WIDTH-1:0] tdata[];
-
-    logic [DATA_WIDTH/8-1:0] tstrb[];
-    logic [DATA_WIDTH/8-1:0] tkeep[];
+    rand logic [DATA_WIDTH/8-1:0] tstrb[];
+    rand logic [DATA_WIDTH/8-1:0] tkeep[];
     logic tlast = 1'b0;
     logic [ID_WIDTH-1:0] tid = '0;
     logic [DEST_WIDTH-1:0] tdest = '0;

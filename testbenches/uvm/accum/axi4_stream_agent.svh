@@ -34,6 +34,11 @@ class axi4_stream_agent #(
         super.new(name, parent);
     endfunction
 
+    function automatic void configure_transaction_level(bit is_packet_level);
+        driver.is_packet_level = is_packet_level;
+        monitor.is_packet_level = is_packet_level;        
+    endfunction
+
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
         // Instantiate the sequencer, driver, and monitor. Note the use of
