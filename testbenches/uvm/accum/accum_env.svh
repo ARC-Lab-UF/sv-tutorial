@@ -33,8 +33,11 @@ class accum_env extends uvm_env;
     int min_driver_delay;
     int max_driver_delay;
 
+    bit is_packet_level;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        is_packet_level = 1'b0;
     endfunction
 
     function void build_phase(uvm_phase phase);
