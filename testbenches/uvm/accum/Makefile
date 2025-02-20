@@ -16,7 +16,7 @@ TOP_MODULE = accum_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
 
 # UVM configuration
-UVM_TESTNAME ?= accum_simple_test
+UVM_TESTNAME ?= accum_single_beat_test
 UVM_FLAGS = +UVM_TESTNAME=$(UVM_TESTNAME)
 
 # Compilation flags

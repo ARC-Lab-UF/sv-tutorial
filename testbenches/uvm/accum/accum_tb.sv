@@ -10,7 +10,7 @@ import uvm_pkg::*;
 import accum_tb_pkg::*;
 
 `include "axi4_stream_if.svh"
-`include "accum_simple_test.svh"
+`include "accum_single_beat_test.svh"
 `include "accum_packet_test.svh"
 
 `timescale 1 ns / 100 ps
