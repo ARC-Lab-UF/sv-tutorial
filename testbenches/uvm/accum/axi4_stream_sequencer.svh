@@ -1,8 +1,7 @@
 // Greg Stitt
 // University of Florida
 
-// In this example, we fully parameterize the sequencer to handle different widths
-// for the data and sideband signals.
+// This file is unchanged from the previous example.
 
 `ifndef _AXI4_STREAM_SEQUENCER_SVH_
 `define _AXI4_STREAM_SEQUENCER_SVH_

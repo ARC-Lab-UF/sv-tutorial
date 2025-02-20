@@ -1,8 +1,9 @@
 // Greg Stitt
 // University of Florida
 
-// In this example, we fully parameterize the sequence item to handle different 
-// width for the data and sideband signals.
+// In this example, we modify the sequence item to be able to function at
+// multiple abstraction levels. The item will now support individual beats and
+// entire packets.
 
 `ifndef _AXI4_STREAM_ITEM_SVH_
 `define _AXI4_STREAM_ITEM_SVH_
@@ -18,23 +19,29 @@ class axi4_stream_seq_item #(
 ) extends uvm_sequence_item;
     `uvm_object_param_utils(axi4_stream_seq_item#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH))
 
-    // In this example, we add a bit to specify in the sequence item captures a
+    // In this example, we add a bit to specify if the sequence item captures a
     // transaction that is an entire packet, or an individual beat of a packet.
     bit is_packet_level;
 
+    // We change these to dynamic arrays so they can store any number of beats.
+    // For single-beat transactions, these will be allocated with a single element.
     rand logic [DATA_WIDTH-1:0] tdata[];
     rand logic [DATA_WIDTH/8-1:0] tstrb[];
     rand logic [DATA_WIDTH/8-1:0] tkeep[];
+
     logic tlast = 1'b0;
+
+    // These are not arrays under the assumption that all items in a packet 
+    // will have the same sideband values.
     logic [ID_WIDTH-1:0] tid = '0;
     logic [DEST_WIDTH-1:0] tdest = '0;
     logic [USER_WIDTH-1:0] tuser = '0;
 
+    // Add a constraint to guarantee all three dynamic arrays are the same size.
     constraint size_c {
         tstrb.size() == tdata.size();
         tkeep.size() == tdata.size();
     }
-    //constraint array_c { foreach(array[i]) array[i] == i;}
 
     function new(string name = "axi4_stream_seq_item");
         super.new(name);
@@ -47,6 +54,7 @@ class axi4_stream_seq_item #(
         tkeep[0] = '1;
     endfunction
 
+    // Helper function to build a packet from a queue of individual items.
     function automatic void init_from_queue(axi4_stream_seq_item#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) q[$]);
         if (q.size() == 0) return;
 
