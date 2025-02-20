@@ -1,6 +1,9 @@
 // Greg Stitt
 // University of Florida
 
+// For this example, the testbench is virtually identical to the previous
+// examples. It simply has new configuration parameters for packet size.
+
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
@@ -13,7 +16,7 @@ import accum_tb_pkg::*;
 `timescale 1 ns / 100 ps
 
 module accum_tb #(
-    parameter int NUM_PACKETS   = 1000,
+    parameter int NUM_PACKETS = 1000,
 
     // Enable/disable random toggling of the downstream ready signal.
     parameter bit TOGGLE_READY = 1'b1,
@@ -33,15 +36,17 @@ module accum_tb #(
     always #5 clk <= ~clk;
     assign rst_n = ~rst;
 
-    // Instantiate the three AXI interfaces: 2 input and 1 output. Note that 
-    // the output interface has a different width, which prohibits us from 
-    // relying on a default value to simplify the UVM code.
-    axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH) in_intf (clk, rst_n);    
-    axi4_stream_if #(accum_tb_pkg::OUTPUT_WIDTH) out_intf (clk, rst_n);
+    axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH) in_intf (
+        clk,
+        rst_n
+    );
+    axi4_stream_if #(accum_tb_pkg::OUTPUT_WIDTH) out_intf (
+        clk,
+        rst_n
+    );
 
-    // Instantiate the DUT.
     accum #(
-        .INPUT_WIDTH(accum_tb_pkg::INPUT_WIDTH),
+        .INPUT_WIDTH (accum_tb_pkg::INPUT_WIDTH),
         .OUTPUT_WIDTH(accum_tb_pkg::OUTPUT_WIDTH)
     ) DUT (
         .aclk      (clk),
@@ -65,7 +70,7 @@ module accum_tb #(
                 @(posedge clk);
             end
         end
-    end 
+    end
 
     // Reset the DUT.
     initial begin
@@ -83,7 +88,7 @@ module accum_tb #(
         uvm_config_db#(virtual axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH))::set(uvm_root::get(), "*", "in_vif", in_intf);
         uvm_config_db#(virtual axi4_stream_if #(accum_tb_pkg::OUTPUT_WIDTH))::set(uvm_root::get(), "*", "out_vif", out_intf);
 
-        // Store the number of tests.
+        // Store the number of packets.
         uvm_config_db#(int)::set(uvm_root::get(), "*", "num_packets", NUM_PACKETS);
 
         // Store configuration info for the drivers.
@@ -96,9 +101,6 @@ module accum_tb #(
     end
 
     initial begin
-        // Uncomment to run testbench without the makefile
-        //run_test("accum_simple_test");
-
         run_test();
     end
 
