@@ -18,8 +18,8 @@ The DUT is the same streaming multiplier from the previous example.
 # Suggested Study Order
 
 I strongly suggest reading the files in the following order, due to the comments assuming this ordering when explaining topics.
-Make sure you have already student the previous example to ensure you understand the basics of agents. Note that many of the
-file have not changed. Files that are not listed are identical to the previous example.
+Make sure you have already studied the previous example to ensure you understand the basics of agents. Note that many of the
+files have not changed. Files that are not listed are identical to the previous example.
 
 
 1. [axi4_stream_pkg](axi4_stream_pkg.sv)    
@@ -47,7 +47,7 @@ file have not changed. Files that are not listed are identical to the previous e
 
 1. [axi4_stream_agent](axi4_stream_agent.svh)    
     - Extended previous version to support complete parameterization.
-    - Demonstrates how to instantiate the paramterized driver, monitor, and sequencer.    
+    - Demonstrates how to instantiate the parameterized driver, monitor, and sequencer.    
 
 1. [mult_scoreboard](mult_scoreboard.svh)    
     - Modified to support the new parameterized sequence item.
