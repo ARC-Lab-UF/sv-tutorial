@@ -5,8 +5,8 @@ abstraction levels, 2) how to use multiple tests, 3) how to define more complex 
 create parameterized covergroups.
 
 The DUT for this example is an AXI4 stream accumulator. It accumulates packets of inputs, where the end of each
-packet is specified by the assert of AXI's tlast signal on the input. The DUT generates an output for each valid
-input, but also signifies the end of each packet by asserting tlast on the output interface.
+packet is specified by the assertion of AXI's tlast signal on the input interface. The DUT generates an output for each valid
+input, but also specifies the end of each packet by asserting tlast on the output interface.
 
 The new testbench provides a test that simulates individual inputs, and a separate test that simulates individual
 packets. Packets have the advantage of a higher abstraction level, which could be more convenient for complex
@@ -22,6 +22,7 @@ the makefile to change the UVM_TESTNAME variable, but that is pretty tedious. In
 testname on the command line like this:
 
 `make UVM_TESTNAME=accum_packet_test sim`
+
 `make UVM_TESTNAME=accum_single_beat_test sim`
 
 Or, you can rely on the default specified in the Makefile:
