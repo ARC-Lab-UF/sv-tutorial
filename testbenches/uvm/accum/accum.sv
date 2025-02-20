@@ -1,6 +1,14 @@
 // Greg Stitt
 // University of Florida
 
+// This module implements an AXI4 stream accumulator that accumulates separate
+// groups. Each grouop is provided in a packet where the last input in the
+// packet is specified by the assertion of tlast.
+
+// Like the previous example, this modules does not "break" the ready signal.
+// It chained together with multiple modules that also do not break ready, the
+// ready chain will become a timing bottleneck.
+
 module accum #(
     parameter int INPUT_WIDTH  = 16,
     parameter int OUTPUT_WIDTH = 32
@@ -35,6 +43,10 @@ module accum #(
     // the output isn't valid. We only stall when !out_tready && out_tvalid.
     assign en = out_tready || !out_tvalid;
 
+    // Ready is combinational logic, which can lead to timing problems. This
+    // can easily be fixed with a register and FIFO/skid buffer, which I 
+    // avoided to keep the code simple. The main point of the example is to
+    // illustrate various UVM concepts.
     assign in_tready = en;
 
     always_ff @(posedge aclk) begin
@@ -45,6 +57,8 @@ module accum #(
             // Don't accumulate unless the input is valid.
             if (in_tvalid) begin
                 first_r <= in_tlast;
+
+                // For the first input in a packet, don't add the previous value.
                 if (first_r) accum_r <= OUTPUT_WIDTH'(in_tdata);
                 else accum_r <= accum_r + OUTPUT_WIDTH'(in_tdata);
             end
@@ -59,6 +73,6 @@ module accum #(
 
     assign out_tvalid = out_valid_r;
     assign out_tdata  = accum_r;
-    assign out_tlast = out_tlast_r;
+    assign out_tlast  = out_tlast_r;
 
 endmodule
