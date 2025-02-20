@@ -1,8 +1,8 @@
 // Greg Stitt
 // University of Florida
 
-// In this example, we fully parameterize the monitor to handle different widths
-// for the data and sideband signals.
+// In this example, we add the capability of monitoring individual beats and
+// entire packets.
 
 `ifndef _AXI4_STREAM_MONITOR_SVH_
 `define _AXI4_STREAM_MONITOR_SVH_
@@ -18,23 +18,17 @@ class axi4_stream_monitor #(
     parameter int DEST_WIDTH = axi4_stream_pkg::DEFAULT_DEST_WIDTH,
     parameter int USER_WIDTH = axi4_stream_pkg::DEFAULT_USER_WIDTH
 ) extends uvm_monitor;
-    // We have to pass all parameters when registering the class.
     `uvm_component_param_utils(axi4_stream_monitor#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH))
 
-    // We now have a fully parameterized virtual interface.
     virtual axi4_stream_if #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) vif;
 
-    // In the previous example, the monitor only sent the data, but now it has
-    // to include all sideband information. Do support this, we send a sequence
-    // item through the analysis port in case the sideband information is needed.
     uvm_analysis_port #(axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)) ap;
 
+    // Specifies the transaction level.
     bit is_packet_level;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
-
-        // Create the anaylsis port.
         ap = new("ap", this);
         is_packet_level = 0;
     endfunction
@@ -43,21 +37,24 @@ class axi4_stream_monitor #(
         super.build_phase(phase);
     endfunction
 
-    task run_phase(uvm_phase phase);
-        // We need all the parameters when creating a sequence item.
+    task run_phase(uvm_phase phase);        
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) item;
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) packet_item;
+
+        // A queue of items used to build a complete packet.
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) packet[$];
 
         forever begin
             @(posedge vif.aclk iff vif.tvalid && vif.tready);
-
-            // The new has to be done within the loop. The write essentially 
+            
+            // NOTE: The new has to be done within the loop. The write essentially 
             // sends a pointer instead of a copy, so if we change the data
             // on the next iteration, it could corrupt what has been sent
             // through the analysis port. Instead, we need to make sure that
             // every item sent is a new item. SystemVerilog has garbage
             // collection, so you don't need to worry about deleting the items.
+
+            // Store each individual beat as an item.
             item          = new();
             item.tdata[0] = vif.tdata;
             item.tstrb[0] = vif.tstrb;
@@ -67,19 +64,23 @@ class axi4_stream_monitor #(
             item.tdest    = vif.tdest;
             item.tuser    = vif.tuser;
 
-            if (is_packet_level) begin
-                // Push the individual beats onto a queue until receiving the
-                // last beat of the packet.
+            // If the simulation is at the packet level, push the individual 
+            // beat onto the queue until receiving the last beat of the packet.
+            if (is_packet_level) begin                
                 packet.push_back(item);
 
                 if (vif.tlast) begin
-                    // Send the entire packet at once.
+                    // Create and send the entire packet at once.
                     packet_item = new();
                     packet_item.init_from_queue(packet);
                     ap.write(packet_item);
+
+                    // Clear the queue for the next packet.
                     packet.delete();
                 end
             end else begin
+                // If the transactions are single beats, then send each
+                // individual item.
                 ap.write(item);
             end
         end

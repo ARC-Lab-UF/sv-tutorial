@@ -2,8 +2,6 @@
 // Wes Piard
 // University of Florida
 
-// In this example, the interface now supports all AXI4 stream signals.
-
 `ifndef _AXI4_STREAM_IF_
 `define _AXI4_STREAM_IF_
 

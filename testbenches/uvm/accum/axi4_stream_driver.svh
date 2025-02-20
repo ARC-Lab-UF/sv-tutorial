@@ -1,8 +1,8 @@
 // Greg Stitt
 // University of Florida
 
-// In this example, we fully parameterize the driver to handle different widths
-// for the data and sideband signals.
+// In this version of the driver, we add driving capabilities for both individual
+// AXI items/beats, and for entire packets of items.
 
 `ifndef _AXI4_STREAM_DRIVER_SVH_
 `define _AXI4_STREAM_DRIVER_SVH_
@@ -27,6 +27,7 @@ class axi4_stream_driver #(
     // Configuration parameters.
     int min_delay, max_delay;
 
+    // Specifies the transaction level.
     bit is_packet_level;
 
     function new(string name, uvm_component parent);
@@ -59,14 +60,17 @@ class axi4_stream_driver #(
         @(posedge vif.aclk);
 
         forever begin
-            // Get the sequence item.
             seq_item_port.get_next_item(req);
 
+            // By carefully designing the sequence item, most of the differences 
+            // between beat-level and packet-level transactions are captured by
+            // the size of the tdata array.            
             for (int i = 0; i < req.tdata.size(); i++) begin
                 vif.tvalid <= 1'b1;
                 vif.tdata  <= req.tdata[i];
                 vif.tstrb  <= req.tstrb[i];
                 vif.tkeep  <= req.tkeep[i];
+                // Set tlast differently based on the abstraction level.
                 vif.tlast  <= req.is_packet_level ? i == req.tdata.size()-1 : req.tlast;
                 vif.tid    <= req.tid;
                 vif.tdest  <= req.tdest;
@@ -77,7 +81,6 @@ class axi4_stream_driver #(
                 repeat ($urandom_range(min_delay - 1, max_delay - 1)) @(posedge vif.aclk);
             end
 
-            // Tell the sequencer we are done with the seq item.
             seq_item_port.item_done();
         end
     endtask
