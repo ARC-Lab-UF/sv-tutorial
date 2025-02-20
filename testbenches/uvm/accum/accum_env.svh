@@ -1,6 +1,9 @@
 // Greg Stitt
 // University of Florida
 
+// The environment is very similar to previous examples and has only been
+// updated for the new DUT and the different number of interfaces.
+
 `ifndef _ACCUM_ENV_SVH_
 `define _ACCUM_ENV_SVH_
 

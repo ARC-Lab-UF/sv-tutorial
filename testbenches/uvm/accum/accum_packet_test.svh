@@ -1,6 +1,8 @@
 // Greg Stitt
 // University of Florida
 
+// This class tests the DUT with packet-level transactions.
+
 `ifndef _ACCUM_PACKET_TEST_SVH_
 `define _ACCUM_PACKET_TEST_SVH_
 

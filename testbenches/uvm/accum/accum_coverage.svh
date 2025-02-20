@@ -1,8 +1,7 @@
 // Greg Stitt
 // University of Florida
 
-// This file demonstrates various coverage techniques. It has been adapted to
-// use axi sequence items from the fully parameterized interface.
+// This file demonstrates various coverage techniques.
 
 `ifndef _ACCUM_COVERAGE_SVH_
 `define _ACCUM_COVERAGE_SVH_
@@ -39,7 +38,7 @@ class toggle_coverage #(
     endfunction
 endclass
 
-
+// Coverage for the DUT inputs.
 class accum_input_coverage extends uvm_component;
     `uvm_component_utils(accum_input_coverage)
 
@@ -54,7 +53,7 @@ class accum_input_coverage extends uvm_component;
         in_extremes_cp: coverpoint in_data {bins zero = {0}; bins max_ = {'1};}
     endgroup
 
-    //in_toggle_coverage toggle_coverage;
+    // Declare the toggle_coverage class with the width of the input.
     toggle_coverage #(accum_tb_pkg::INPUT_WIDTH) in_toggle_coverage;
 
     function new(string name, uvm_component parent);
@@ -84,8 +83,8 @@ class accum_input_coverage extends uvm_component;
         axi_item in_item = new();
 
         forever begin
-            // Get data from both inputs.
             in_fifo.get(in_item);
+            // Sample all inputs in the packet (or the single beat).
             for (int i = 0; i < in_item.tdata.size(); i++) begin
                 in_data = in_item.tdata[i];
                 input_coverage.sample();
@@ -114,6 +113,7 @@ class accum_output_coverage extends uvm_component;
         output_cp: coverpoint out_data {option.auto_bin_max = 16;}
     endgroup
 
+    // Declare the toggle_coverage class with the width of the output.
     toggle_coverage #(accum_tb_pkg::OUTPUT_WIDTH) out_toggle_coverage;
 
     function new(string name, uvm_component parent);
