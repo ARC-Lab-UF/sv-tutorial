@@ -1,6 +1,9 @@
 // Greg Stitt
 // University of Florida
 
+// This scoreboard is similar to the previous examples, but includes logic
+// to compute the expected output for both single beats and packets.
+
 `ifndef _ACCUM_SCOREBOARD_SVH_
 `define _ACCUM_SCOREBOARD_SVH_
 
@@ -47,26 +50,30 @@ class accum_scoreboard extends uvm_scoreboard;
 
     virtual task run_phase(uvm_phase phase);
         logic [accum_tb_pkg::OUTPUT_WIDTH-1:0] actual, expected;
-        axi4_stream_seq_item #(accum_tb_pkg::INPUT_WIDTH) in;
+        axi4_stream_seq_item #(accum_tb_pkg::INPUT_WIDTH) in_item;
         axi4_stream_seq_item #(accum_tb_pkg::OUTPUT_WIDTH) out_item;
 
-        in = new();
+        in_item = new();
         out_item = new();
         expected = '0;
 
         forever begin
-            in_fifo.get(in);
-            assert (in.is_packet_level == is_packet_level);
+            in_fifo.get(in_item);
+            // Make sure that the scoreboard is configured to match the items.
+            assert (in_item.is_packet_level == is_packet_level);
             out_fifo.get(out_item);
 
             if (is_packet_level) begin
+                // Compute the expected and actual results across the entire
+                // packet.
                 expected = '0;
                 actual = '0;
-                foreach (in.tdata[i]) expected += in.tdata[i];
+                foreach (in_item.tdata[i]) expected += in_item.tdata[i];
                 foreach (out_item.tdata[i]) actual += out_item.tdata[i];
             end else begin
+                // Compute the expected and actual results for each beat.
                 actual = out_item.tdata[0];            
-                expected += in.tdata[0];
+                expected += in_item.tdata[0];
             end           
 
             // Check for errors.
@@ -78,12 +85,14 @@ class accum_scoreboard extends uvm_scoreboard;
                 failed++;
             end
 
-            if ((is_packet_level || in.tlast) && out_item.tlast !== 1'b1) begin
+            // Make sure the last item of each packet asserts tlast.
+            if ((is_packet_level || in_item.tlast) && out_item.tlast !== 1'b1) begin
                 `uvm_error("SCOREBOARD", $sformatf("Test failed: tlast not asserted at end of packet."))
                 failed++;
             end
 
-            if (in.tlast) expected = 0;
+            // Clear the expected at the end of each packet.
+            if (in_item.tlast) expected = 0;
         end
     endtask
 
