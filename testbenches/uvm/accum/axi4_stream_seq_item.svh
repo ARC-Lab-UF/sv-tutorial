@@ -29,13 +29,13 @@ class axi4_stream_seq_item #(
     rand logic [DATA_WIDTH/8-1:0] tstrb[];
     rand logic [DATA_WIDTH/8-1:0] tkeep[];
 
-    logic tlast = 1'b0;
+    rand logic tlast = 1'b0;
 
     // These are not arrays under the assumption that all items in a packet 
     // will have the same sideband values.
-    logic [ID_WIDTH-1:0] tid = '0;
-    logic [DEST_WIDTH-1:0] tdest = '0;
-    logic [USER_WIDTH-1:0] tuser = '0;
+    rand logic [ID_WIDTH-1:0] tid = '0;
+    rand logic [DEST_WIDTH-1:0] tdest = '0;
+    rand logic [USER_WIDTH-1:0] tuser = '0;
 
     // Add a constraint to guarantee all three dynamic arrays are the same size.
     constraint size_c {
