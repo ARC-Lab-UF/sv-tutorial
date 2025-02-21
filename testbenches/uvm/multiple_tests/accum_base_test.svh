@@ -9,8 +9,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "accum_env.svh"
-
 class accum_base_test extends uvm_test;
     `uvm_component_utils(accum_base_test)
 

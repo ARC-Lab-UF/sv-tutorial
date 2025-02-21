@@ -12,13 +12,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import accum_tb_pkg::*;
-import axi4_stream_pkg::*;
-
-`include "axi4_stream_agent.svh"
-`include "accum_scoreboard.svh"
-`include "accum_coverage.svh"
-
 class accum_env extends uvm_env;
     `uvm_component_utils(accum_env)
 

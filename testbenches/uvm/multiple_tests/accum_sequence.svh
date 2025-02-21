@@ -9,10 +9,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "axi4_stream_seq_item.svh"
-
-import accum_tb_pkg::*;
-
 // Create a base sequence that provides common functionality.
 virtual class accum_base_sequence extends uvm_sequence #(axi4_stream_seq_item #(accum_tb_pkg::INPUT_WIDTH));
     `uvm_object_utils(accum_base_sequence)

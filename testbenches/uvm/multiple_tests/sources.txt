@@ -1,3 +1,4 @@
+axi4_stream_if.sv
 axi4_stream_pkg.sv
 accum_tb_pkg.sv 
 accum.sv

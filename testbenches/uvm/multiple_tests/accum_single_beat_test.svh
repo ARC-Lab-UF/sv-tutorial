@@ -7,14 +7,6 @@
 `ifndef _ACCUM_SINGLE_BEAT_TEST_SVH_
 `define _ACCUM_SINGLE_BEAT_TEST_SVH_
 
-`include "uvm_macros.svh"
-import uvm_pkg::*;
-
-import accum_tb_pkg::*;
-
-`include "accum_sequence.svh"
-`include "accum_base_test.svh"
-
 class accum_single_beat_test extends accum_base_test;
     `uvm_component_utils(accum_single_beat_test)
 
