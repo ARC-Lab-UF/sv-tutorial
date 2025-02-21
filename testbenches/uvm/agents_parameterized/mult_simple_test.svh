@@ -10,11 +10,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import mult_tb_pkg::*;
-
-`include "mult_sequence.svh"
-`include "mult_base_test.svh"
-
 class mult_simple_test extends mult_base_test;
     `uvm_component_utils(mult_simple_test)
 

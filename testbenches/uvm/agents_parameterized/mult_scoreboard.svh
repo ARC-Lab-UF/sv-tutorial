@@ -11,9 +11,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import mult_tb_pkg::*;
-
-
 class mult_scoreboard extends uvm_scoreboard;
     `uvm_component_utils(mult_scoreboard)
 

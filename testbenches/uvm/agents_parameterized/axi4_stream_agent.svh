@@ -11,10 +11,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "axi4_stream_sequencer.svh"
-`include "axi4_stream_driver.svh"
-`include "axi4_stream_monitor.svh"
-
 // In this example, 
 class axi4_stream_agent #(
     parameter int DATA_WIDTH = axi4_stream_pkg::DEFAULT_DATA_WIDTH,
