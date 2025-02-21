@@ -14,4 +14,10 @@ package axi4_stream_pkg;
     localparam int DEFAULT_DEST_WIDTH = 4;
     localparam int DEFAULT_USER_WIDTH = 4;
 
+    `include "axi4_stream_seq_item.svh"
+    `include "axi4_stream_monitor.svh"
+    `include "axi4_stream_driver.svh"
+    `include "axi4_stream_sequencer.svh"
+    `include "axi4_stream_agent.svh"
+
 endpackage

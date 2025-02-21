@@ -10,10 +10,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "axi4_stream_seq_item.svh"
-
-import mult_tb_pkg::*;
-
 // Since the mult application does not require changing the default parameter values
 // of the interface (other than the DATA_WIDTH), this class requires no changes.
 class mult_sequence extends uvm_sequence #(axi4_stream_seq_item #(mult_tb_pkg::INPUT_WIDTH));

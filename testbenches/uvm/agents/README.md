@@ -22,6 +22,23 @@ uses practices I would normally consider to be unsafe for AXI modules. However, 
 reader. Ultimately, I wanted the simplest DUT that would demonstrate the main points of UVM that are explained in this example, as opposed to
 demonstrating how to most effectively create an AXI streaming multiplier.
 
+# Simulation instructions
+
+This example include a makefile that will run if you have Questa installed and
+all the corresponding environment variables loaded.
+
+To compile without running a simulation:
+
+`make`
+
+To compile and run a command-line simulation:
+
+`make sim`
+
+To compile and open the GUI to run a simulation interactively:
+
+`make gui`
+
 # Suggested Study Order
 
 I strongly suggest reading the files in the following order, due to the comments assuming this ordering when explaining topics.
@@ -32,7 +49,7 @@ I strongly suggest reading the files in the following order, due to the comments
 1. [mult_tb](mult_tb.sv)    
     - Demonstrates the use of three separate AXI4 stream interfaces.
 
-1. [axi4_stream_if](axi4_stream_if.svh)    
+1. [axi4_stream_if](axi4_stream_if.sv)    
     - Illustrates an AXI4 stream interface. The optional signals have been removed for now to keep the testbench simple, but they will be
     added in a later example.
     - Note that in most cases, you would not need to create this interface. Since it is a standard interface, there would likely be open implementations.

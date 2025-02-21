@@ -9,8 +9,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import accum_tb_pkg::*;
-
 // In this example, we need to use the toggle coverage covergroup with two
 // different widths. Unfortunately, you can't parameterize a covergroup outside
 // of a class, so we create a wrapper class here with its own parameter.

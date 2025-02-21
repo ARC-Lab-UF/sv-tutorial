@@ -6,10 +6,9 @@
 
 `include "uvm_macros.svh"
 import uvm_pkg::*;
-
+import axi4_stream_pkg::*;
 import accum_tb_pkg::*;
 
-`include "axi4_stream_if.svh"
 `include "accum_single_beat_test.svh"
 `include "accum_packet_test.svh"
 

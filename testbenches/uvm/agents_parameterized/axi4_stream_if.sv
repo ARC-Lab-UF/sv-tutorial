@@ -33,6 +33,11 @@ interface axi4_stream_if
         if (DATA_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI DATA_WIDTH=%0d is not byte aligned", DATA_WIDTH));
     end
 
+    // If using the interface for synthesis, this will probably cause errors. We
+    // use it here so we can use `uvm_error in the interface assertion.
+    `include "uvm_macros.svh"
+    import uvm_pkg::*;
+
     // Validate required properties of AXI: once tvalid is asserted, it must remain asserted until
     // tready is asserted.
     assert property (@(posedge aclk) disable iff (!aresetn) $fell(tvalid) |-> $past(tready, 1))

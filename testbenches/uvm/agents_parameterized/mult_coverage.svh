@@ -10,8 +10,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import mult_tb_pkg::*;
-
 covergroup toggle_coverage with function sample (input int index, input bit value);
     index_cp: coverpoint index {
         bins indexes[] = {[0 : INPUT_WIDTH - 1]};  // Create a dynamic array of bins for bit indices

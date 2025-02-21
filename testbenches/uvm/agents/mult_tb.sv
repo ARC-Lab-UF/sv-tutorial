@@ -34,7 +34,6 @@ import uvm_pkg::*;
 // read from the test, env, etc., which don't directly depend on the interface.
 import mult_tb_pkg::*;
 
-`include "axi4_stream_if.svh"
 `include "mult_simple_test.svh"
 
 `timescale 1 ns / 100 ps

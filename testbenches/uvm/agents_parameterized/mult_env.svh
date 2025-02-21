@@ -13,14 +13,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import mult_tb_pkg::*;
-import axi4_stream_pkg::*;
-
-`include "axi4_stream_agent.svh"
-`include "mult_scoreboard.svh"
-`include "mult_coverage.svh"
-
-
 class mult_env extends uvm_env;
     `uvm_component_utils(mult_env)
 

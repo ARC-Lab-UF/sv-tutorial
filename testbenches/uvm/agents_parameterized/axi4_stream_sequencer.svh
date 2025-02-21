@@ -10,8 +10,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "axi4_stream_seq_item.svh"
-
 class axi4_stream_sequencer #(
     parameter int DATA_WIDTH = axi4_stream_pkg::DEFAULT_DATA_WIDTH,
     parameter int ID_WIDTH   = axi4_stream_pkg::DEFAULT_ID_WIDTH,

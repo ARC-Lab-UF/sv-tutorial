@@ -23,6 +23,23 @@ that can be accessed across all modules, interfaces, and classes. While not the 
 very convenient. However, it can only be used when all instances of an interface have the same parameter values, which although
 common, will not always be the case.
 
+# Simulation instructions
+
+This example include a makefile that will run if you have Questa installed and
+all the corresponding environment variables loaded.
+
+To compile without running a simulation:
+
+`make`
+
+To compile and run a command-line simulation:
+
+`make sim`
+
+To compile and open the GUI to run a simulation interactively:
+
+`make gui`
+
 # Suggested Study Order
 
 I strongly suggest reading the files in the following order, due to the comments assuming this ordering when explaining topics.
@@ -30,7 +47,7 @@ I strongly suggest reading the files in the following order, due to the comments
 1. [bit_diff_tb](bit_diff_tb.sv)    
     - Basic structure of UVM testbench.
 
-1. [bit_diff_if](bit_diff_if.svh)    
+1. [bit_diff_if](bit_diff_if.sv)    
     - The interface use by across all components.
     - Demonstrates default width assigned by package [bit_diff_if_pkg.sv](bit_diff_if_pkg.sv) as a workaround to avoid UVM headaches related to parameterized interfaces.
 

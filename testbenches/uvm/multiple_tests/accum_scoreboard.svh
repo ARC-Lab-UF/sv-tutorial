@@ -10,8 +10,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-import accum_tb_pkg::*;
-
 class accum_scoreboard extends uvm_scoreboard;
     `uvm_component_utils(accum_scoreboard)
 

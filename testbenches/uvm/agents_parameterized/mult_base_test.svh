@@ -9,8 +9,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "mult_env.svh"
-
 class mult_base_test extends uvm_test;
     `uvm_component_utils(mult_base_test)
 
