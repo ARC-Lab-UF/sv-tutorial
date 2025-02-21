@@ -34,7 +34,7 @@ interface axi4_stream_if
     end
 
     // If using the interface for synthesis, this will probably cause errors. We
-    // use it here was we can use `uvm_error in the interface assertion.
+    // use it here so we can use `uvm_error in the interface assertion.
     `include "uvm_macros.svh"
     import uvm_pkg::*;
 
