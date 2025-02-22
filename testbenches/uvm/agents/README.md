@@ -49,7 +49,7 @@ I strongly suggest reading the files in the following order, due to the comments
 1. [mult_tb](mult_tb.sv)    
     - Demonstrates the use of three separate AXI4 stream interfaces.
 
-1. [axi4_stream_if](axi4_stream_if.svh)    
+1. [axi4_stream_if](axi4_stream_if.sv)    
     - Illustrates an AXI4 stream interface. The optional signals have been removed for now to keep the testbench simple, but they will be
     added in a later example.
     - Note that in most cases, you would not need to create this interface. Since it is a standard interface, there would likely be open implementations.

@@ -13,6 +13,9 @@ with each interface having different widths for data and sideband signals, if de
 Note that despite changing the interface, agent, and sequence items, the only application-specific modules that
 had to change were the scoreboard and coverage classes, which both required the new sequence item.
 
+This example also demonstrates a more widely adopted style of packing all the SVH files into packages, as opposed
+to the C++ style includes we used in the previous examples.
+
 The DUT is the same streaming multiplier from the previous example.
 
 # Simulation instructions
@@ -42,8 +45,9 @@ files have not changed. Files that are not listed are identical to the previous 
 1. [axi4_stream_pkg](axi4_stream_pkg.sv)    
     - Package that defines the default values of all AXI4 stream parameteres.
     - These may be modified to universally change the defaults across all agents.
+    - Now includes all corresponding SVH files in their required compilation order, which eliminates the need to include them in other places.
 
-1. [axi4_stream_if](axi4_stream_if.svh)    
+1. [axi4_stream_if](axi4_stream_if.sv)    
     - Illustrates a complete AXI4 stream interface with parameters to control width of data and sideband signals.
     - Uses default parameter values from axi4_stream_pkg.
 
@@ -65,6 +69,9 @@ files have not changed. Files that are not listed are identical to the previous 
 1. [axi4_stream_agent](axi4_stream_agent.svh)    
     - Extended previous version to support complete parameterization.
     - Demonstrates how to instantiate the parameterized driver, monitor, and sequencer.    
+
+1. [mult_tb_pkg](mult_tb_pkg.sv)    
+   - Now includes all corresponding SVH files in their required compilation order, which eliminates the need to include them in other places.
 
 1. [mult_scoreboard](mult_scoreboard.svh)    
     - Modified to support the new parameterized sequence item.

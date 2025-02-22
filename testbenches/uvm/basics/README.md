@@ -47,7 +47,7 @@ I strongly suggest reading the files in the following order, due to the comments
 1. [bit_diff_tb](bit_diff_tb.sv)    
     - Basic structure of UVM testbench.
 
-1. [bit_diff_if](bit_diff_if.svh)    
+1. [bit_diff_if](bit_diff_if.sv)    
     - The interface use by across all components.
     - Demonstrates default width assigned by package [bit_diff_if_pkg.sv](bit_diff_if_pkg.sv) as a workaround to avoid UVM headaches related to parameterized interfaces.
 
