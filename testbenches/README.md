@@ -20,14 +20,15 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 1. [2:1 Mux](basic/mux2x1_tb.sv)
     - Corresponding [module](basic/mux2x1.sv) and [testbench](basic/mux2x1_tb.sv).
     - Basic introduction into testbenches. Introduces timescale, waiting, functions, $timeformat, and $display.
+    - Explains how to use a clock (even for combinational logic) to synchronize tests.
+    - Demonstrates different ways of stopping a testbench.
+    - Shows how to compare multiple implementations of a DUT.
 
 1. [Race Condition Intro](basic/race.sv)
-    - Demonstration of common race condition problems, and how to avoid them.
-    - Introduces $stop, $finish. 
+    - Demonstration of common race condition problems, and how to avoid them.    
 
 1. [Reset Race Conditions](basic/reset_race.sv)
     - Demonstration of reset race conditions, and how to avoid them.
-    - Introduces clock generation, waiting for rising edges, disable. 
 
 1. [Race Conditions: the Root of All Verilog Evil](https://stitt-hub.com/race-conditions-the-root-of-all-verilog-evil/)
     - Demonstration of other common race conditions.
@@ -35,8 +36,11 @@ Here are examples of non-ideal, but easy to understand testbenches that introduc
 
 1. [Register](basic/register_tb.sv)
     - Corresponding [module](basic/register.sv) and [testbench](basic/register_tb.sv).
-    - Introduces $urandom and special cases for disable. 
-    - Demonstrates a commonly used problematic testbench strategy.
+    - Introduces $urandom. 
+    - Demonstrates commonly used problematic testbench strategies.
+    - Illustrates a common "gotcha" where undefined inputs or outputs cause errors to go unreported.
+    - Introduces !== and === operators to avoid this gotcha.
+    - Demonstrates separation of responsibilities into multiple blocks/processes to simply testbenches.
     
 ## Assertions
 

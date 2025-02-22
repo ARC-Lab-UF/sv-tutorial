@@ -1,8 +1,12 @@
 // Greg Stitt
 // University of Florida
-// Description: This file illustrates two testbenches. The first is a very 
+// Description: This file illustrates four testbenches. The first is a very 
 // basic SV testbench for the mux2x1 module. The second demonstrates how to
-// test multiple modules that should behave identically.
+// test multiple modules that should behave identically. The next two show
+// how to use a clock to synchronize responsibilities in a testbench, even one
+// for combinational logic. The final one shows how to separate responsibilties
+// across multiple blocks, and how to end a simulation without relying on 
+// $finish.
 
 // Verilog allows for metricless time literals (e.g. #20 instead of #20ns).
 // Unless you want to explicitly specify all units, this requires
@@ -166,5 +170,128 @@ module mux2x1_all_tb;
         end
 
         $display("Tests completed.");
+    end
+endmodule
+
+
+// This testbench demonstrates how to synchronize tests with a clock, which is
+// a common strategy even for combinational DUTs.
+module mux2x1_tb2;
+
+    logic in0, in1, sel, out;
+    logic correct_out;
+
+    // Here we use a clock for synchronizing the testbench, even though the
+    // DUT does not require one.
+    logic clk = 1'b0;
+
+    mux2x1 DUT (
+        .in0(in0),
+        .in1(in1),
+        .sel(sel),
+        .out(out)
+    );
+
+    // Generate a clock with a separate always block. We'll see a slightly better
+    // way of doing this in the next testbench.
+    always begin : generate_clock
+        forever #5 clk <= !clk;
+    end
+
+    initial begin
+        $timeformat(-9, 0, " ns");
+
+        for (int i = 0; i < 8; i++) begin
+
+            in0 <= i[0];
+            in1 <= i[1];
+            sel <= i[2];
+
+            // Here we wait for a rising clock edge (or a full clock period)
+            // in between tests. There isn't a strong reason to use a clock
+            // in this example, but it becomes more useful when synchronizing
+            // multiple processing in the same testbench, as shown in the next
+            // testbench.
+            @(posedge clk);
+
+            correct_out = sel ? in1 : in0;
+            if (correct_out != out) begin
+                $error("[%0t] out = %b instead of %d.", $realtime, out, correct_out);
+            end
+        end
+
+        $display("Tests completed.");
+
+        // An RTL simulation finishes on its own when there are no more events
+        // to simulate. Because we use an always block to toggle the clock, 
+        // there will always be events to simulate, so it the simulation will
+        // never stop on its own. We can force it to stop with either $stop or
+        // $finish.
+        // $stop pauses a simulation, usually so it can be debugged and resumed.
+        // $finish will terminate the simulation. If you are using Modelsim or
+        // Questa, $finish will ask you if you want to exit. 
+        //$stop; 
+        $finish;
+    end
+endmodule
+
+// In this testbench, we separate the responsibilities across multiple blocks,
+// which makes the clock synchronization more useful. It also demonstrates how
+// to more gracefully end a simulation by disabling the clock generation, as
+// opposed to calling $finish. For more complex testbenches, it becomes more
+// difficult to achieve this graceful finish, so it is perfectly acceptable to
+// just use $finish.
+module mux2x1_tb3;
+
+    logic in0, in1, sel, out;
+    logic correct_out;
+    logic clk = 1'b0;
+
+    mux2x1 DUT (
+        .in0(in0),
+        .in1(in1),
+        .sel(sel),
+        .out(out)
+    );
+
+    // We now use an initial block with a forever loop, which enables us to
+    // disable the block at the end of the simulation. The simulation then
+    // ends a little more gracefully than calling $finish.
+    initial begin : generate_clock
+        forever #5 clk <= !clk;
+    end
+
+    // More advanced testbenches often use many blocks with different 
+    // responsibilities. We imitate that here with a block that solely drives
+    // the DUT with different input stimuli.
+    initial begin : provide_stimulus
+        $timeformat(-9, 0, " ns");
+
+        for (int i = 0; i < 8; i++) begin
+            in0 <= i[0];
+            in1 <= i[1];
+            sel <= i[2];
+            @(posedge clk);
+        end
+
+        $display("Tests completed."); 
+
+        // In this example, we disable the clock generation, which causes the
+        // simulation to finish with having to call $finish.
+        disable generate_clock;
+    end
+
+    // We've separated the responsibility of verifying the output from the
+    // previous block into this block, and use the rising edge of the clock
+    // to synchronize the stimuli and verification. This is a common testbench
+    // strategy we'll see as we get to more advanced techniques.
+    initial begin : verify_output
+        forever begin
+            @(posedge clk);
+            correct_out = sel ? in1 : in0;
+            if (correct_out != out) begin
+                $error("[%0t] out = %b instead of %d.", $realtime, out, correct_out);
+            end
+        end
     end
 endmodule
