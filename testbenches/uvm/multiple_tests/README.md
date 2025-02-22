@@ -17,6 +17,21 @@ after the last packet was checked.
 
 # Simulation instructions
 
+This example include a makefile that will run if you have Questa installed and
+all the corresponding environment variables loaded.
+
+To compile without running a simulation:
+
+`make`
+
+To compile and run a command-line simulation:
+
+`make sim`
+
+To compile and open the GUI to run a simulation interactively:
+
+`make gui`
+
 There are now two tests, so we need a way to specify which test we want using the makefile. We could just edit
 the makefile to change the UVM_TESTNAME variable, but that is pretty tedious. Instead, we can specify the
 testname on the command line like this:

@@ -15,6 +15,23 @@ had to change were the scoreboard and coverage classes, which both required the 
 
 The DUT is the same streaming multiplier from the previous example.
 
+# Simulation instructions
+
+This example include a makefile that will run if you have Questa installed and
+all the corresponding environment variables loaded.
+
+To compile without running a simulation:
+
+`make`
+
+To compile and run a command-line simulation:
+
+`make sim`
+
+To compile and open the GUI to run a simulation interactively:
+
+`make gui`
+
 # Suggested Study Order
 
 I strongly suggest reading the files in the following order, due to the comments assuming this ordering when explaining topics.
