@@ -1,14 +1,4 @@
-bit_diff.sv
 bit_diff_if_pkg.sv 
-bit_diff_if.svh 
-bit_diff_item.svh 
-bit_diff_monitor.svh 
-bit_diff_driver.svh
-bit_diff_sequencer.svh 
-bit_diff_agent.svh
-bit_diff_scoreboard.svh 
-bit_diff_env.svh 
-bit_diff_sequence.svh 
-bit_diff_base_test.svh
-bit_diff_simple_test.svh 
+bit_diff_if.sv 
+bit_diff.sv
 bit_diff_tb.sv 

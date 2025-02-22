@@ -7,7 +7,6 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-`include "bit_diff_if.svh"
 `include "bit_diff_item.svh"
 
 // Here we create a "virtual" base class that will contain functionality

@@ -67,8 +67,8 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
-// Include the definition of the interface and test were are going to run.
-`include "bit_diff_if.svh"
+// Include the definition of the test we are going to run. We'll see a better
+// way of doing this in later examples.
 `include "bit_diff_simple_test.svh"
 
 // This package defines parameters that are needed to define different class,
