@@ -26,7 +26,7 @@ common, will not always be the case.
 # Simulation instructions
 
 This example include a makefile that will run if you have Questa installed and
-all the corresponding environment variable loaded.
+all the corresponding environment variables loaded.
 
 To compile without running a simulation:
 
