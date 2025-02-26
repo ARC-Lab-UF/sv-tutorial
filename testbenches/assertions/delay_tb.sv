@@ -449,7 +449,7 @@ module delay_tb5 #(
     // *every* possible window of CYCLES enables during the entire sim. So, 
     // this assertion will fail after the first test because data_out will
     // clearly not be 0 at later points in the simulation. The above version
-    // worked because it was only triggeer once when rst fell.
+    // worked because it was only triggered once when rst fell.
     //
     //assert property (@(posedge clk) disable iff (rst) data_out == '0 throughout en [-> CYCLES]);
 
@@ -470,13 +470,12 @@ module delay_tb5 #(
     // One challenge with complex assertions is that you have to also verify the
     // assertion itself. While failures are reported automatically, sometimes
     // it is useful to analyze when an assertion succeeds. You can do this as
-    // follows. The behavior is likely simulator specific, but in Questa, I get the
-    // following for CYCLES=4:
+    // follows. In Questa, I get the following for CYCLES=4:
     //  ** Info: [85 ns] Assertion Succeeded for data_out = 0
     // #    Time: 85 ns Started: 55 ns  Scope: ....
     //
     // Notice the "Time" of 85 ns (when the assertion finished) and the 
-    // "Started" (when the assertion was triggered. The corresponds to exactly
+    // "Started" (when the assertion was triggered). The corresponds to exactly
     // the first clock after reset, and the clock after CYCLES enables.
     // This tells me it is checking the exact range of time I wanted.
     //
