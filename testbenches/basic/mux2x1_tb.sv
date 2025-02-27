@@ -212,7 +212,7 @@ module mux2x1_tb2;
             // in this example, but it becomes more useful when synchronizing
             // multiple processing in the same testbench, as shown in the next
             // testbench.
-            @posedge(clk);
+            @(posedge clk);
 
             correct_out = sel ? in1 : in0;
             if (correct_out != out) begin
@@ -271,10 +271,10 @@ module mux2x1_tb3;
             in0 <= i[0];
             in1 <= i[1];
             sel <= i[2];
-            @posedge(clk);
+            @(posedge clk);
         end
 
-        $display("Tests completed.");
+        $display("Tests completed."); 
 
         // In this example, we disable the clock generation, which causes the
         // simulation to finish with having to call $finish.
