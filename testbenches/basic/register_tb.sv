@@ -1,30 +1,27 @@
 // Greg Stitt
 // University of Florida
 //
-// This example testbench demonstrates a common non-ideal technique for writing
-// testbenches, followed by a simpler approach. It also illustrates how to
-// generate a clock signal, how to change inputs every cycle, how to check
-// for correct outputs every cycle, and how to terminate the simulation cleanly.
+// This example testbench demonstrates several common, but not ideal techniques
+// for writing testbenches, followed by a simpler approach that separates the
+// responsibilities of the testbench into multiple simple processes. 
 //
 // IMPORTANT: 
-// We will soon see that neither of these testbenches are a good way of
-// testing a register, so neither of these is recommended. They are instead
-// intended to explain basic constructs as we work up to more powerful
-// tehcniques.
+// We will soon see that none of these testbenches are a good way of
+// testing a register. They are instead intended to explain basic constructs as 
+// we work up to more powerful techniques.
 
 `timescale 1ns / 100 ps
 
 
-// Module: register_tb2
+// Module: register_tb1
 // Description: A simple, but non-ideal testbench for the register module. 
 // This is only demonstrated for explaining common non-ideal strategies. I don't 
 // recommend the strategy presented in this module.
 
-module register_tb1;
-
-    localparam int NUM_TESTS = 10000;
-    localparam int WIDTH = 8;
-
+module register_tb1 #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
     // DUT I/O
     logic clk = 1'b0, rst, en;
     logic [WIDTH-1:0] in, out;
@@ -32,6 +29,7 @@ module register_tb1;
     // Used to help with verification.
     logic [WIDTH-1:0] prev_out;
 
+    // Instantiate the DUT.
     register #(.WIDTH(WIDTH)) DUT (.*);
 
     // Generate a clock with a 10 ns period
@@ -58,7 +56,9 @@ module register_tb1;
         rst <= 1'b0;
         @(posedge clk);
 
-        // Generate NUM_TESTS random inputs, once per cycle
+        // Generate NUM_TESTS random inputs, once per cycle.
+        // This could also be done with repeat(NUM_TESTS) since we aren't using
+        // i anywhere, but in many cases you will use i.        
         for (int i = 0; i < NUM_TESTS; i++) begin
             // $urandom is a convenient function for getting a random 
             // 32-bit number. There is also a $random, but I highly recommend
@@ -100,10 +100,10 @@ endmodule  // register_tb1
 // which is only demonstrated for explaining commonly attempted strategies. I do
 // not recommend the strategy presented in this module.
 
-module register_tb2;
-
-    localparam int NUM_TESTS = 10000;
-    localparam int WIDTH = 8;
+module register_tb2 #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
     logic clk = 1'b0, rst, en;
     logic [WIDTH-1:0] in, out;
     logic [WIDTH-1:0] prev_in, prev_out, prev_en;
@@ -136,9 +136,10 @@ module register_tb2;
         disable generate_clock;
     end
 
+    // Here we add a new process for checking the outputs.
     initial begin : check_output
         forever begin
-            // Wait for a rising edge to check the output.
+            // Wait for a rising edge and then check the output.
             @(posedge clk);
 
             // Uncomment to see the value of all signals on each clock edge.
@@ -167,7 +168,7 @@ module register_tb2;
             //
             // IMPORTANT: if you find yourself waiting for a small amount of time
             // for an output to change (outside of combinational logic), there is 
-            // usually a better way of writing the testbench. Also, ideally youre
+            // usually a better way of writing the testbench. Also, ideally your
             // testbench shouldn't care if the output is registered or combinational,
             // so we'll see those better ways in later examples.
             //
@@ -188,12 +189,12 @@ endmodule  // register_tb2
 // Module: register_tb3
 // Description: A simpler alternative to the previous testbench.
 // This is still not a good testbench for a register. We'll see far simpler
-// methods in the later examples.
+// methods in later examples.
 
-module register_tb3;
-
-    localparam NUM_TESTS = 10000;
-    localparam WIDTH = 8;
+module register_tb3 #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
     logic clk = 1'b0, rst, en;
     logic [WIDTH-1:0] in, out;
     logic [WIDTH-1:0] prev_in, prev_out, prev_en;
@@ -238,7 +239,7 @@ module register_tb3;
     end
 
     // Since we are tracking the previous values, we can just directly compare
-    // the output to those values. This is a much cleaner strategy than waiting
+    // the output to those values. This is a cleaner strategy than waiting
     // for the output to change. Basically, instead of preserving values, waiting
     // for output to change, and then comparing, we just save previous values
     // and compare with the current output value. This way, we are always
@@ -262,19 +263,19 @@ endmodule  // register_tb3
 
 
 // Module: register_tb4
-// Description: A far simpler alternative to the previous testbenches. This
-// version uses a common strategy of separating the responsibilities of the 
-// testbench in to separate processes, which results in each process being much
-// simpler.
+// Description: A simpler alternative to the previous testbenches. This version
+// uses a common strategy of separating the responsibilities of the testbench
+// into separate processes, which results in each process being much simpler.
+// In addition, this version now also tests outputs during reset.
 //
 // If I had to create a testbench without using any of the more advanced 
 // constructs we haven't covered yet, I would likely use this strategy.
 
-module register_tb4;
-
-    localparam NUM_TESTS = 10000;
-    localparam WIDTH = 8;
-    logic clk=1'b0, rst, en;
+module register_tb4 #(
+    parameter int NUM_TESTS = 10000,
+    parameter int WIDTH = 8
+);
+    logic clk = 1'b0, rst, en;
     logic [WIDTH-1:0] in, out;
     logic [WIDTH-1:0] expected;
 
@@ -285,7 +286,7 @@ module register_tb4;
     end
 
     // This example separates responsibilities into different blocks. This block
-    // is now simplified and solely provides stimuli to the DUT.
+    // is now solely provides input stimuli to the DUT.
     initial begin : provide_stimulus
         rst <= 1'b1;
         in  <= '0;
@@ -294,7 +295,7 @@ module register_tb4;
         @(negedge clk);
         rst <= 1'b0;
         repeat (2) @(posedge clk);
-        
+
         for (int i = 0; i < NUM_TESTS; i++) begin
             in <= $urandom;
             en <= $urandom;
@@ -311,20 +312,20 @@ module register_tb4;
     // on a rising clock edge, neither the input or output has changed values
     // yet. Because the output hasn't changed, we can simply read from out to
     // get the previous output in the case where enable isn't asserted.
-    initial begin : monitor        
-        forever begin      
-            @(posedge clk);      
-            expected <= rst ? '0 : en ? in : out;            
+    initial begin : monitor
+        forever begin
+            @(posedge clk);
+            expected <= rst ? '0 : en ? in : out;
         end
     end
 
     // With the previous process being responsible for determining the expected
     // output, now we can simply compare the actual and expected in this block
     // on every clock edge.
-    initial begin : check_outputs        
+    initial begin : check_outputs
         forever begin
-            @(posedge clk);            
-            if (expected != out) $error("Expected=%0h, Actual=%0h", expected, out);            
+            @(posedge clk);
+            if (expected != out) $error("Expected=%0h, Actual=%0h", expected, out);
         end
     end
-endmodule 
+endmodule
