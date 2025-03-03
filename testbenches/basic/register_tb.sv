@@ -259,3 +259,72 @@ module register_tb3;
         end
     end
 endmodule  // register_tb3
+
+
+// Module: register_tb4
+// Description: A far simpler alternative to the previous testbenches. This
+// version uses a common strategy of separating the responsibilities of the 
+// testbench in to separate processes, which results in each process being much
+// simpler.
+//
+// If I had to create a testbench without using any of the more advanced 
+// constructs we haven't covered yet, I would likely use this strategy.
+
+module register_tb4;
+
+    localparam NUM_TESTS = 10000;
+    localparam WIDTH = 8;
+    logic clk=1'b0, rst, en;
+    logic [WIDTH-1:0] in, out;
+    logic [WIDTH-1:0] expected;
+
+    register #(.WIDTH(WIDTH)) DUT (.*);
+
+    initial begin : generate_clock
+        forever #5 clk <= !clk;
+    end
+
+    // This example separates responsibilities into different blocks. This block
+    // is now simplified and solely provides stimuli to the DUT.
+    initial begin : provide_stimulus
+        rst <= 1'b1;
+        in  <= '0;
+        en  <= 1'b0;
+        repeat (5) @(posedge clk);
+        @(negedge clk);
+        rst <= 1'b0;
+        repeat (2) @(posedge clk);
+        
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            in <= $urandom;
+            en <= $urandom;
+            @(posedge clk);
+        end
+
+        $display("Tests completed.");
+        disable generate_clock;
+    end
+
+    // To simplify the logic of the previous testbenches, we have a separate
+    // block whose sole responsibility is to monitor for ouputs and then 
+    // determine the correct/expected output each cycle. This code works because
+    // on a rising clock edge, neither the input or output has changed values
+    // yet. Because the output hasn't changed, we can simply read from out to
+    // get the previous output in the case where enable isn't asserted.
+    initial begin : monitor        
+        forever begin      
+            @(posedge clk);      
+            expected <= rst ? '0 : en ? in : out;            
+        end
+    end
+
+    // With the previous process being responsible for determining the expected
+    // output, now we can simply compare the actual and expected in this block
+    // on every clock edge.
+    initial begin : check_outputs        
+        forever begin
+            @(posedge clk);            
+            if (expected != out) $error("Expected=%0h, Actual=%0h", expected, out);            
+        end
+    end
+endmodule 
