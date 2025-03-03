@@ -1,8 +1,8 @@
 // Greg Stitt
 // University of Florida
 //
-// This example testbench demonstrates several common, but not ideal techniques
-// for writing testbenches, followed by a simpler approach that separates the
+// This example demonstrates several common, but non-ideal, techniques for
+// writing testbenches, followed by a simpler approach that separates the
 // responsibilities of the testbench into multiple simple processes. 
 //
 // IMPORTANT: 
@@ -37,6 +37,9 @@ module register_tb1 #(
         forever #5 clk <= ~clk;
     end
 
+    // In this testbench, we use a single process to handle all responsibilities.
+    // This "monolithic" strategy can sometimes work alright for basic examples, 
+    // but will lead to many problems for more complex examples.
     initial begin
         $timeformat(-9, 0, " ns");
 
@@ -46,8 +49,6 @@ module register_tb1 #(
         rst <= 1'b1;
         in  <= '0;
         en  <= 1'b0;
-
-        // Wait 5 cycles
         repeat (5) @(posedge clk);
 
         // Clear reset on a falling edge. Not necessary (unless using a blocking
@@ -95,7 +96,7 @@ endmodule  // register_tb1
 
 // Module: register_tb2
 // Description: This testbench separates some of the testing responsibilities
-// across to blocks to eliminate the input offsets experienced by the previous
+// across two blocks to eliminate the input offsets experienced by the previous
 // testbench. This is still an overly complex testbench for the register module, 
 // which is only demonstrated for explaining commonly attempted strategies. I do
 // not recommend the strategy presented in this module.
@@ -173,8 +174,8 @@ module register_tb2 #(
             // so we'll see those better ways in later examples.
             //
             //#1;
-            //#0;
-            @(negedge clk);
+            //#0.1;
+            @(negedge clk);            
 
             // If enable was asserted, out should be equal to the previous in.
             if (prev_en && prev_in != out) $error("out = %d instead of %d.", out, prev_in);
@@ -313,6 +314,7 @@ module register_tb4 #(
     // yet. Because the output hasn't changed, we can simply read from out to
     // get the previous output in the case where enable isn't asserted.
     initial begin : monitor
+        expected <= '0;
         forever begin
             @(posedge clk);
             expected <= rst ? '0 : en ? in : out;
@@ -325,7 +327,7 @@ module register_tb4 #(
     initial begin : check_outputs
         forever begin
             @(posedge clk);
-            if (expected != out) $error("Expected=%0h, Actual=%0h", expected, out);
+            if (expected !== out) $error("Expected=%0h, Actual=%0h", expected, out);
         end
     end
 endmodule
