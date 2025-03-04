@@ -3,7 +3,11 @@
 //
 // This example demonstrates several common, but non-ideal, techniques for
 // writing testbenches, followed by a simpler approach that separates the
-// responsibilities of the testbench into multiple simple processes. 
+// responsibilities of the testbench into multiple simple processes.
+//
+// The example also demonstrates a common SystemVerilog "gotcha" with 
+// testbenches where undefined inputs or outputs cause error conditions to
+// fail counterintuitively, cause errors to go unreported.
 //
 // IMPORTANT: 
 // We will soon see that none of these testbenches are a good way of
@@ -178,17 +182,18 @@ module register_tb2 #(
             @(negedge clk);            
 
             // If enable was asserted, out should be equal to the previous in.
-            if (prev_en && prev_in != out) $error("out = %d instead of %d.", out, prev_in);
+            if (prev_en && prev_in != out) $error("out = %0d instead of %0d.", out, prev_in);
 
             // If enable wasn't asserted, the output shouldn't change.
-            if (!prev_en && out != prev_out) $error("out changed when en wasn't asserted.");
+            if (!prev_en && prev_out != out) $error("out changed when en wasn't asserted.");
         end
     end
 endmodule  // register_tb2
 
 
 // Module: register_tb3
-// Description: A simpler alternative to the previous testbench.
+// Description: A simpler alternative to the previous testbench that 
+// demonstrates a common "gotcha" that prevents errors from being reported.
 // This is still not a good testbench for a register. We'll see far simpler
 // methods in later examples.
 
@@ -251,13 +256,58 @@ module register_tb3 #(
     // almost certainly an easier way to do the testbench.
     initial begin : check_output
         forever begin
-            @(posedge clk);
+            @(posedge clk);            
 
-            // If enable was asserted, out should be equal to the previous in.
+            // IMPORTANT: The following validation code has a very common
+            // "gotcha." Note that during reset, prev_out, prev_in, and prev_en 
+            // are all 'X. However, no error is printed.
+            //
+            // This confuses many people because clearly en is 1'b0 initially,
+            // and prev_out (X) != out (0). So, the second if statement should be
+            // causing an error. Why don't we see an error message?
+            //
+            // The answer has to do with how Xs are treated by various 
+            // operators. For most operators, an X input will result in an X
+            // output, which will be treated as false in an if statement. 
+            // So, any time an X occurs in a != or == comparison, the 
+            // result is always X, which is treated as false. This is confusing
+            // because X != 0 results in X, which causes the if condition to
+            // be false, when we would normally expect it to be true. You'll 
+            // see similar confusing outcomes with other operators too. e.g.,
+            // both if (1'bX) and if (!1'bX) evaluate to false, which can be
+            // quite counterintuive initially.
+            //            
+            // So, what's happening here is that because prev_en is X initially,
+            // both if statements are guaranteed to evalute to false, causing
+            // no errors to be printed. Even if prev_en was defined (e.g., 0), 
+            // prev_out != out would still evaluate to false because 
+            // prev_out is X, resulting in the != being X.
+            //
+            // Unfortunately, these types of bugs are quite common and result in
+            // mistaken assumptions about correct execution, when in reality 
+            // the output or input was just undefined.
+            //
+            // To avoid this problem, SystemVerilog includes different comparison
+            // operators: !== and ===. These operators do an explicit comparison
+            // of the values, treating X like any other possible value. So,
+            // 1'b0 !== 1b'X would return true, which is what we originally 
+            // intended.
+
             if (prev_en && prev_in != out) $error("out = %d instead of %d.", out, prev_in);
 
-            // If enable wasn't asserted, the output shouldn't change.
-            if (!prev_en && out != prev_out) $error("out changed when en wasn't asserted.");
+            // A better alternative the previous line. No errors are printed by
+            // this, but only because the prev_en === 1'b1 returns false during
+            // reset.
+            //if (prev_en === 1'b1 && prev_in !== out) $error("out = %0d instead of %0d.", out, prev_in);
+            
+            // This is the problematic line that misses actual errors.
+            if (!prev_en && prev_out != out) $error("out = %d instead of %d.", out, prev_in);
+
+            // This alternative catches the error that the previous line misses.
+            // Uncomment to see the error.
+            //if (prev_en !== 1'b1 && prev_out !== out) $error("out = %0d instead of %0d.", out, prev_in);
+
+            // NOTE: === and !== are not synthesizable. Only use them in testbenches.
         end
     end
 endmodule  // register_tb3
@@ -278,7 +328,7 @@ module register_tb4 #(
 );
     logic clk = 1'b0, rst, en;
     logic [WIDTH-1:0] in, out;
-    logic [WIDTH-1:0] expected;
+    logic [WIDTH-1:0] expected = '0;
 
     register #(.WIDTH(WIDTH)) DUT (.*);
 
@@ -313,8 +363,7 @@ module register_tb4 #(
     // on a rising clock edge, neither the input or output has changed values
     // yet. Because the output hasn't changed, we can simply read from out to
     // get the previous output in the case where enable isn't asserted.
-    initial begin : monitor
-        expected <= '0;
+    initial begin : monitor        
         forever begin
             @(posedge clk);
             expected <= rst ? '0 : en ? in : out;
@@ -323,10 +372,13 @@ module register_tb4 #(
 
     // With the previous process being responsible for determining the expected
     // output, now we can simply compare the actual and expected in this block
-    // on every clock edge.
+    // on every clock edge. Note that expected had to be initialize to 0 to
+    // prevent the first comparison from using an undefined value. 0 was chosen
+    // to match the reset of the output.
     initial begin : check_outputs
         forever begin
             @(posedge clk);
+            // Note that we are using !== here to catch any undefined values.
             if (expected !== out) $error("Expected=%0h, Actual=%0h", expected, out);
         end
     end
