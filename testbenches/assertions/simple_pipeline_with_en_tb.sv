@@ -73,7 +73,7 @@ module simple_pipeline_with_en_tb_bad #(
     // is common to get the latency from package for the pipeline, or from a 
     // function in the package that calculates the latency based on various
     // parameters.
-    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> data_out == is_out_correct($past(data_in, DUT.LATENCY, en)));
+    assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> is_out_correct($past(data_in, DUT.LATENCY, en)));
     assert property (@(posedge clk) disable iff (rst) en [-> DUT.LATENCY] |=> valid_out == $past(valid_in, DUT.LATENCY, en));
 
     // Verify the reset clears the outputs until the pipeline has filled.
