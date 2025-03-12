@@ -55,27 +55,29 @@ to verify complex behaviors concisely. We will see situations where many lines o
     - Corresponding [module](assertions/ff.sv) and [testbench](assertions/ff_tb.sv).
     - Introduces concurrent assertions, properties, sequences, and implication.
     - Introduces $past and $stable.
-1. [Register](assertions/register_tb.sv)
-    - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
-    - Demonstrates subtle problems that can cause assertion failures.
     - Demonstrates how to disable assertions.
-    - Expands on implication and illustrates a significant improvement to the basic register testbench that lacked assertions.    
-1. [Delay](assertions/delay.sv)
+1. [Delay](assertions/delay_tb.sv)
     - Corresponding [module](assertions/delay.sv) and [testbench](assertions/delay_tb.sv).
     - Introduces queues.
     - Expands on $past. 
     - Expands on implication and sequences.
     - Demonstrates go-to replication and throughout operators.
-1. [Simple Pipeline w/ Enable](assertions/simple_pipeline_with_en.sv)
+1. [Simple Pipeline w/ Enable](assertions/simple_pipeline_with_en_tb.sv)
     - Corresponding [module](assertions/simple_pipeline_with_en.sv) and [testbench](assertions/simple_pipeline_with_en_tb.sv).
     - Introduces common problem with calling functions in assertions.
-    - Introduces highly reusable template for pipeline testbenches.    
-1. [FIFO](assertions/fifo.sv)
+    - Introduces highly reusable template for pipeline testbenches.  
+    - Introduces hierarchical access of constants inside other modules.
+    - Demonstrates assertions that both look backward in time, and save inputs that get carried forward.
+1. [FIFO](assertions/fifo_tb.sv)
     - Corresponding [module](assertions/fifo.sv) and [testbench](assertions/fifo_tb.sv).
     - Introduces hierarchical access of variables inside other modules.
     - Demonstrates incorrect and correct ways to preserve ordering of data in assertion properties.
-    - Demonstrates simple queue model as an alternative to complex assertions.
+    - Illustrates simple queue model as an alternative to complex assertions.
     - Demonstrates assertions within the [synthesizable code.](assertions/fifo.sv)
+    - Shows that assertions can easily become very complex, and that at some point that complexity can be reduced without assertions, or with a hybrid approach.
+1. [Register](assertions/register_tb.sv)
+    - Corresponding [module](assertions/register.sv) and [testbench](assertions/register_tb.sv).
+    - Demonstrates subtle problems that can cause assertion failures.
 
 ## Coverage
 
