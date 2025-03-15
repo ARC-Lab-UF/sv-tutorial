@@ -102,8 +102,10 @@ high coverage and no failed assertions, we gain much more confidence in the corr
 
 2. [Bit Diff FSMD (VERY IMPORTANT)](crv/bit_diff_tb.sv)
     - Corresponding [module](crv/bit_diff.sv) and [testbench](crv/bit_diff_tb.sv).
+    - Demonstrates how to separate responsibilities in a testbench.
     - Introduces generators/sequences, drivers, monitors, scoreboards, environments, tests, interfaces, BFMs, mailboxes, join.
     - Teaches basic concepts needed to understand UVM principles.
+    - Shows alternative to class hierarchies for simple examples, while still separating responsibilities.
 
 2. [Bit Diff FSMD Object-Oriented TB](crv/bit_diff_oop)
     - Cleaned up version of previous example
