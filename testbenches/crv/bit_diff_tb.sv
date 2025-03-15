@@ -12,12 +12,13 @@
 // template has significant limitations that become more apparent when doing
 // more complex tests that are required for more complex modules.
 //
-// Specificially, a testbench often has 4 primary parts:
+// Specificially, a testbench often has the following primary parts:
 // -Generation of test sequences that stimulate the DUT
 // -A driver that converts that test sequences into DUT pin values
-// -A monitor that checks the DUT outputs when new results or other behaviors
-// -A scoreboard that compares any results from the monitor with correct values
-//  based on the a reference model that is applied to the same test sequences.
+// -A monitor that detects the beginning of a test and saves the inputs.
+// -A monitor that detects DUT outputs for new results or other behaviors.
+// -A scoreboard that takes test inputs and outputs from the monitors and compares 
+//  results with a reference model that is applied to the same test sequences.
 //
 // The primary limitation of this simple testbench is that it does all these
 // parts in the same region of code. This makes it hard to modify one part
@@ -76,7 +77,7 @@ module bit_diff_tb_basic;
         @(negedge clk);
         rst <= 1'b0;
 
-        // Perform NUM_TESTS number of randome tests.
+        // Perform NUM_TESTS number of random tests.
         for (int i = 0; i < NUM_TESTS; i++) begin
             data <= $random;
             go   <= 1'b1;
@@ -2230,10 +2231,178 @@ module bit_diff_tb8;
 endmodule  // bit_diff_tb8
 
 
-module bit_diff_tb_no_hierarchy;
 
+// Module: bit_diff_no_hierachy
+// Description: While it is usually a good idea to separate responsibilities in
+// a testbench, in some cases it is overkill to create a complex class hierachy.
+// This testbench demonstrates how we can achieve nearly the same functionality
+// for the random tests without any classes. In addition, we add additional 
+// parameters to control the timing between tests.
+//
+// If I were creating a testbench for the bit_diff module, this is likely how
+// I would do it. There is nothing fundamentally wrong with the above methods,
+// they are just overkill for a simple example. They are mainly intended to
+// demonstrate various concepts with a simple example so you aren't overwhelmed
+// with complexity. In the UVM section, we'll formalize these classes and create
+// powerful testbenches.
+
+module bit_diff_tb_no_hierarchy #(
+    parameter int NUM_TESTS = 1000,
+    parameter int WIDTH = 16,
+    parameter bit TOGGLE_INPUTS_WHILE_ACTIVE = 1'b0,
+    parameter bit LOG_START_MONITOR = 1'b0,
+    parameter bit LOG_DONE_MONITOR = 1'b0,
+    parameter int MIN_CYCLES_BETWEEN_TESTS = 1,
+    parameter int MAX_CYCLES_BETWEEN_TESTS = 10
+);
+    logic clk = 1'b0, rst, go, done;
+    logic [WIDTH-1:0] data;
+    logic signed [$clog2(2*WIDTH+1)-1:0] result;
+
+    int passed, failed;
+
+    bit_diff #(.WIDTH(WIDTH)) DUT (.*);
+
+    mailbox scoreboard_data_mailbox = new;
+    mailbox scoreboard_result_mailbox = new;
+    mailbox driver_mailbox = new;
+
+    // We don't really need this class since the test only has a single input,
+    // but we'll leave it in since you will usually have a transaction item class.
+    class bit_diff_item;
+        rand bit [WIDTH-1:0] data;
+    endclass
+
+    // Reference model.
+    function int model(int data, int width);
+        automatic int diff = 0;
+        for (int i = 0; i < width; i++) begin
+            diff = data[0] ? diff + 1 : diff - 1;
+            data = data >> 1;
+        end
+        return diff;
+    endfunction
+
+    // Generate the clock.
+    initial begin : generate_clock
+        forever #5 clk <= ~clk;
+    end
+
+    // Initialize the DUT.
+    initial begin : initialization
+        $timeformat(-9, 0, " ns");
+
+        // Reset the design.
+        rst  <= 1'b1;
+        go   <= 1'b0;
+        data <= '0;
+        repeat (5) @(posedge clk);
+        @(negedge clk);
+        rst <= 1'b0;
+    end
+
+    // Stimulus generation for random tests. If we wanted to apply other tests,
+    // we could add parameters to change this behavior.
+    initial begin : generator
+        bit_diff_item test;
+
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            test = new();
+            assert (test.randomize())
+            else $fatal(1, "Failed to randomize.");
+
+            driver_mailbox.put(test);
+        end
+    end
+
+    // Monitor to detect the start of execution.
+    initial begin : start_monitor
+        // The first start doesn't check done, so we put a special case outside
+        // the forever loop.
+        @(posedge clk iff !rst && go);
+        scoreboard_data_mailbox.put(data);
+        if (LOG_START_MONITOR) $display("[%0t] Start monitor detected test with data=%0h", $realtime, data);
+
+        forever begin
+            @(posedge clk iff done && go);
+            scoreboard_data_mailbox.put(data);
+            if (LOG_START_MONITOR) $display("[%0t] Start monitor detected test with data=%0h", $realtime, data);
+        end
+    end
+
+    // Monitor to detect the end of execution.
+    initial begin : done_monitor
+        forever begin
+            @(posedge clk iff (done == 1'b0));
+            @(posedge clk iff (done == 1'b1));
+            scoreboard_result_mailbox.put(result);
+            if (LOG_DONE_MONITOR) $display("[%0t] Done monitor detected completion with result=%0h", $realtime, result);
+        end
+    end
+
+    // Driver that drives bit_diff_items, while also optionally toggling the
+    // inputs while the DUT is active. It also randomly selects different amounts
+    // of time between tests.
+    initial begin : driver
+        bit_diff_item item;
+
+        @(posedge clk iff !rst);
+
+        forever begin
+            driver_mailbox.get(item);
+
+            // Drive the test onto the DUT.
+            data <= item.data;
+            go   <= 1'b1;
+            @(posedge clk);
+            go <= 1'b0;
+            @(posedge clk);
+
+            // Optionally toggle the inputs while the DUT is active.
+            if (TOGGLE_INPUTS_WHILE_ACTIVE) begin
+                while (!done) begin
+                    data <= $urandom;
+                    go   <= $urandom;
+                    @(posedge clk);
+                end
+            end else begin
+                @(posedge clk iff (done == 1'b1));
+            end
+
+            // Wait a random amount of time in between tests.
+            repeat ($urandom_range(MIN_CYCLES_BETWEEN_TESTS - 1, MAX_CYCLES_BETWEEN_TESTS - 1)) @(posedge clk);
+        end
+    end
+
+    // Verify the results.
+    initial begin : scoreboard
+        logic [WIDTH-1:0] data;
+        logic signed [$clog2(2*WIDTH+1)-1:0] actual, expected;
+
+        passed = 0;
+        failed = 0;
+
+        for (int i = 0; i < NUM_TESTS; i++) begin
+            scoreboard_data_mailbox.get(data);
+            scoreboard_result_mailbox.get(actual);
+
+            expected = model(data, WIDTH);
+            if (result == expected) begin
+                $display("Test passed (time %0t) for input = %h", $time, data);
+                passed++;
+            end else begin
+                $display("Test failed (time %0t): result = %0d instead of %0d for input = %h.", $time, result, expected, data);
+                failed++;
+            end
+        end
+
+        $display("Tests completed: %0d passed, %0d failed", passed, failed);
+        disable generate_clock;
+    end
+
+    assert property (@(posedge clk) disable iff (rst) go && done |=> !done);
+    assert property (@(posedge clk) disable iff (rst) $fell(done) |-> $past(go, 1));
 endmodule
-
 
 
 // If you made it this far, wow, I'm impressed.
