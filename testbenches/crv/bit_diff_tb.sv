@@ -1,9 +1,17 @@
 // Greg Stitt
 // University of Florida
 //
-// This file contains a collection of testbenches that graduate evolve a simple
-// testbench into a more complex constrained-random verfication (CRV) testbench
-// that would be used to test more complex modules.
+// This file contains a collection of testbenches that gradually evolve a simple
+// testbench into a more complex hierarchical testbench that could be used to 
+// test more complex modules. The class hierarchy is likely overkill for this
+// simple example, but the strategy of separating responsibilities is relevant 
+// to just about any example. At the very bottom of the file, I show how to 
+// accomplish the same tests as the class hierarchy using a simpler method that
+// just assigns each responsibility to a different initial block. While that
+// simpler method seems more reasonable here, the class method becomes more 
+// useful as the verification requirements become more complex. In addition, it
+// is important to understand the basics of the class hierarchy before proceeding
+// to learn UVM.
 
 `timescale 1 ns / 10 ps
 
@@ -34,7 +42,7 @@ module bit_diff_tb_basic;
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
 
-    logic clk, rst, go, done;
+    logic clk = 1'b0, rst, go, done;
     logic [WIDTH-1:0] data;
     logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
@@ -58,8 +66,7 @@ module bit_diff_tb_basic;
 
     // Generate the clock.
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     // Do everything else.
@@ -264,7 +271,7 @@ module bit_diff_tb1;
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
 
-    logic clk, rst, go, done;
+    logic clk = 1'b0, rst, go, done;
     logic [WIDTH-1:0] data;
     logic signed [$clog2(2*WIDTH+1)-1:0] result;
 
@@ -297,8 +304,7 @@ module bit_diff_tb1;
     always @(done) drv.done = done;
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -448,7 +454,7 @@ module bit_diff_tb2;
 
     // We only need the clk signal now since everything else will be
     // part of the interface.
-    logic clk;
+    logic clk = 1'b0;
     int passed, failed, reference;
 
     // We have to first dynamically allocate the mailbox for it to exist.
@@ -486,8 +492,7 @@ module bit_diff_tb2;
     );
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -669,7 +674,7 @@ module bit_diff_tb3;
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
 
-    logic             clk;
+    logic             clk = 1'b0;
 
     mailbox           driver_mailbox = new;
     mailbox           scoreboard_mailbox = new;
@@ -693,8 +698,7 @@ module bit_diff_tb3;
     );
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -822,7 +826,7 @@ module bit_diff_tb4;
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
 
-    logic             clk;
+    logic             clk = 1'b0;
 
     // Instead of separately creating the generator, driver, monitor, and 
     // scoreboard, we just create the environment.
@@ -841,8 +845,7 @@ module bit_diff_tb4;
     );
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -1191,7 +1194,7 @@ module bit_diff_tb5;
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
 
-    logic             clk;
+    logic             clk = 1'b0;
     env2 #(.NUM_TESTS(NUM_TESTS), .WIDTH(WIDTH)) _env = new;
 
     bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));
@@ -1207,8 +1210,7 @@ module bit_diff_tb5;
     );
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -1512,7 +1514,7 @@ module bit_diff_tb6;
 
     localparam NUM_TESTS = 1000;
     localparam WIDTH = 16;
-    logic clk;
+    logic clk = 1'b0;
 
     bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));
     bit_diff #(
@@ -1536,8 +1538,7 @@ module bit_diff_tb6;
     );
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -1811,7 +1812,7 @@ module bit_diff_tb7;
     localparam NUM_CONSECUTIVE_TESTS = 200;
     localparam NUM_REPEATS = 2;
     localparam WIDTH = 16;
-    logic clk;
+    logic clk = 1'b0;
 
     bit_diff_if #(.WIDTH(WIDTH)) _if (.clk(clk));
     bit_diff #(
@@ -1832,8 +1833,7 @@ module bit_diff_tb7;
     test #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(_if);
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
@@ -2194,7 +2194,7 @@ module bit_diff_tb8;
     localparam NUM_CONSECUTIVE_TESTS = 200;
     localparam NUM_REPEATS = 4;
     localparam WIDTH = 16;
-    logic clk;
+    logic clk = 1'b0;
 
     bit_diff_bfm #(.WIDTH(WIDTH)) bfm (.clk(clk));
     bit_diff #(
@@ -2212,8 +2212,7 @@ module bit_diff_tb8;
     test2 #(.NAME("Consecutive Test"), .NUM_TESTS(NUM_CONSECUTIVE_TESTS), .WIDTH(WIDTH), .CONSECUTIVE_INPUTS(1'b1), .ONE_TEST_AT_A_TIME(1'b1), .REPEATS(NUM_REPEATS)) test1 = new(bfm);
 
     initial begin : generate_clock
-        clk = 1'b0;
-        while (1) #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin
