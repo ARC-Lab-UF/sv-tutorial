@@ -35,7 +35,7 @@ module accum #(
     logic [OUTPUT_WIDTH-1:0] accum_r;
 
     initial if (INPUT_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI requires INPUT_WIDTH (%0d) to be byte aligned", INPUT_WIDTH));
-    initial if (OUTPUT_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI requires OUTPUT_WIDTH (%0d) to be byte aligned", INPUT_WIDTH));
+    initial if (OUTPUT_WIDTH % 8 != 0) $fatal(1, $sformatf("AXI requires OUTPUT_WIDTH (%0d) to be byte aligned", OUTPUT_WIDTH));
 
     // Enable/disable the pipeline. AXI streaming is a little weird and can't
     // simply stall on !out_tready. The spec says that a transmitter cannot
