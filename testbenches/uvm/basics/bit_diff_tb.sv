@@ -130,7 +130,7 @@ module bit_diff_tb #(
     // the driver generally is supposed to simply drive transactions it receives.
     initial intf.reset(5);
 
-    // Initial the parameters of the simulation. Note that we aren't explicitly
+    // Initialize the parameters of the simulation. Note that we aren't explicitly
     // instantiating any of the UVM classes and then passing parameters to those
     // classes. Instead, we write the parameters that will be needed across all
     // the classes to the config_db, allowing them to be read from multiple 
