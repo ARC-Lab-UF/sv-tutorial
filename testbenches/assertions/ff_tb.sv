@@ -28,7 +28,7 @@ module ff_no_en_tb #(
     );
 
     initial begin : generate_clock
-        forever #5 clk = ~clk;
+        forever #5 clk <= ~clk;
     end
 
     initial begin : drive_inputs
