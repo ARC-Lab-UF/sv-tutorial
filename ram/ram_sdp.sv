@@ -2,9 +2,8 @@
 // University of Florida
 
 module ram_sdp_basic #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH,
-    parameter int NUM_WORDS  = 2 ** ADDR_WIDTH
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -25,8 +24,8 @@ endmodule
 
 
 module ram_sdp_write_first_inferred #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -49,8 +48,8 @@ endmodule
 
 
 module ram_sdp_write_first_manual #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -86,8 +85,8 @@ endmodule
 
 
 module ram_sdp_output_reg #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -113,10 +112,10 @@ endmodule
 
 
 module ram_sdp_general #(
-    parameter int   DATA_WIDTH,
-    parameter int   ADDR_WIDTH,
-    parameter logic REG_RD_DATA = 1'b0,
-    parameter logic WRITE_FIRST = 1'b0
+    parameter int DATA_WIDTH  = 16,
+    parameter int ADDR_WIDTH  = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -162,10 +161,10 @@ endmodule
 
 
 module ram_sdp_quartus #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH,
-    parameter logic REG_RD_DATA = 1'b0,
-    parameter logic WRITE_FIRST = 1'b0,
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
     parameter string STYLE = ""
 ) (
     input  logic                  clk,
@@ -183,7 +182,7 @@ module ram_sdp_quartus #(
     (* ramstyle = STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram;
 
-    always_ff @(posedge clk) begin    
+    always_ff @(posedge clk) begin
         if (wr_en) ram[wr_addr] <= wr_data;
         if (rd_en) rd_data_ram <= ram[rd_addr];
     end
@@ -215,10 +214,10 @@ endmodule
 
 
 module ram_sdp_vivado #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH,
-    parameter logic REG_RD_DATA = 1'b0,
-    parameter logic WRITE_FIRST = 1'b0,
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
     parameter string STYLE = "auto"
 ) (
     input  logic                  clk,
@@ -251,6 +250,8 @@ module ram_sdp_vivado #(
         (* ram_style = "mixed" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     end else if (STYLE == "auto") begin : l_ram
         (* ram_style = "auto" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    end else if (STYLE == "") begin : l_ram
+        logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     end else begin : l_ram
         initial begin
             $fatal(1, "Invalid STYLE value %s", STYLE);
@@ -293,13 +294,13 @@ module ram_sdp_vivado #(
 endmodule
 
 
-module ram_sdp_top #(
-    parameter int DATA_WIDTH,
-    parameter int ADDR_WIDTH,
-    parameter logic REG_RD_DATA = 1'b0,
-    parameter logic WRITE_FIRST = 1'b0,
+module ram_sdp #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b1,
+    parameter bit WRITE_FIRST = 1'b1,
     parameter string STYLE = "",
-    parameter string ARCH = ""
+    parameter string ARCH = "quartus"
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -332,7 +333,7 @@ module ram_sdp_top #(
         ) ram (
             .*
         );
-    end else if (ARCH == "output_reg") begin : l_write_first_manual
+    end else if (ARCH == "output_reg") begin : l_output_reg
         ram_sdp_output_reg #(
             .DATA_WIDTH(DATA_WIDTH),
             .ADDR_WIDTH(ADDR_WIDTH)
@@ -340,7 +341,7 @@ module ram_sdp_top #(
             .*
         );
 
-    end else if (ARCH == "general") begin : l_write_first_manual
+    end else if (ARCH == "general") begin : l_general
         ram_sdp_general #(
             .DATA_WIDTH (DATA_WIDTH),
             .ADDR_WIDTH (ADDR_WIDTH),
@@ -349,7 +350,7 @@ module ram_sdp_top #(
         ) ram (
             .*
         );
-    end else if (ARCH == "quartus") begin : l_write_first_manual
+    end else if (ARCH == "quartus") begin : l_quartus
         ram_sdp_quartus #(
             .DATA_WIDTH (DATA_WIDTH),
             .ADDR_WIDTH (ADDR_WIDTH),
@@ -358,8 +359,8 @@ module ram_sdp_top #(
             .STYLE      (STYLE)
         ) ram (
             .*
-        );    
-    end else if (ARCH == "vivado") begin : l_write_first_manual
+        );
+    end else if (ARCH == "vivado") begin : l_vivado
         ram_sdp_vivado #(
             .DATA_WIDTH (DATA_WIDTH),
             .ADDR_WIDTH (ADDR_WIDTH),
