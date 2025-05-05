@@ -68,10 +68,8 @@ module ram_sdp_write_first_manual #(
     // Save write data in a register in case of a read-during-write. The write 
     // data is then used on the read output to "bypass" the RAM's read data.
     always_ff @(posedge clk) begin
-        if (rd_en && wr_en) begin
-            bypass_data_r  <= wr_data;
-            bypass_valid_r <= rd_addr == wr_addr;
-        end
+        if (rd_en && wr_en) bypass_data_r <= wr_data;
+        if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
     end
 
     always_ff @(posedge clk) begin
@@ -139,10 +137,8 @@ module ram_sdp_general #(
         logic [DATA_WIDTH-1:0] bypass_data_r;
 
         always_ff @(posedge clk) begin
-            if (rd_en && wr_en) begin
-                bypass_data_r  <= wr_data;
-                bypass_valid_r <= rd_addr == wr_addr;
-            end
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
         end
 
         if (REG_RD_DATA) begin : reg_rd_data
@@ -192,10 +188,6 @@ module ram_sdp_quartus #(
         logic [DATA_WIDTH-1:0] bypass_data_r;
 
         always_ff @(posedge clk) begin
-            /*if (rd_en && wr_en) begin
-                bypass_data_r  <= wr_data;
-                bypass_valid_r <= rd_addr == wr_addr;
-            end*/
             if (rd_en && wr_en) bypass_data_r <= wr_data;
             if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
         end
@@ -275,10 +267,8 @@ module ram_sdp_vivado #(
         logic [DATA_WIDTH-1:0] bypass_data_r;
 
         always_ff @(posedge clk) begin
-            if (rd_en && wr_en) begin
-                bypass_data_r  <= wr_data;
-                bypass_valid_r <= rd_addr == wr_addr;
-            end
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
         end
 
         if (REG_RD_DATA) begin : reg_rd_data
