@@ -1,8 +1,27 @@
 // Greg Stitt
 // StittHub (www.stitt-hub.com)
 
-// The following module works on some Xilinx/AMD and Intel/Altera FPGAs, as 
-// long as you don't need to specify the specific RAM resource.
+// The following shows a somewhat reusable true dual-port (TDP) RAM template.
+// It works on some Xilinx/AMD and Intel/Altera FPGAs, as long as you don't need
+// to specify the specific RAM resource, which I add in other examples.
+//
+// The tricky part of creating a reusable TDP template is that different FPGAs,
+// even those from the same vendor, and even those within the same FPGA, can 
+// provide variations of behavior. In my attempt at a unified template, I
+// explored the commonality across most FPGAs.
+//
+// It is very important to understand the exact TDP behaviors of your specific
+// FPGA. Some FPGAs prohibit certain actions (e.g., reading from one port and
+// writing to another port using the same address). If you don't comply with
+// those requirements, you can get undefined behaviors. As added protection, I
+// usually supplement this template with assertions that check for prohibited
+// behaviors on my targeted FPGA.
+//
+// In addition, different RAM resources might provide unique behaviors that are
+// ommitted from this template, but can be quite useful.
+//
+// Note that there is no WRITE_FIRST parameter here. I omitteed it because of 
+// wide differences of read-during-write behaviors on different FPGAs.
 //
 // Note: This has not been tested in the non-pro versions of Quartus. 
 // SystemVerilog support is not great in those versions, so I have abandonded 

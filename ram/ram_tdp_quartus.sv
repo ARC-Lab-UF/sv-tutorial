@@ -30,8 +30,6 @@ module ram_tdp_quartus #(
     (* ramstyle = STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram_a, rd_data_ram_b;
 
-    // BlockRAM can use different clocks on each port, but UltraRAM can't so
-    // we use a single clock to support both.
     always @(posedge clk) begin
         if (en_a) begin
             if (wr_en_a) ram[addr_a] <= wr_data_a;
