@@ -1,5 +1,5 @@
 // Greg Stitt
-// University of Florida
+// StittHub (www.stitt-hub.com)
 
 `timescale 1 ns / 100 ps
 
