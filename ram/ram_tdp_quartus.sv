@@ -1,6 +1,10 @@
 // Greg Stitt
 // StittHub (www.stitt-hub.com)
 
+// Note: This has not been tested in the non-pro versions of Quartus. 
+// SystemVerilog support is not great in those versions, so I have abandonded 
+// trying to support it.
+
 module ram_tdp_quartus #(
     parameter int DATA_WIDTH = 4,
     parameter int ADDR_WIDTH = 8,
@@ -51,5 +55,4 @@ module ram_tdp_quartus #(
         assign rd_data_a = rd_data_ram_a;
         assign rd_data_b = rd_data_ram_b;
     end
-
 endmodule

@@ -23,7 +23,6 @@ module ram_tdp_vivado #(
     input  logic [DATA_WIDTH-1:0] wr_data_b,
     output logic [DATA_WIDTH-1:0] rd_data_b
 );
-
     if (STYLE == "block") begin : l_ram
         (* ram_style = "block" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];    
     end else if (STYLE == "ultra") begin : l_ram
@@ -67,5 +66,4 @@ module ram_tdp_vivado #(
         assign rd_data_a = rd_data_ram_a;
         assign rd_data_b = rd_data_ram_b;
     end
-
 endmodule

@@ -1,6 +1,10 @@
 // Greg Stitt
 // StittHub (www.stitt-hub.com)
 
+// Note: This code has not been tested in the non-pro versions of Quartus. 
+// SystemVerilog support is not great in those versions, so I have abandonded 
+// trying to support it.
+
 // The following module provides standard single dual-port RAM behavior that
 // is supported by most FPGAs. Some FPGAs use block RAMs that don't directly 
 // support an read enable, but they can implement it with extra logic. If you
@@ -19,10 +23,9 @@ module ram_sdp_basic #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
 
@@ -55,10 +58,9 @@ module ram_sdp_write_first_inferred #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
 
@@ -82,10 +84,9 @@ module ram_sdp_write_first_manual #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram;
@@ -136,10 +137,9 @@ module ram_sdp_output_reg #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram;
@@ -172,10 +172,9 @@ module ram_sdp_general #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram;
@@ -240,10 +239,9 @@ module ram_sdp_quartus #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     // Quartus uses the "ramstyle" attribute to control what type of RAM resource
     // is inferred. The acceptable values vary across FPGAs, but are usually 
@@ -295,10 +293,9 @@ module ram_sdp_vivado #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
     // Unlike Quartus, Vivado uses ram_style instead of ramstyle. 
     // Ideally, we would imitate the previous this previous code:
@@ -369,6 +366,9 @@ module ram_sdp_vivado #(
 endmodule
 
 
+// Change the ARCH string in the following module to synthesize or simulate
+// different versions of the RAM.
+
 module ram_sdp #(
     parameter int DATA_WIDTH = 16,
     parameter int ADDR_WIDTH = 10,
@@ -381,10 +381,9 @@ module ram_sdp #(
     input  logic                  rd_en,
     input  logic [ADDR_WIDTH-1:0] rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data,
-
-    input logic                  wr_en,
-    input logic [ADDR_WIDTH-1:0] wr_addr,
-    input logic [DATA_WIDTH-1:0] wr_data
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
 );
 
     if (ARCH == "basic") begin : l_basic
@@ -433,7 +432,6 @@ module ram_sdp #(
             .WRITE_FIRST(WRITE_FIRST),
             .STYLE      (STYLE)
         ) ram (
-            .rd_en(rd_en),
             .*
         );
     end else if (ARCH == "vivado") begin : l_vivado

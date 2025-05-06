@@ -3,6 +3,9 @@
 
 `timescale 1 ns / 100 ps
 
+// Change the ARCH parameter to test a different DSP implementation. Not all 
+// implementations support REG_RD_DATA and WRITE_FIRST.
+
 module ram_sdp_tb #(
     parameter int NUM_TESTS = 10000,
 
@@ -110,7 +113,7 @@ endmodule
 
 
 // This testbench performs very similar tests as the previous testbench, but
-// does so using randomization constraints. The takeaway point is that that 
+// does so using randomization constraints. The takeaway point is that 
 // constrained randomization, while flexible, can be very slow due to all the
 // constraint solving. Don't overuse it or your simulation times will suffer.
 
