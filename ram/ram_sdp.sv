@@ -374,8 +374,8 @@ module ram_sdp #(
     parameter int ADDR_WIDTH = 10,
     parameter bit REG_RD_DATA = 1'b1,
     parameter bit WRITE_FIRST = 1'b0,
-    parameter string STYLE = "",
-    parameter string ARCH = "quartus"
+    parameter string STYLE = "ultra",
+    parameter string ARCH = "vivado"
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
