@@ -14,7 +14,7 @@ and I didn't want to write all the code for the tool with the weakest support.
     - Illustrates a variety of single dual-port inference templates with different features.
     - Demonstrates a generalized, configurable template that combines these features.
     - Includes Vivado and Quartus-specialized templates.
-    - Includes a [testbench](ram_dsp_tb.sv) for the generalized template.
+    - Includes a [testbench](ram_sdp_tb.sv) for the generalized template.
 
 1. [ram_sdp_with_reset_vivado](ram_sdp_with_reset_vivado.sv)    
     - Illustrates how to modify the Vivado template with reset for some of the optional registers.
