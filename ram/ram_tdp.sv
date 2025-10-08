@@ -20,7 +20,7 @@
 // In addition, different RAM resources might provide unique behaviors that are
 // ommitted from this template, but can be quite useful.
 //
-// Note that there is no WRITE_FIRST parameter here. I omitteed it because of 
+// Note that there is no WRITE_FIRST parameter here. I omitted it because of 
 // wide differences of read-during-write behaviors on different FPGAs.
 //
 // Note: This has not been tested in the non-pro versions of Quartus. 
@@ -30,7 +30,8 @@
 module ram_tdp #(
     parameter int DATA_WIDTH  = 4,
     parameter int ADDR_WIDTH  = 8,
-    parameter bit REG_RD_DATA = 1'b1
+    parameter bit REG_RD_DATA = 1'b1,
+    parameter string STYLE = ""
 ) (
     input logic clk,
 
@@ -48,7 +49,14 @@ module ram_tdp #(
     input  logic [DATA_WIDTH-1:0] wr_data_b,
     output logic [DATA_WIDTH-1:0] rd_data_b
 );
-    logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    // Apply the Vivado STYLE workaround from the SDP module. This isn't needed
+    // if you are only using Quartus.
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
+
+    // Set ram_style for Vivado and ramstyle for Quartus.
+    (* ram_style = MEM_STYLE, ramstyle = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram_a, rd_data_ram_b;
 
     always @(posedge clk) begin

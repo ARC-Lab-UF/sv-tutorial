@@ -155,14 +155,14 @@ module ram_sdp_output_reg #(
 endmodule
 
 
-// In this module, we combine all the above functionality into a single, 
-// generalized module with parameters that control each option.
+// In this module, we combine all the above functionality into a single 
+// module with parameters that control each option.
 //
 // This module should work well across most FPGAs. It's only big limitation is
 // that it doesn't give us control over what type of RAM resource to use. FPGAs
 // often have multiple RAM types, so we'll add that next.
 
-module ram_sdp_general #(
+module ram_sdp_combined #(
     parameter int DATA_WIDTH  = 16,
     parameter int ADDR_WIDTH  = 10,
     parameter bit REG_RD_DATA = 1'b0,
@@ -278,7 +278,7 @@ module ram_sdp_quartus #(
 endmodule
 
 
-// The following module demonstrates the workaround to get the STYLE parameter
+// The following module demonstrates a workaround to get the STYLE parameter
 // working in Vivado. Hopefully the bug will be fixed in future versions, 
 // allowing this template to be merged with the previous one.
 
@@ -302,8 +302,8 @@ module ram_sdp_vivado #(
     //
     //(* ram_style = STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
 
-    // However, but Vivado has a bug preventing anything but string literals 
-    // from being used in attributes. So, we can hardcode a string literal, but
+    // However, Vivado has a bug preventing string parameters from being  
+    // used in attributes. So, we can hardcode a string literal, but
     // that doesn't give us the flexibility to support different styles via a
     // parameter.
 
@@ -340,6 +340,120 @@ module ram_sdp_vivado #(
         // prefix with the generate label l_ram.
         if (wr_en) l_ram.ram[wr_addr] <= wr_data;
         if (rd_en) rd_data_ram <= l_ram.ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
+// The following module demonstrates a more concise workaround to get the STYLE 
+// parameter working in Vivado.
+
+module ram_sdp_vivado2 #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter string STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    // Vivado surprisingly supports attributes defined by a packed logic array, but
+    // not a string. So, we simply convert the string to a packed array.
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
+
+    // Use the packed logic array in the attribute, instead of the string parameter.
+    (* ram_style = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
+// Fortunately, the Vivado workaround in the previous example also works in 
+// Quartus Prime Pro (non-pro versions weren't tested). This means we can now
+// create a general SDP module that works across Intel/Altera and AMD/Xilinx.
+
+module ram_sdp_general #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter string STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    // The Vivado workaround doesn't break anything in Quartus, we we reuse it.
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
+
+    // Specify ram_style for Vivado, and ramstyle for Quartus.
+    (* ram_style = MEM_STYLE, ramstyle = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
     end
 
     if (WRITE_FIRST) begin : l_write_first
@@ -415,8 +529,8 @@ module ram_sdp #(
             .*
         );
 
-    end else if (ARCH == "general") begin : l_general
-        ram_sdp_general #(
+    end else if (ARCH == "combined") begin : l_general
+        ram_sdp_combined #(
             .DATA_WIDTH (DATA_WIDTH),
             .ADDR_WIDTH (ADDR_WIDTH),
             .REG_RD_DATA(REG_RD_DATA),
@@ -444,6 +558,28 @@ module ram_sdp #(
         ) ram (
             .*
         );
+    end else if (ARCH == "vivado2") begin : l_vivado2
+        ram_sdp_vivado2 #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            .STYLE      (STYLE)
+        ) ram (
+            .*
+        );
+    end else if (ARCH == "general") begin : l_general
+        ram_sdp_general #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            .STYLE      (STYLE)
+        ) ram (
+            .*
+        );
+    end else begin : l_error
+        $fatal(1, "Illegal ARCH %0s for ram_sdp", ARCH);
     end
 
 endmodule

@@ -1,7 +1,7 @@
 // Greg Stitt
 // StittHub (www.stitt-hub.com)
 
-module ram_sdp_with_reset_vivado #(
+module ram_sdp_with_reset #(
     parameter int DATA_WIDTH = 16,
     parameter int ADDR_WIDTH = 10,
     parameter bit REG_RD_DATA = 1'b0,
@@ -19,33 +19,18 @@ module ram_sdp_with_reset_vivado #(
     input logic [ADDR_WIDTH-1:0] wr_addr,
     input logic [DATA_WIDTH-1:0] wr_data
 );
-    if (STYLE == "block") begin : l_ram
-        (* ram_style = "block" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "distributed") begin : l_ram
-        (* ram_style = "distributed" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "registers") begin : l_ram
-        (* ram_style = "registers" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "ultra") begin : l_ram
-        (* ram_style = "ultra" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "mixed") begin : l_ram
-        (* ram_style = "mixed" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "auto") begin : l_ram
-        (* ram_style = "auto" *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else if (STYLE == "") begin : l_ram
-        logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
-    end else begin : l_ram
-        initial begin
-            $fatal(1, "Invalid STYLE value %s", STYLE);
-        end
-    end
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
 
+    (* ram_style = MEM_STYLE, ramstyle = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
     logic [DATA_WIDTH-1:0] rd_data_ram;
 
     // IMPORTANT: Make sure to not reset anything here or it likely won't be
     // inferred as a RAM.
     always_ff @(posedge clk) begin
-        if (wr_en) l_ram.ram[wr_addr] <= wr_data;
-        if (rd_en) rd_data_ram <= l_ram.ram[rd_addr];
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
     end
 
     if (WRITE_FIRST) begin : l_write_first
