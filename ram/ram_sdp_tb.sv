@@ -14,7 +14,7 @@ module ram_sdp_tb #(
     parameter bit REG_RD_DATA = 1'b0,
     parameter bit WRITE_FIRST = 1'b0,
     parameter string STYLE = "",
-    parameter string ARCH = "vivado"
+    parameter string ARCH = "vivado_attempt1"
 );
     logic                  clk=1'b0;
     logic                  rd_en;

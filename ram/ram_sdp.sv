@@ -282,7 +282,7 @@ endmodule
 // working in Vivado. Hopefully the bug will be fixed in future versions, 
 // allowing this template to be merged with the previous one.
 
-module ram_sdp_vivado #(
+module ram_sdp_vivado1 #(
     parameter int DATA_WIDTH = 16,
     parameter int ADDR_WIDTH = 10,
     parameter bit REG_RD_DATA = 1'b0,
@@ -366,6 +366,205 @@ module ram_sdp_vivado #(
 endmodule
 
 
+module ram_sdp_vivado_attempt1 #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter logic [8*16-1:0] STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    // Fix attempt 1: simply use the logic array in place of the previous string.
+    (* ram_style = STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
+module ram_sdp_vivado_attempt2 #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter string STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    //localparam logic [8*16-1:0] MEM_STYLE = STYLE;
+    //(* ram_style = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    (* ram_style = STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
+module ram_sdp_vivado_attempt3 #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter string STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
+
+    (* ram_style = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
+module ram_sdp_vivado_quartus #(
+    parameter int DATA_WIDTH = 16,
+    parameter int ADDR_WIDTH = 10,
+    parameter bit REG_RD_DATA = 1'b0,
+    parameter bit WRITE_FIRST = 1'b0,
+    parameter string STYLE = ""
+) (
+    input  logic                  clk,
+    input  logic                  rd_en,
+    input  logic [ADDR_WIDTH-1:0] rd_addr,
+    output logic [DATA_WIDTH-1:0] rd_data,
+    input  logic                  wr_en,
+    input  logic [ADDR_WIDTH-1:0] wr_addr,
+    input  logic [DATA_WIDTH-1:0] wr_data
+);
+    localparam int MAX_STYLE_LEN = 16;
+    typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
+    localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);
+
+    (* ram_style = MEM_STYLE, ramstyle = MEM_STYLE *) logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH];
+    logic [DATA_WIDTH-1:0] rd_data_ram;
+
+    always_ff @(posedge clk) begin
+        if (wr_en) ram[wr_addr] <= wr_data;
+        if (rd_en) rd_data_ram <= ram[rd_addr];
+    end
+
+    if (WRITE_FIRST) begin : l_write_first
+        logic bypass_valid_r = 1'b0;
+        logic [DATA_WIDTH-1:0] bypass_data_r;
+
+        always_ff @(posedge clk) begin
+            if (rd_en && wr_en) bypass_data_r <= wr_data;
+            if (rd_en) bypass_valid_r <= wr_en && rd_addr == wr_addr;
+        end
+
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = bypass_valid_r ? bypass_data_r : rd_data_ram;
+        end
+    end else begin : l_read_first
+        if (REG_RD_DATA) begin : l_reg_rd_data
+            always_ff @(posedge clk) if (rd_en) rd_data <= rd_data_ram;
+        end else begin : l_no_reg_rd_data
+            assign rd_data = rd_data_ram;
+        end
+    end
+endmodule
+
+
 // Change the ARCH string in the following module to synthesize or simulate
 // different versions of the RAM.
 
@@ -374,8 +573,8 @@ module ram_sdp #(
     parameter int ADDR_WIDTH = 10,
     parameter bit REG_RD_DATA = 1'b0,
     parameter bit WRITE_FIRST = 1'b0,
-    parameter string STYLE = "",
-    parameter string ARCH = "general"
+    parameter string STYLE = "MLAB",
+    parameter string ARCH = "vivado_quartus"
 ) (
     input  logic                  clk,
     input  logic                  rd_en,
@@ -434,8 +633,8 @@ module ram_sdp #(
         ) ram (
             .*
         );
-    end else if (ARCH == "vivado") begin : l_vivado
-        ram_sdp_vivado #(
+    end else if (ARCH == "vivado1") begin : l_vivado1
+        ram_sdp_vivado1 #(
             .DATA_WIDTH (DATA_WIDTH),
             .ADDR_WIDTH (ADDR_WIDTH),
             .REG_RD_DATA(REG_RD_DATA),
@@ -444,6 +643,50 @@ module ram_sdp #(
         ) ram (
             .*
         );
+    end else if (ARCH == "vivado_attempt1") begin : l_vivado2
+        ram_sdp_vivado_attempt1 #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            .STYLE      (STYLE)
+            //.STYLE      ("block")
+        ) ram (
+            .*
+        );
+    end else if (ARCH == "vivado_attempt2") begin : l_vivado2
+        ram_sdp_vivado_attempt2 #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            //.STYLE      ("block")
+            .STYLE      (STYLE)
+        ) ram (
+            .*
+        );
+    end else if (ARCH == "vivado_attempt3") begin : l_vivado_final
+        ram_sdp_vivado_attempt3 #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            .STYLE      (STYLE)
+        ) ram (
+            .*
+        );
+    end else if (ARCH == "vivado_quartus") begin : l_vivado_quartus
+        ram_sdp_vivado_quartus #(
+            .DATA_WIDTH (DATA_WIDTH),
+            .ADDR_WIDTH (ADDR_WIDTH),
+            .REG_RD_DATA(REG_RD_DATA),
+            .WRITE_FIRST(WRITE_FIRST),
+            .STYLE      (STYLE)
+        ) ram (
+            .*
+        );
+    end else begin : l_error
+        $fatal(1, "Illegal ARCH %0s for ram_sdp", ARCH);
     end
 
 endmodule
