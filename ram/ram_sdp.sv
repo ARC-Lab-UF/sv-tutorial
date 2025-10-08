@@ -1,5 +1,8 @@
 // Greg Stitt
 // StittHub (www.stitt-hub.com)
+// See articles:
+// https://stitt-hub.com/portable-ram-inference-templates-for-fpgas/
+// https://stitt-hub.com/fpga-ram-inference-templates-part-2/
 
 // Note: This code has not been tested in the non-pro versions of Quartus. 
 // SystemVerilog support is not great in those versions, so I have abandonded 
@@ -368,6 +371,8 @@ endmodule
 
 // The following module demonstrates a more concise workaround to get the STYLE 
 // parameter working in Vivado.
+// See https://stitt-hub.com/fpga-ram-inference-templates-part-2/
+// for a detailed explanation.
 
 module ram_sdp_vivado2 #(
     parameter int DATA_WIDTH = 16,
@@ -442,7 +447,7 @@ module ram_sdp_general #(
     input  logic [ADDR_WIDTH-1:0] wr_addr,
     input  logic [DATA_WIDTH-1:0] wr_data
 );
-    // The Vivado workaround doesn't break anything in Quartus, we we reuse it.
+    // The Vivado workaround doesn't break anything in Quartus, so we reuse it.
     localparam int MAX_STYLE_LEN = 16;
     typedef logic [MAX_STYLE_LEN*8-1:0] string_as_logic_t;
     localparam logic [MAX_STYLE_LEN*8-1:0] MEM_STYLE = string_as_logic_t'(STYLE);

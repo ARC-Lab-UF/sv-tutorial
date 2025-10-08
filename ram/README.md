@@ -7,12 +7,15 @@ Note that the code as provided will only work in Quartus Prime Pro. You can exte
 work in other Quartus versions, but those versions don't have great support for SystemVerilog,
 and I didn't want to write all the code for the tool with the weakest support.
 
+For further explanation, see [Portable RAM Inference Templates for FPGAs](https://stitt-hub.com/portable-ram-inference-templates-for-fpgas/)
+and [FPGA RAM Inference Templates: Part 2](https://stitt-hub.com/fpga-ram-inference-templates-part-2/).
+
 # Suggested Study Order
 
 1. [ram_sdp](ram_sdp.sv)    
     - Illustrates a variety of single dual-port inference templates with different features.
     - Demonstrates a generalized, configurable template that combines these features.
-    - Includes Vivado and Quartus-specialized templates.
+    - Includes a unified Vivado and Quartus Prime Pro template.
     - Includes a [testbench](ram_sdp_tb.sv) for the generalized template.
 
 1. [ram_sdp_with_reset](ram_sdp_with_reset.sv)    
