@@ -1,0 +1,158 @@
+# Summary
+
+This directory extends the portable SDP RAM modules to support initialization upon bitstream loading. The included code works
+in both Vivado and Quartus.
+
+Note that the code as provided will only work in Quartus Prime Pro. You can extend it to
+work in other Quartus versions, but those versions don't have great support for SystemVerilog,
+and I didn't want to write all the code for the tool with the weakest support.
+
+Before reading the code, it is highly recommended you read [TBD]() to fully understand how to use these modules. That article details
+my exploration of attempts to find a RAM initialization approach that enables designers to use their own specialized file format
+with any synthesis tool, and with both SystemVerilog and VHDL. For the specialized file format, I include a proof-of-concept YAML
+format (see [ram_init_demo.yaml](ram_init_demo.yaml)), which allows for concise generation of patterns. I then created two modules
+to initialize the RAM: one that works directly on a file, and another that works on an array provided in a generated package. In 
+both cases, I convert the YAML RAM initialization file into either a .mem file, a SystemVerilog package, or a VHDL package.
+
+For further explanation, see [Portable RAM Inference Templates for FPGAs](https://stitt-hub.com/portable-ram-inference-templates-for-fpgas/)
+and [FPGA RAM Inference Templates: Part 2](https://stitt-hub.com/fpga-ram-inference-templates-part-2/).
+
+# Memory Initialization File Generator
+
+The [create_mem_file.py](create_mem_file.py) script parses a provided YAML file that defines the contents of memory. See [ram_init_demo.yaml](ram_init_demo.yaml) for the example used by the included code.
+
+The script either generates a .mem file for use with [ram_sdp_init_file.sv](ram_sdp_init_file.sv), or an RTL package with a constant array for use with [ram_sdp_init_array.sv](ram_sdp_init_array.sv).
+If you are using VHDL-93 or VHDL-2008, it can also create a VHDL package for use with [ram_sdp_init_array.vhd](ram_sdp_init_array.vhd) and [ram_sdp_init_array_2008.vhd](ram_sdp_init_array_2008.vhd).
+
+To create the included ram_init_demo.mem, run the [create_mem_file.py](create_mem_file.py) script as follows:
+
+```bash
+./create_mem_file.py ram_init_demo.yaml --mem ram_init_demo.mem
+```
+
+To generate ram_init_demo_pkg.sv, run the script as follows:
+
+```bash
+./create_mem_file.py ram_init_demo.yaml --sv ram_init_demo_pkg.sv
+```
+
+If you are using VHDL, run the following:
+
+```bash
+./create_mem_file.py ram_init_demo.yaml --vhdl ram_init_demo_pkg.vhd
+```
+
+You can also generate all three at the same time if needed:
+
+```bash
+./create_mem_file.py ram_init_demo.yaml --mem ram_init_demo.mem --sv ram_init_demo_pkg.sv --vhdl ram_init_demo_pkg.vhd
+```
+
+If you need to customize the output in different ways, the script provides the following arguments:
+
+```bash
+usage: create_mem_file.py [-h] [--mem MEM] [--sv SV] [--vhdl VHDL] [--pkg PKG]
+                          [--array ARRAY] [-w]
+                          yaml_file
+
+Generate RAM initialization and HDL packages from YAML
+
+positional arguments:
+  yaml_file
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --mem MEM      Memory output file (.mem format)
+  --sv SV        SystemVerilog output file
+  --vhdl VHDL    VHDL output file
+  --pkg PKG      Package name (default: YAML filename + _pkg)
+  --array ARRAY  Array name (default: YAML filename + _array)
+  -w, --warning  Enable overwrite warnings
+```
+
+# Suggested Study Order (SystemVerilog)
+
+### Initialization using a .mem file:
+
+1. [ram_init_demo.yaml](ram_init_demo.yaml)    
+    - Illustrates a custom RAM initialization format using YAML that allows for different patterns to be defined concisely.
+
+1. [ram_init_demo.mem](ram_init_demo.mem)    
+    - The .mem representations of the YAML file
+
+1. [ram_sdp_init_file.sv](ram_sdp_init_file.sv)    
+    - Illustrates a portable way of initializing a RAM from a .mem file
+
+1. [ram_init_file_demo.sv](ram_init_file_demo.sv)    
+    - Instantiates ram_sdp_init_file with a specific .mem file
+    - IMPORTANT: The path of the file will have to be adjusted for different tools
+    - WARNING: Some tools will not warn you if the path is wrong, it will just synthesize without initialization
+
+1. [ram_init_file_demo_tb.sv](ram_init_file_demo_tb.sv)    
+    - Testbench for ram_init_file_demo, with an parameter for functional and post-synthesis simulations
+    - Tests the RAM initialization
+    - WARNING: Post-synthesis simulations require compilation of simulation libraries for your targeted FPGA. You can avoid this if you use the Vivado simulator.
+
+### Initialization using an array:
+
+1. [ram_init_demo.yaml](ram_init_demo.yaml)    
+    - Illustrates a custom RAM initialization format using YAML that allows for different patterns to be defined concisely.
+
+1. [ram_init_demo_pkg.sv](ram_init_demo_pkg.sv)    
+    - Auto-generated by the Python script to provide the YAML initialization contents as an array
+
+1. [ram_sdp_init_array.sv](ram_sdp_init_array.sv)    
+    - Illustrates a portable way of initializing a RAM using a constant array provided in a package
+
+1. [ram_init_array_demo.sv](ram_init_array_demo.sv)    
+    - Instantiates ram_sdp_init_array with a constant array from the auto-generated package
+
+1. [ram_init_array_demo_tb.sv](ram_init_array_demo_tb.sv)    
+    - Testbench for ram_init_array_demo, with a parameter for functional and post-synthesis simulations
+    - Tests the RAM initialization
+    - WARNING: Post-synthesis simulations require compilation of simulation libraries for your targeted FPGA. You can avoid this if you use the Vivado simulator.
+
+# Suggested Study Order (VHDL)
+
+### Initialization using an array (VHDL-93):
+
+1. [ram_init_demo.yaml](ram_init_demo.yaml)    
+    - Illustrates a custom RAM initialization format using YAML that allows for different patterns to be defined concisely.
+
+1. [ram_sdp_init_array.vhd](ram_sdp_init_array.vhd)    
+    - Illustrates a portable way of initializing a RAM using a constant array provided in a package
+    - To workaround VHDL-93 limitations, the entity requires the array parameter to be converted into a std_logic_vector
+    - Internally, the std_logic_vector is converted back into an array
+
+1. [ram_init_demo_pkg.vhd](ram_init_demo_pkg.vhd)    
+    - Auto-generated by the Python script to provide the initialization contents as an array
+    - Includes to_slv() function to convert the array into a std_logic_vector
+
+1. [ram_init_array_demo.vhd](ram_init_array_demo.vhd)    
+    - Instantiates ram_sdp_init_array with a vectorized constant array from the auto-generated package
+
+1. [ram_init_array_demo_tb.sv](ram_init_array_demo_tb.sv)    
+    - Testbench for ram_init_array_demo, with a parameter for functional and post-synthesis simulations
+    - Tests the RAM initialization
+    - WARNING: Post-synthesis simulations require compilation of simulation libraries for your targeted FPGA. You can avoid this if you use the Vivado simulator.
+
+### Initialization using an array (VHDL-2008):
+
+1. [ram_init_demo.yaml](ram_init_demo.yaml)    
+    - Illustrates a custom RAM initialization format using YAML that allows for different patterns to be defined concisely.
+
+1. [ram_init_demo_pkg.vhd](ram_init_demo_pkg.vhd)
+    - Auto-generated by the Python script to provide the initialization contents as an array
+    - Includes to_slv() function to convert the array into a std_logic_vector
+
+1. [ram_sdp_init_array_2008.vhd](ram_sdp_init_array_2008.vhd)    
+    - Illustrates a portable way of initializing a RAM using a constant array provided in a package
+    - Avoids converting the array into a std_logic_vector    
+
+1. [ram_init_array_demo_2008.vhd](ram_init_array_demo_2008.vhd)    
+    - Instantiates ram_sdp_init_array with a constant array from the auto-generated package
+
+1. [ram_init_array_demo_2008_tb.vhd](ram_init_array_demo_2008_tb.sv)    
+    - Testbench for ram_init_array_demo_2008, with a parameter for functional and post-synthesis simulations
+    - Tests the RAM initialization
+    - WARNING: Post-synthesis simulations require compilation of simulation libraries for your targeted FPGA. You can avoid this if you use the Vivado simulator.

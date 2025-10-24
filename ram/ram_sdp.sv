@@ -5,7 +5,7 @@
 // https://stitt-hub.com/fpga-ram-inference-templates-part-2/
 
 // Note: This code has not been tested in the non-pro versions of Quartus. 
-// SystemVerilog support is not great in those versions, so I have abandonded 
+// SystemVerilog support is not great in those versions, so I have abandoned 
 // trying to support it.
 
 // The following module provides standard single dual-port RAM behavior that

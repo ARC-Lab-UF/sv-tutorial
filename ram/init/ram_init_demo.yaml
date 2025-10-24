@@ -1,0 +1,31 @@
+width: 8
+depth: 64
+default: 0x00
+
+patterns:
+  # Fill addresses 0 to 7 with 0xFF
+  - range: [0x00, 0x07]
+    fill: 0xFF
+
+  # Fill addresses 8 to 15 with sequence 0x10, 0x12, 0x14, etc.
+  - range: [0x08, 0x0F]
+    seq_start: 0x10 # Starting sequence value
+    seq_step: 2     # Amount between each sequence value (i.e. step)
+
+  # Fill addresses 16 to 23 with 0xAA, 0x55, 0x77, 0xAA, 0x55, 0x77, etc.
+  - range: [0x10, 0x17]
+    repeat: [0xAA, 0x55, 0x77]    
+
+  # Fill addresses 24 to 31 with random values
+  - range: [0x18, 0x1f]
+    random:
+      seed: 12345  # optional
+      min: 0x10    # optional
+      max: 0x1F    # optional
+
+# Initialize specific addresses with custom values
+values:  
+  0x20: 0xBC
+  0x21: 0xA0
+  0x22: 0x55  
+ 

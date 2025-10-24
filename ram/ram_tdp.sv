@@ -24,7 +24,7 @@
 // wide differences of read-during-write behaviors on different FPGAs.
 //
 // Note: This has not been tested in the non-pro versions of Quartus. 
-// SystemVerilog support is not great in those versions, so I have abandonded 
+// SystemVerilog support is not great in those versions, so I have abandoned 
 // trying to support it.
 
 module ram_tdp #(

@@ -3,7 +3,7 @@
 
 `timescale 1 ns / 100 ps
 
-// Change the ARCH parameter to test a different DSP implementation. Not all 
+// Change the ARCH parameter to test a different SDP implementation. Not all 
 // implementations support REG_RD_DATA and WRITE_FIRST.
 
 module ram_sdp_tb #(

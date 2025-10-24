@@ -26,3 +26,5 @@ and [FPGA RAM Inference Templates: Part 2](https://stitt-hub.com/fpga-ram-infere
     - Explains a generalized true dual-port RAM inference template.
     - Supports both Vivado and Quartus Prime Pro.
     - Requires corresponding TDP memories in targetted FPGA.
+
+1. [RAM with initialization upon bitstream configuration](init)    
