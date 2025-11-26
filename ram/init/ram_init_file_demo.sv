@@ -8,7 +8,7 @@ module ram_init_file_demo #(
     parameter bit WRITE_FIRST = 1'b0,
     parameter string STYLE = "",
 
-    // IMPORTANT: Make sure this path is relative the PWD of your sim/synth project.
+    // IMPORTANT: Make sure this path is relative the working directory of your sim/synth project.
     // This can require some experimentation, with some tools not even reporting a
     // warning if the file doesn't exist at the right path.
     parameter string INIT = "ram_init_demo.mem"   
