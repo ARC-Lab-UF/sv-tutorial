@@ -23,6 +23,7 @@
 # Greg Stitt
 # StittHub (www.stitt-hub.com)
 # See articles:
+# https://stitt-hub.com/organizing-the-chaos-of-fpga-ram-initialization-a-vendor-and-language-agnostic-approach/
 # https://stitt-hub.com/portable-ram-inference-templates-for-fpgas/
 # https://stitt-hub.com/fpga-ram-inference-templates-part-2/
 

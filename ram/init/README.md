@@ -7,7 +7,7 @@ Note that the code as provided will only work in Quartus Prime Pro. You can exte
 work in other Quartus versions, but those versions don't have great support for SystemVerilog,
 and I didn't want to write all the code for the tool with the weakest support.
 
-Before reading the code, it is highly recommended you read [TBD]() to fully understand how to use these modules. That article details
+Before reading the code, it is highly recommended you read [Organizing the Chaos of FPGA RAM Initialization: A Vendor- and Language-Agnostic Approach](https://stitt-hub.com/organizing-the-chaos-of-fpga-ram-initialization-a-vendor-and-language-agnostic-approach/) to fully understand how to use these modules. That article details
 my exploration of attempts to find a RAM initialization approach that enables designers to use their own specialized file format
 with any synthesis tool, and with both SystemVerilog and VHDL. For the specialized file format, I include a proof-of-concept YAML
 format (see [ram_init_demo.yaml](ram_init_demo.yaml)), which allows for concise generation of patterns. I then created two modules
