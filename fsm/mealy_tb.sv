@@ -19,7 +19,7 @@ module mealy_tb;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 0);
 
         // Reset the FSM.
         rst <= 1'b1;
