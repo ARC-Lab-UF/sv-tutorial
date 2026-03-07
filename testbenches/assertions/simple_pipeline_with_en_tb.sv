@@ -303,7 +303,7 @@ module simple_pipeline_with_en_tb3
     // To avoid those exceptions, we can explicitly wait for a valid_in, and 
     // then validate the output after LATENCY occurrences of en. This strategy
     // is shown below:
-    assert property (@(posedge clk) disable iff (rst) valid_in |-> en [-> LATENCY] ##1 data_out == model($past(data_in, LATENCY, en)));
+    assert property (@(posedge clk) disable iff (rst) valid_in && en |-> en [-> LATENCY] ##1 data_out == model($past(data_in, LATENCY, en)));
 
     // Up to this point, our assertion strategy has been to validate the output
     // by looking back through time to get the input at the start of the
@@ -316,7 +316,7 @@ module simple_pipeline_with_en_tb3
         // The antecedent of the implication waits for valid_in && en, and then 
         // saves the correct output into correct_data_out by computing the model
         // based on the current input at the start of the test. You can have
-        // other statements execute in the antecedent by having addition commas
+        // other statements execute in the antecedent by having additional commas
         // within the parantheses.
         @(posedge clk) disable iff (rst) (valid_in && en, correct_data_out = model(data_in)) |-> en [-> LATENCY] ##1 data_out == correct_data_out;
     endproperty

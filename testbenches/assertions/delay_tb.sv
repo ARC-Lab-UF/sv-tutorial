@@ -421,11 +421,93 @@ module delay_tb5 #(
         $display("Tests completed.");
     end
 
+    // Various methods for verifying data_out.
+
     // en[->CYCLES] replaces the previous counter by doing the same thing in 
     // much less code. This operator is called the "go to" repetition operator. 
     // It causes the antecedent to trigger after en has been asserted in CYCLES 
     // cycles, which do not have to be consecutive.
+    //
+    // Here is an example timing diagram assuming CYCLES == 2   
+    // Cycle    En  Comments
+    // 0        1   en count = 1
+    // 1        0    
+    // 2        1   en count = 2 (en [->CYCLES] is true)
+    // 3        0   perform comparison 1 cycle after 2nd en occurrence
     assert property (@(posedge clk) disable iff (rst) en [-> CYCLES] |=> data_out == $past(data_in, CYCLES, en));
+
+    // An alternative strategy is to only sample on clock edges where en is 
+    // asserted. In that case, our antecedent is simply 1 because we always want
+    // trigger the consequent. We then wait for CYCLES more samples (i.e. cycles
+    // with en=1), and then check the output. IMPORTANT: these behaviors are
+    // slightly different. This "gated" assertion strategy only finishes on
+    // cycles where en = 1, whereas the previous assertion finishes 1 cycle 
+    // after CYCLES occurrences of en, in which case en can be 0 or 1. For this
+    // delay, the functionality is still correct since when en is 0 data_out
+    // won't change. However, you should use this method carefully due to the
+    // timing difference. Also, note that $past no longer needs a gate because it 
+    // is included in the clocking event.
+    //
+    // Here is an example timing diagram assuming CYCLES == 2
+    // Cycle    En  Comments
+    // 0        1   Antecedent triggered
+    // 1        0   no clocking event due to en = 0
+    // 2        1   CYCLES count = 1
+    // 3        0   no clocking event 
+    // ...      0   no clocking event 
+    // n        1   CYCLES count = 2 => perform comparison on 3rd en, but before the output has changed.
+    assert property (@(posedge clk iff en) disable iff (rst) 1 |-> ##CYCLES data_out == $past(data_in, CYCLES));
+
+    // The previous two assertions use the strategy of waiting until the output
+    // is valid and then looking back in time to get the input. In some cases,
+    // it is easier to do the opposite: sample the input, wait until the output
+    // is valid, and then compare. You can do this by adding local variables and
+    // using a "sequence match item" or "sequence action". For example,
+    // (en, captured_in = data_in) states that when initial expression (en) is
+    // true, then execute the expression on the right (captured_in = data_in).
+    // In other words, when en is asserted, store the current data_in into 
+    // captured_in. Then, we immediately (##0) start tracking en occurrences.
+    // Finally, like before, we wait for CYCLES en occurrences and the compare 
+    // the current output with the captured input.
+    property p1;
+        logic [31:0] captured_in;
+        @(posedge clk) disable iff (rst) (en, captured_in = data_in) ##0 en [-> CYCLES] |=> data_out == captured_in;
+    endproperty
+    assert property (p1);
+
+    // Alternatively, you can do something similar in the consequent. However, this
+    // has a similar issue as the gated clocking event where the assertion can only 
+    // finish when en = 1.
+    property p2;
+        logic [31:0] captured_in;
+        @(posedge clk) disable iff (rst) (en, captured_in = data_in) |=> en [-> CYCLES] ##0 data_out == captured_in;
+    endproperty
+    assert property (p2);
+
+    // This version eliminates the requirement for finising on en=1 by waiting for
+    // CYCLES en occurrences (including the first one), and then waiting for the 
+    // next cycle to check the output.
+    property p3;
+        logic [31:0] captured_in;
+        @(posedge clk) disable iff (rst) (en, captured_in = data_in) |-> en [-> CYCLES] ##1 data_out == captured_in;
+    endproperty
+    assert property (p3);
+
+    // We can also use the same forward-looking strategy with the gated clocking
+    // event. This has the same limitation of only finishing when en = 1.
+    property p4;
+        logic [31:0] captured_in;
+        @(posedge clk iff en) disable iff (rst)        
+        (1, captured_in = data_in) |-> ##CYCLES data_out == captured_in;
+    endproperty
+    assert property (p4);
+
+    // If you're wondering which one of these you should use, it is often
+    // personal preference, but the forward-looking strategy can be easier to 
+    // debug due to visibility of the property's local variables in some 
+    // simulators. Also, I've heard from others that the forward-looking 
+    // version is more formal-verification friendly.
+
 
     // To verify the reset, we can check to make sure that data_out is 0
     // throughout the entire window of time between when reset is cleared
@@ -455,7 +537,7 @@ module delay_tb5 #(
 
     // The following is another potential solution that has a common misunderstanding.
     // When reading this in English, it sounds like what we want: wait until 
-    // reset falls, that check that data_out is 0 until we've seen CYCLES enables.
+    // reset falls, then check that data_out is 0 until we've seen CYCLES enables.
     // However, that isn't what this actually means. It means wait until reset
     // falls, then verify that data_out is 0 **until the beginning** of a window
     // of time between 0 and CYCLES enables. Because that window starts immediately,

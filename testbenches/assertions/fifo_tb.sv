@@ -344,9 +344,7 @@ module fifo_tb4 #(
     always_ff @(posedge clk or posedge rst)
         if (rst) begin
             model_queue = {};
-        end else begin
-            // IMPORTANT: We need to get the size before any modifications
-            // since that's how the FIFO works.
+        end else begin            
             automatic int size = model_queue.size();
 
             // Pop the front element on a valid read.
