@@ -28,7 +28,7 @@ module simple_pipeline_with_en_tb_bad #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the circuit.
         rst      <= 1'b1;
@@ -106,7 +106,7 @@ module simple_pipeline_with_en_tb1 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the circuit.
         rst      <= 1'b1;
@@ -174,7 +174,7 @@ module simple_pipeline_with_en_tb2 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the circuit.
         rst      <= 1'b1;
@@ -262,7 +262,7 @@ module simple_pipeline_with_en_tb3
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the circuit.
         rst      <= 1'b1;

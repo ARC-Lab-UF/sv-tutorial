@@ -25,7 +25,7 @@ module bit_diff_tb;
    end
 
    initial begin      
-      $timeformat(-9, 0, " ns");
+      $timeformat(-9, 0, " ns", 20);
       test_random.run(NUM_RANDOM_TESTS, NUM_REPEATS);      
       test_consecutive.run(NUM_CONSECUTIVE_TESTS, NUM_REPEATS);
       test_random.report_status();

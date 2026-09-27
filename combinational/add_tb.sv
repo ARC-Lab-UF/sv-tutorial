@@ -17,7 +17,7 @@ module add_tb #(
     add #(.WIDTH(WIDTH)) DUT (.*);
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < NUM_TESTS; i++) begin
             in0 <= $urandom;
@@ -52,7 +52,7 @@ module add_carry_out_tb #(
     initial begin
         logic [WIDTH-1:0] correct_sum;
         logic correct_carry_out;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < NUM_TESTS; i++) begin
             in0 <= $urandom;
@@ -95,7 +95,7 @@ module add_carry_inout_tb #(
     initial begin
         logic [WIDTH-1:0] correct_sum;
         logic correct_carry_out;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < NUM_TESTS; i++) begin
             in0 <= $urandom;
@@ -137,7 +137,7 @@ module add_carry_inout_overflow_tb #(
         logic [WIDTH-1:0] correct_sum;
         logic     correct_carry_out;
         logic     correct_overflow;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < NUM_TESTS; i++) begin
             in0 <= $urandom;

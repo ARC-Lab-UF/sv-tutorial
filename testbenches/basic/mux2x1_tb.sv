@@ -70,7 +70,7 @@ module mux2x1_tb;
         //
         // See following for formatting:
         // https://www.chipverify.com/verilog/verilog-timeformat
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Loop over all possible combinations of inputs.       
         for (int i = 0; i < 8; i++) begin
@@ -152,7 +152,7 @@ module mux2x1_all_tb;
     endfunction
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 8; i++) begin
 
@@ -199,7 +199,7 @@ module mux2x1_tb2;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 8; i++) begin
 
@@ -265,7 +265,7 @@ module mux2x1_tb3;
     // responsibilities. We imitate that here with a block that solely drives
     // the DUT with different input stimuli.
     initial begin : provide_stimulus
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 8; i++) begin
             in0 <= i[0];

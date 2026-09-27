@@ -35,7 +35,7 @@ module alu_tb #(
     endfunction
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Test NUM_TESTS random inputs and select values.
         for (int i = 0; i < NUM_TESTS; i++) begin

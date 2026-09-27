@@ -30,7 +30,7 @@ module reset_race1;
     always @(posedge clk) rst = ~rst;
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Check the output of the register on every falling clock edge. We'll see
         // better ways to do this, but we have to give the register time to change
@@ -103,7 +103,7 @@ module reset_race2;
     always @(posedge clk) rst = ~rst;
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 10000; i++) begin
             @(negedge clk);
@@ -176,7 +176,7 @@ module reset_race_fix;
     always @(posedge clk) rst <= ~rst;
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 10000; i++) begin
             @(negedge clk);

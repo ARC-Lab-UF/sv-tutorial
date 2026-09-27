@@ -40,7 +40,7 @@ module delay_tb1 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst <= 1'b1;
@@ -141,7 +141,7 @@ module delay_tb2 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst     <= 1'b1;
@@ -234,7 +234,7 @@ module delay_tb3 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst     <= 1'b1;
@@ -319,7 +319,7 @@ module delay_tb4 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst     <= 1'b1;
@@ -399,7 +399,7 @@ module delay_tb5 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst     <= 1'b1;

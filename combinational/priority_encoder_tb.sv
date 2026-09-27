@@ -21,7 +21,7 @@ module priority_encoder_tb #(
     initial begin
         logic [$clog2(NUM_INPUTS)-1:0] correct_result;
         logic                          correct_valid;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 2 ** NUM_INPUTS; i++) begin
             inputs <= i;

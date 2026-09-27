@@ -67,7 +67,7 @@ module ram_init_file_demo_tb
         logic [DATA_WIDTH-1:0] wr_data_temp;
         logic wr_en_temp;
 
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         wr_en   <= 1'b0;
         wr_addr <= '0;

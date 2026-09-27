@@ -27,7 +27,7 @@ module add_tb1 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Generate random tests for all inputs.
         for (int i = 0; i < NUM_TESTS; i++) begin
@@ -121,7 +121,7 @@ module add_tb2 #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Random tests.
         for (int i = 0; i < RANDOM_TESTS; i++) begin
@@ -272,7 +272,7 @@ module add_tb3 #(
 
     initial begin
         cg_inst = new();
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Random tests.
         for (int i = 0; i < RANDOM_TESTS; i++) begin
@@ -408,7 +408,7 @@ module add_tb4 #(
 
     initial begin
         cg_inst = new();
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Random tests.
         for (int i = 0; i < RANDOM_TESTS; i++) begin

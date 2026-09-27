@@ -24,7 +24,7 @@ module mux4x1_tb;
    mux4x1 #(.WIDTH(WIDTH)) DUT (.*);
 
    initial begin
-      $timeformat(-9, 0, " ns");
+      $timeformat(-9, 0, " ns", 20);
 
       for (int i=0; i < NUM_TESTS; i++) begin
 	 for (int j=0; j < 4; j++) begin

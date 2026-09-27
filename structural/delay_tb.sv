@@ -31,7 +31,7 @@ module delay_tb #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the circuit.
         rst <= 1'b1;

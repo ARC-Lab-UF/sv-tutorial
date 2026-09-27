@@ -13,7 +13,7 @@ module ripple_carry_adder_tb;
     ripple_carry_adder UUT (.*);
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < NUM_TESTS; i++) begin
             x   <= $urandom;

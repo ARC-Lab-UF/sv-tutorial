@@ -71,7 +71,7 @@ module bit_diff_tb_basic;
 
     // Do everything else.
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         passed = 0;
         failed = 0;
@@ -308,7 +308,7 @@ module bit_diff_tb1;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the generator and driver mailboxes and events.
         gen.driver_mailbox = driver_mailbox;
@@ -496,7 +496,7 @@ module bit_diff_tb2;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         gen.driver_mailbox = driver_mailbox;
         drv.driver_mailbox = driver_mailbox;
@@ -702,7 +702,7 @@ module bit_diff_tb3;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Initialize the generator and driver.
         gen.driver_mailbox = driver_mailbox;
@@ -849,7 +849,7 @@ module bit_diff_tb4;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Connect the interface to the environment.
         _env.vif = _if;
@@ -1214,7 +1214,7 @@ module bit_diff_tb5;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
         _env.vif <= _if;
         _if.rst  <= 1'b1;
         _if.go   <= 1'b0;
@@ -1542,7 +1542,7 @@ module bit_diff_tb6;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
         _if.rst <= 1'b1;
         _if.go  <= 1'b0;
         for (int i = 0; i < 5; i++) @(posedge clk);
@@ -1837,7 +1837,7 @@ module bit_diff_tb7;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
         test0.run();
         test1.run();
         test0.report_status();
@@ -2216,7 +2216,7 @@ module bit_diff_tb8;
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
         test0.run();
         test1.run();
         test0.report_status();
@@ -2289,7 +2289,7 @@ module bit_diff_tb_no_hierarchy #(
 
     // Initialize the DUT.
     initial begin : initialization
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the design.
         rst  <= 1'b1;

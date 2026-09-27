@@ -86,7 +86,7 @@ module mux2x1_tb;
         // See following for formatting of $display and time:
         // https://www.chipverify.com/verilog/verilog-display-tasks
         // https://www.chipverify.com/verilog/verilog-timeformat
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Loop over all possible combinations of inputs.	
         for (integer i = 0; i < 8; i = i + 1) begin

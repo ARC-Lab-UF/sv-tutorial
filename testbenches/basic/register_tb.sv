@@ -45,7 +45,7 @@ module register_tb1 #(
     // This "monolithic" strategy can sometimes work alright for basic examples, 
     // but will lead to many problems for more complex examples.
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Reset the register. Following the advice from the race-condition 
         // examples, reset (and all DUT inputs) are asserted with a 
@@ -121,7 +121,7 @@ module register_tb2 #(
 
     // A process for driving the inputs.
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= '0;
@@ -212,7 +212,7 @@ module register_tb3 #(
     end
 
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= '0;

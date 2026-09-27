@@ -28,7 +28,7 @@ module moore_tb #(
     logic [$bits(out)-1:0] correct_out;
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         en <= 1'b0;

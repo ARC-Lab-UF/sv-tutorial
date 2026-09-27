@@ -49,7 +49,7 @@ function void check_output(string name, logic actual, logic correct);
 endfunction
 
 initial begin
-    $timeformat(-9, 0, " ns");
+    $timeformat(-9, 0, " ns", 20);
 
     for (int i = 0; i < 8; i++) begin
 

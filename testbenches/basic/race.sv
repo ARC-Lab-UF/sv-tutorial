@@ -44,7 +44,7 @@ module race;
 
     // Generate x=0...9, once per cycle.
     initial begin : drive_x
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 10; i++) begin
             x = i;
@@ -121,7 +121,7 @@ module race_fix;
 
     // Generate x=0...9, once per cycle.
     initial begin : drive_x
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 10; i++) begin
             // By simply changing the assignment of x to non-blocking, we

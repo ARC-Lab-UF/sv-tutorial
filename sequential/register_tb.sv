@@ -21,7 +21,7 @@ module register_tb #(
     end
 
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= 1'b0;

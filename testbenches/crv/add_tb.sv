@@ -105,7 +105,7 @@ module add_tb #(
     initial begin
         item = new;
         cg_inst = new;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // With the add item class that uses CRV, we no longer need to manually 
         // specify directed tests. We simply just generate a number of tests using 

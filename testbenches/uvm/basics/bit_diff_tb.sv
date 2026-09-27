@@ -136,7 +136,7 @@ module bit_diff_tb #(
     // the classes to the config_db, allowing them to be read from multiple 
     // places.
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Store a virtual interface (i.e., a pointer to the interface) in the 
         // config_db under the name "vif".

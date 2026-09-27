@@ -17,7 +17,7 @@ module priority_encoder_4in_tb;
     initial begin
         logic [1:0] correct_result;
         logic       correct_valid;
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         for (int i = 0; i < 16; i++) begin
             inputs <= i;

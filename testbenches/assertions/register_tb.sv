@@ -40,7 +40,7 @@ module register_no_en_tb_bad #(
 
     // Drive the inputs.
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= 1;  // Purposely set to 1 here to expose assertion error.;
@@ -97,7 +97,7 @@ module register_no_en_tb1 #(
 
     // Drive the inputs.
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= 1;  // Purposely set to 1 here to expose assertion error.
@@ -175,7 +175,7 @@ module register_no_en_tb2 #(
 
     // Drive the inputs.
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= 1;  // Purposely set to 1 here to expose assertion error.        
@@ -261,7 +261,7 @@ module register_en_tb #(
 
     // Drive the inputs.
     initial begin : drive_inputs
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         rst <= 1'b1;
         in  <= 1;

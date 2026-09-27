@@ -81,7 +81,7 @@ module accum_tb #(
     end
 
     initial begin
-        $timeformat(-9, 0, " ns");
+        $timeformat(-9, 0, " ns", 20);
 
         // Store the virtual interfaces.
         uvm_config_db#(virtual axi4_stream_if #(accum_tb_pkg::INPUT_WIDTH))::set(uvm_root::get(), "*", "in_vif", in_intf);
